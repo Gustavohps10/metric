@@ -26,8 +26,10 @@ export type Row = SyncTimeEntryRxDBDTO & {
 export const columns: ColumnDef<Row>[] = [
   {
     id: 'expand',
-    header: 'Apontamentos',
-    size: 60,
+    header: '',
+    size: 40,
+    minSize: 40,
+    maxSize: 40,
     cell: ({ row }) => {
       if (row.depth > 0) return null
       const count = row.original.subRows?.length ?? 0
@@ -55,7 +57,7 @@ export const columns: ColumnDef<Row>[] = [
 
             <Badge
               variant="outline"
-              className="bg-muted/30 border-border/50 flex h-5 min-w-[20px] items-center px-1 font-mono text-[11px]"
+              className="bg-muted/30 border-border/50 flex h-4 min-w-[18px] items-center px-1 font-mono text-[10px]"
             >
               {count || 1}
             </Badge>
@@ -67,8 +69,13 @@ export const columns: ColumnDef<Row>[] = [
   {
     id: 'issue_id',
     accessorKey: 'task.id',
-    header: 'Ticket',
-    size: 80,
+    header: () => (
+      <div className="text-center text-[10px] font-bold uppercase opacity-70">
+        Ticket
+      </div>
+    ),
+    size: 110,
+    minSize: 100,
     cell: ({ row }) => {
       const taskId = row.original.task?.id
       const taskSubject = row.original.taskData?.title

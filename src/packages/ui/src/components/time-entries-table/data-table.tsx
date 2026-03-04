@@ -99,6 +99,8 @@ export function DataTable<TData extends { subRows?: TData[]; id: string }>({
                       'border-border/40 overflow-hidden border-b py-2 text-sm whitespace-nowrap',
                       cell.column.id === 'actions' ? 'px-0 pr-2' : 'px-4',
                       cell.column.getIndex() === 0 && row.depth > 0 && 'pl-10',
+                      cell.column.id === 'expand' && 'px-0 pl-2',
+                      cell.column.getIndex() === 0 && row.depth > 0 && 'pl-10',
                     )}
                   >
                     {flexRender(cell.column.columnDef.cell, cell.getContext())}

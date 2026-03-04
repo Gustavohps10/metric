@@ -34,7 +34,6 @@ import {
   FlaskConical,
   GraduationCap,
   Handshake,
-  Hash,
   HourglassIcon,
   LifeBuoy,
   ListPlus,
@@ -64,6 +63,7 @@ import { useSearchParams } from 'react-router-dom'
 import { toast } from 'sonner'
 
 import { DatePickerWithRange } from '@/components'
+import { LookupInput } from '@/components/lookup-input'
 import { TaskLookup } from '@/components/task-lookup'
 import {
   columns as baseColumns,
@@ -256,6 +256,8 @@ export function TimeEntries() {
   const { user } = useAuth()
   const queryClient = useQueryClient()
   const [searchParams, setSearchParams] = useSearchParams()
+  const [taskLookupOpen, setTaskLookupOpen] = useState(false)
+  const [rowBeingEdited, setRowBeingEdited] = useState<string | null>(null)
 
   const [editingRows, setEditingRows] = useState<Record<string, boolean>>({})
   const [tempData, setTempData] = useState<
@@ -536,23 +538,32 @@ export function TimeEntries() {
 
             if (isEditing) {
               return (
-                <TaskLookup
-                  currentUserId={user?.id.toString()}
-                  onSelect={(task) => {
-                    setTempData((p) => ({
-                      ...p,
-                      [original.id]: {
-                        ...p[original.id],
-                        task: { id: task.id },
-                      },
-                    }))
-                  }}
-                  trigger={badgeElement}
-                />
+                <div className="flex w-full justify-center">
+                  <LookupInput
+                    size="2xs"
+                    value={currentTaskId ?? ''}
+                    onChange={(id) =>
+                      setTempData((p) => ({
+                        ...p,
+                        [original.id]: {
+                          ...p[original.id],
+                          task: { id },
+                        },
+                      }))
+                    }
+                    onOpenLookup={() => {
+                      setRowBeingEdited(original.id)
+                      setTaskLookupOpen(true)
+                    }}
+                    placeholder="Tarefa"
+                  />
+                </div>
               )
             }
 
-            return badgeElement
+            return (
+              <div className="flex w-full justify-center">{badgeElement}</div>
+            )
           },
         }
       }
@@ -826,7 +837,7 @@ export function TimeEntries() {
                       parseISO(original.startDate ?? ''),
                       'yyyy-MM-dd',
                     )
-                    const combinedKey = `${dayKey}-${original.task.id}`
+                    const combinedKey = `${dayKey}-${original.task?.id ?? 'sem-issue'}`
                     setDuplicatingRowId(original.id)
                     setExpandedRows((prev) => ({
                       ...(typeof prev === 'object' ? prev : {}),
@@ -864,10 +875,38 @@ export function TimeEntries() {
     tempData,
     queryClient,
     user,
+    setTempData,
+    setRowBeingEdited,
+    setTaskLookupOpen,
   ])
 
   return (
     <>
+      <TaskLookup
+        open={taskLookupOpen}
+        onOpenChange={(open) => {
+          setTaskLookupOpen(open)
+          if (!open) setRowBeingEdited(null)
+        }}
+        currentUserId={user?.id.toString()}
+        onSelect={(task) => {
+          if (rowBeingEdited) {
+            setTempData((p) => ({
+              ...p,
+              [rowBeingEdited]: {
+                ...p[rowBeingEdited],
+                task: { id: task.id },
+              },
+            }))
+            setRowBeingEdited(null)
+          } else {
+            setSelectedTask(task)
+          }
+
+          setTaskLookupOpen(false)
+        }}
+      />
+
       <h1 className="text-2xl font-semibold tracking-tight">Apontamento</h1>
       <Breadcrumb>
         <BreadcrumbList>
@@ -886,25 +925,26 @@ export function TimeEntries() {
         <CardContent className="flex h-14 items-center gap-0 p-0">
           <div className="group focus-within:bg-background flex h-full flex-1 items-center border-r px-4 transition-colors">
             <div className="relative flex w-full items-center gap-2">
-              <TaskLookup
-                currentUserId={user?.id.toString()}
-                onSelect={setSelectedTask}
-                trigger={
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    className={cn(
-                      'border-border/60 bg-background h-8 gap-2 px-3 font-mono',
-                      !selectedTask && 'text-muted-foreground',
-                    )}
-                  >
-                    <Hash className="h-3.5 w-3.5 opacity-70" />
-                    <span className="text-xs font-semibold">
-                      {selectedTask ? `${selectedTask.id}` : 'Tarefa'}
-                    </span>
-                  </Button>
-                }
-              />
+              <div className="w-[180px]">
+                <LookupInput
+                  value={selectedTask?.id ?? ''}
+                  onChange={(id) => {
+                    if (!id) {
+                      setSelectedTask(null)
+                      return
+                    }
+
+                    setSelectedTask((prev) =>
+                      prev ? { ...prev, id } : ({ id } as SyncTaskRxDBDTO),
+                    )
+                  }}
+                  onOpenLookup={() => {
+                    setRowBeingEdited(null) // importante
+                    setTaskLookupOpen(true)
+                  }}
+                  placeholder="Tarefa"
+                />
+              </div>
               <div className="bg-border mx-1 h-4 w-px" />
               <Input
                 value={comments}
