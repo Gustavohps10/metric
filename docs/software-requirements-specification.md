@@ -403,3 +403,69 @@ Ativar licença corporativa.
 3. Sistema envia Magic Link
 4. Usuário autentica
 5. Licença Pro é ativada
+
+# Mermaid Diagram
+```mermaid
+flowchart TB
+    subgraph LeftColumn [ ]
+        direction TB
+        style LeftColumn fill:none,stroke:none
+        
+        subgraph ControlPlane [Control Plane]
+            direction TB
+            Auth[Authentication]
+            Orgs[Organizations]
+            Lic[Licensing]
+        end
+    end
+
+    subgraph RightColumn [ ]
+        direction TB
+        style RightColumn fill:none,stroke:none
+
+        subgraph Clients [Clients]
+            direction TB
+            Desktop[Desktop Client]
+            Mobile[Mobile Client]
+            SelfHosted[Self-Hosted Server]
+        end
+
+        subgraph AppCore [Application Core]
+            direction TB
+            SharedUI[Shared UI]
+            RxDB[(RxDB Local Database)]
+            Sync[Sync Engine]
+            
+            SharedUI --> RxDB --> Sync
+        end
+
+        subgraph Integrations [Integrations]
+            direction TB
+            subgraph DataSources [Data Sources]
+                Jira[Jira]
+                Redmine[Redmine]
+                Other[Other Systems]
+            end
+            
+            subgraph Plugins [Plugins]
+                Clock[Time Clock Plugin]
+                Git[Git Activity Plugin]
+                Ext[Custom Extensions]
+            end
+        end
+    end
+
+    %% Connections to Control Plane
+    Desktop & Mobile & SelfHosted --> Auth
+    Desktop & Mobile & SelfHosted --> Orgs
+    Desktop & Mobile & SelfHosted --> Lic
+
+    %% Connections to Application Core
+    Desktop & Mobile & SelfHosted --> SharedUI
+
+    %% Connections to Integrations
+    Sync --> DataSources
+    Sync --> Plugins
+
+    %% Layout constraint to keep columns side-by-side
+    LeftColumn ~~~ RightColumn
