@@ -1,0 +1,5 @@
+﻿@startuml diagram-infra-002-deployment-cloud.puml
+title Functional Diagram diagram-infra-002-deployment-cloud.puml
+participant System
+System -> System: Internal Logic
+@enduml

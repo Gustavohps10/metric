@@ -1,0 +1,5 @@
+﻿@startuml diagram-flow-006-task-edit.puml
+title Functional Diagram diagram-flow-006-task-edit.puml
+participant System
+System -> System: Internal Logic
+@enduml

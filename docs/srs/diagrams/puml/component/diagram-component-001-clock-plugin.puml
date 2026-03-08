@@ -1,0 +1,13 @@
+﻿@startuml ComponentClock
+package "Plugin System" {
+    component [Plugin Host] as Host
+    interface "ITimelapsePlugin" as IPlugin
+}
+
+package "Clock Extension" {
+    [Clock UI] --> IPlugin
+    [Timer Logic] --> IPlugin
+}
+
+Host -- IPlugin
+@enduml

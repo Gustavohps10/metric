@@ -1,0 +1,18 @@
+﻿@startuml SyncConflict
+title TIMELAPSE - Resolução de Conflitos
+participant LocalDB
+participant SyncEngine
+participant RemoteAPI
+
+SyncEngine -> RemoteAPI: Push Changes
+RemoteAPI -> SyncEngine: 409 Conflict (Data Newer on Server)
+SyncEngine -> SyncEngine: Identify Conflict Strategy
+alt Manual Resolution
+    SyncEngine -> UI: Notifica Usuário (Conflito Encontrado)
+    UI -> User: Mostra "Lado a Lado"
+    User -> UI: Escolhe Versão
+    UI -> LocalDB: Aplica Versão Escolhida
+else Last Write Wins (Auto)
+    SyncEngine -> LocalDB: Sobrescreve com maior updatedAt
+end
+@enduml

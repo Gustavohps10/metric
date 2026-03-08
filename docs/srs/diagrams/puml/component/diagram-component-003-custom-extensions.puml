@@ -1,0 +1,5 @@
+﻿@startuml diagram-component-003-custom-extensions.puml
+title Functional Diagram diagram-component-003-custom-extensions.puml
+participant System
+System -> System: Internal Logic
+@enduml

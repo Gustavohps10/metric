@@ -1,0 +1,5 @@
+﻿@startuml diagram-component-004-addons-market.puml
+title Functional Diagram diagram-component-004-addons-market.puml
+participant System
+System -> System: Internal Logic
+@enduml

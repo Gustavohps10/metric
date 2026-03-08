@@ -1,0 +1,5 @@
+﻿@startuml diagram-uml-004-sequence-login.puml
+title Functional Diagram diagram-uml-004-sequence-login.puml
+participant System
+System -> System: Internal Logic
+@enduml

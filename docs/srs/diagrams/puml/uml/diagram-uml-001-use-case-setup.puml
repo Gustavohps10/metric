@@ -1,0 +1,17 @@
+﻿@startuml UseCaseSetup
+left to right direction
+actor "User" as U
+actor "Admin" as A
+
+rectangle "Timelapse System" {
+    usecase "Configurar Workspace" as UC1
+    usecase "Instalar Addon (Jira/Redmine)" as UC2
+    usecase "Sincronizar Tarefas Externas" as UC3
+    usecase "Gerenciar Time" as UC4
+}
+
+U --> UC1
+U --> UC2
+UC2 ..> UC3 : <<include>>
+A --> UC4
+@enduml

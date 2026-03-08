@@ -1,0 +1,5 @@
+﻿@startuml diagram-flow-013-invite-flow.puml
+title Functional Diagram diagram-flow-013-invite-flow.puml
+participant System
+System -> System: Internal Logic
+@enduml

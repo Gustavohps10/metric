@@ -1,0 +1,5 @@
+﻿@startuml diagram-classes-007-license-plan.puml
+title Functional Diagram diagram-classes-007-license-plan.puml
+participant System
+System -> System: Internal Logic
+@enduml

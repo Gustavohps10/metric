@@ -1,0 +1,5 @@
+﻿@startuml diagram-infra-003-deployment-selfhosted.puml
+title Functional Diagram diagram-infra-003-deployment-selfhosted.puml
+participant System
+System -> System: Internal Logic
+@enduml

@@ -1,0 +1,5 @@
+﻿@startuml diagram-flow-007-plugin-activation.puml
+title Functional Diagram diagram-flow-007-plugin-activation.puml
+participant System
+System -> System: Internal Logic
+@enduml

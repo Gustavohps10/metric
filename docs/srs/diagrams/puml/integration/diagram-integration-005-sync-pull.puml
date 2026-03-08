@@ -1,0 +1,5 @@
+﻿@startuml diagram-integration-005-sync-pull.puml
+title Functional Diagram diagram-integration-005-sync-pull.puml
+participant System
+System -> System: Internal Logic
+@enduml

@@ -1,0 +1,5 @@
+﻿@startuml diagram-infra-005-control-plane.puml
+title Functional Diagram diagram-infra-005-control-plane.puml
+participant System
+System -> System: Internal Logic
+@enduml

@@ -1,0 +1,5 @@
+﻿@startuml diagram-infra-006-sync-engine.puml
+title Functional Diagram diagram-infra-006-sync-engine.puml
+participant System
+System -> System: Internal Logic
+@enduml

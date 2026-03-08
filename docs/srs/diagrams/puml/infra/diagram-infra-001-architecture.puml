@@ -1,0 +1,24 @@
+﻿@startuml Architecture
+node "Client Side (Desktop/Web)" {
+    component "UI (React/Shared)" as UI
+    database "RxDB (NoSQL Local)" as DB
+    component "Sync Engine" as Sync
+}
+
+node "Cloud Control Plane" {
+    component "Auth API" as Auth
+    component "License Manager" as Lic
+    database "PostgreSQL" as CloudDB
+}
+
+node "External Sources" {
+    [Jira API]
+    [Redmine API]
+}
+
+UI <-> DB
+DB <-> Sync
+Sync <-> [External Sources]
+UI <-> Auth
+Auth <-> CloudDB
+@enduml

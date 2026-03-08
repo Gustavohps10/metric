@@ -1,0 +1,5 @@
+﻿@startuml diagram-flow-008-sync-success.puml
+title Functional Diagram diagram-flow-008-sync-success.puml
+participant System
+System -> System: Internal Logic
+@enduml

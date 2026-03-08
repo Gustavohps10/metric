@@ -1,0 +1,17 @@
+﻿@startuml TimerFlow
+title TIMELAPSE - Motor do Timer (Local-First)
+participant UI
+participant TimerEngine
+participant RxDB
+participant SyncEngine
+
+UI -> TimerEngine: StartTimer(taskId)
+TimerEngine -> RxDB: Create TimeEntry {status: 'running'}
+loop Cada 1 segundo
+    TimerEngine -> UI: Update Display Tick
+end
+User -> UI: Pause/Stop
+UI -> TimerEngine: Stop()
+TimerEngine -> RxDB: Update TimeEntry {endTime, duration}
+TimerEngine -> SyncEngine: Trigger Background Sync
+@enduml

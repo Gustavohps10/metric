@@ -1,0 +1,5 @@
+﻿@startuml diagram-uml-005-sequence-sync.puml
+title Functional Diagram diagram-uml-005-sequence-sync.puml
+participant System
+System -> System: Internal Logic
+@enduml

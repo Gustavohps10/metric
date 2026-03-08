@@ -1,0 +1,5 @@
+﻿@startuml diagram-flow-002-desktop-auth.puml
+title Functional Diagram diagram-flow-002-desktop-auth.puml
+participant System
+System -> System: Internal Logic
+@enduml

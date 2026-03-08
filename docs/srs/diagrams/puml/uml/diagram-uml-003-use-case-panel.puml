@@ -1,0 +1,5 @@
+﻿@startuml diagram-uml-003-use-case-panel.puml
+title Functional Diagram diagram-uml-003-use-case-panel.puml
+participant System
+System -> System: Internal Logic
+@enduml

@@ -1,0 +1,21 @@
+﻿@startuml LoginFlow
+title TIMELAPSE - Login Multi-Plataforma
+actor User
+participant App
+participant Backend
+participant EmailService
+
+User -> App: Solicita Login (Email)
+App -> Backend: POST /auth/magic-link {email}
+alt Sucesso
+    Backend -> EmailService: Enviar Token/Link
+    EmailService -> User: Recebe Email
+    User -> App: Insere Token ou Clica no Link
+    App -> Backend: Validar Token
+    Backend -> App: JWT + User Profile
+    App -> User: Acesso Liberado
+else Email não encontrado/Inválido
+    Backend -> App: 404/422 Error
+    App -> User: Exibe mensagem de erro
+end
+@enduml

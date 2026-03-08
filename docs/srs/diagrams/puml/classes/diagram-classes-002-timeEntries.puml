@@ -1,0 +1,5 @@
+﻿@startuml diagram-classes-002-timeEntries.puml
+title Functional Diagram diagram-classes-002-timeEntries.puml
+participant System
+System -> System: Internal Logic
+@enduml

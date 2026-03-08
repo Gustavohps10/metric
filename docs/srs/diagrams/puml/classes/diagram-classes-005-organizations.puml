@@ -1,0 +1,5 @@
+﻿@startuml diagram-classes-005-organizations.puml
+title Functional Diagram diagram-classes-005-organizations.puml
+participant System
+System -> System: Internal Logic
+@enduml

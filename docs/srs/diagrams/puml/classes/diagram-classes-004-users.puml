@@ -1,0 +1,23 @@
+﻿@startuml ClassUsers
+class User {
+    +UUID id
+    +String email
+    +String name
+    +LicensePlan plan
+    +Organization activeOrg
+}
+
+class Organization {
+    +UUID id
+    +String domain
+    +Role[] members
+}
+
+class Role {
+    +String name
+    +String[] permissions
+}
+
+User "0..*" --o "1" Organization
+User "1" *-- "1" Role
+@enduml

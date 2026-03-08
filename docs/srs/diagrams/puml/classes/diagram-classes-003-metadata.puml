@@ -1,0 +1,5 @@
+﻿@startuml diagram-classes-003-metadata.puml
+title Functional Diagram diagram-classes-003-metadata.puml
+participant System
+System -> System: Internal Logic
+@enduml

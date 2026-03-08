@@ -1,0 +1,5 @@
+﻿@startuml diagram-uml-007-component-overview.puml
+title Functional Diagram diagram-uml-007-component-overview.puml
+participant System
+System -> System: Internal Logic
+@enduml

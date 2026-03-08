@@ -1,0 +1,5 @@
+﻿@startuml diagram-flow-005-task-creation.puml
+title Functional Diagram diagram-flow-005-task-creation.puml
+participant System
+System -> System: Internal Logic
+@enduml

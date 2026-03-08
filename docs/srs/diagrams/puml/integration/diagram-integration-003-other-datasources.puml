@@ -1,0 +1,5 @@
+﻿@startuml diagram-integration-003-other-datasources.puml
+title Functional Diagram diagram-integration-003-other-datasources.puml
+participant System
+System -> System: Internal Logic
+@enduml

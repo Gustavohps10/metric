@@ -1,0 +1,5 @@
+﻿@startuml diagram-uml-006-sequence-payment.puml
+title Functional Diagram diagram-uml-006-sequence-payment.puml
+participant System
+System -> System: Internal Logic
+@enduml

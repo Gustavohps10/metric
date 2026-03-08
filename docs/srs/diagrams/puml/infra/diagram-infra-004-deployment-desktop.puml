@@ -1,0 +1,5 @@
+﻿@startuml diagram-infra-004-deployment-desktop.puml
+title Functional Diagram diagram-infra-004-deployment-desktop.puml
+participant System
+System -> System: Internal Logic
+@enduml

@@ -1,0 +1,5 @@
+﻿@startuml diagram-flow-012-payment-pro.puml
+title Functional Diagram diagram-flow-012-payment-pro.puml
+participant System
+System -> System: Internal Logic
+@enduml

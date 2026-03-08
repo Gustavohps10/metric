@@ -1,0 +1,5 @@
+﻿@startuml diagram-integration-002-redmine.puml
+title Functional Diagram diagram-integration-002-redmine.puml
+participant System
+System -> System: Internal Logic
+@enduml

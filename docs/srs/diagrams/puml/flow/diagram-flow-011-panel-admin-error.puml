@@ -1,0 +1,5 @@
+﻿@startuml diagram-flow-011-panel-admin-error.puml
+title Functional Diagram diagram-flow-011-panel-admin-error.puml
+participant System
+System -> System: Internal Logic
+@enduml

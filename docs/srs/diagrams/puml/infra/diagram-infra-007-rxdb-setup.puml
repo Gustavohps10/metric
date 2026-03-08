@@ -1,0 +1,15 @@
+﻿@startuml RxDBSetup
+title Estrutura de Armazenamento Local-First
+package "RxDB Collections" {
+    [tasks_collection] << (C,#FFAAAA) >>
+    [time_entries_collection] << (C,#FFAAAA) >>
+    [metadata_collection] << (C,#FFAAAA) >>
+}
+
+database "IndexedDB / SQLite" {
+    [Storage Adapter]
+}
+
+[tasks_collection] --> [Storage Adapter]
+[time_entries_collection] --> [Storage Adapter]
+@enduml

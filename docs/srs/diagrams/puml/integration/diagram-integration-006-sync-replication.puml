@@ -1,0 +1,5 @@
+﻿@startuml diagram-integration-006-sync-replication.puml
+title Functional Diagram diagram-integration-006-sync-replication.puml
+participant System
+System -> System: Internal Logic
+@enduml
