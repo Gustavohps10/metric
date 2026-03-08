@@ -1,5 +1,25 @@
-﻿@startuml diagram-uml-004-sequence-login.puml
-title Functional Diagram diagram-uml-004-sequence-login.puml
-participant System
-System -> System: Internal Logic
+@startuml SequenceLogin
+title TIMELAPSE - Sequência: Autenticação Magic Link (RF010 - SRS)
+actor User
+participant App
+participant ControlPlane
+participant AuthAPI
+participant EmailService
+
+User -> App: Informa Email
+App -> ControlPlane: POST /auth/magic-link {email}
+ControlPlane -> AuthAPI: Criar token mágico
+AuthAPI -> AuthAPI: Gerar token (TTL 15min)
+AuthAPI -> EmailService: Enviar Magic Link
+EmailService -> User: Email com link
+ControlPlane -> App: 200 OK
+
+User -> App: Clica no link (app abre)
+App -> ControlPlane: GET /auth/verify?token=xyz
+ControlPlane -> AuthAPI: Validar token
+AuthAPI -> AuthAPI: Token válido
+AuthAPI -> ControlPlane: User + JWT
+ControlPlane -> App: JWT + User Profile + Orgs
+App -> App: Persiste sessão local
+App -> User: Acesso liberado
 @enduml

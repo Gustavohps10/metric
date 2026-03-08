@@ -1,5 +1,26 @@
-﻿@startuml diagram-flow-006-task-edit.puml
-title Functional Diagram diagram-flow-006-task-edit.puml
-participant System
-System -> System: Internal Logic
+@startuml TaskEditFlow
+title TIMELAPSE - Edição de Tarefa (UC006 - SRS)
+actor User
+participant UI
+participant RxDB
+participant SyncEngine
+participant DataSource
+
+User -> UI: Seleciona tarefa para editar
+UI -> RxDB: Buscar tarefa por _id
+RxDB -> UI: Retorna dados da tarefa
+UI -> User: Exibe formulário preenchido
+
+User -> UI: Altera título, status, descrição, etc
+User -> UI: Salvar
+
+UI -> RxDB: Atualizar tarefa local
+RxDB -> UI: Confirma
+
+alt Fonte externa configurada
+    SyncEngine -> DataSource: PUT /issues/{id} (próxima sync)
+else Sem sync
+    UI -> User: Atualização local concluída
+end
+UI -> User: Tarefa atualizada
 @enduml

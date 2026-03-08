@@ -1,5 +1,15 @@
-﻿@startuml diagram-component-002-git-plugin.puml
-title Functional Diagram diagram-component-002-git-plugin.puml
-participant System
-System -> System: Internal Logic
+@startuml ComponentGitPlugin
+title TIMELAPSE - Plugin Git Activity (RF002)
+package "Plugin System" {
+    component [Plugin Host] as Host
+    interface "ITimelapsePlugin" as IPlugin
+}
+
+package "Git Extension" {
+    [Git UI] --> IPlugin
+    [Commit Activity Detection] --> IPlugin
+    [Branch Tracker] --> IPlugin
+}
+
+Host -- IPlugin
 @enduml

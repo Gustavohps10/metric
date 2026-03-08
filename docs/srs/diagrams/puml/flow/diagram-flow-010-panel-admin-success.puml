@@ -1,5 +1,29 @@
-﻿@startuml diagram-flow-010-panel-admin-success.puml
-title Functional Diagram diagram-flow-010-panel-admin-success.puml
-participant System
-System -> System: Internal Logic
+@startuml PanelAdminSuccessFlow
+title TIMELAPSE - Painel Admin - Fluxo de Sucesso (UC003 - RF009)
+actor Admin
+participant Browser
+participant ControlPlane
+participant AuthAPI
+participant LicenseManager
+
+Admin -> Browser: Acessa app.timelapse.dev
+Browser -> ControlPlane: GET /login
+
+Admin -> Browser: Informa Email (Magic Link)
+Browser -> ControlPlane: POST /auth/magic-link
+ControlPlane -> AuthAPI: Enviar Magic Link
+AuthAPI -> Admin: Email recebido
+
+Admin -> Browser: Clica no Link
+Browser -> ControlPlane: GET /auth/verify?token=...
+ControlPlane -> AuthAPI: Valida Token
+AuthAPI -> ControlPlane: JWT + User + Orgs
+
+ControlPlane -> Browser: Redireciona /admin
+Browser -> ControlPlane: GET /admin/dashboard (JWT)
+ControlPlane -> LicenseManager: Verificar licença da org
+LicenseManager -> ControlPlane: Pro/Enterprise ativa
+
+ControlPlane -> Browser: Painel administrativo
+Browser -> Admin: Dashboard - Times, membros, analytics
 @enduml

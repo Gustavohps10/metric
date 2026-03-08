@@ -1,5 +1,25 @@
-﻿@startuml diagram-flow-003-selfhosted-auth.puml
-title Functional Diagram diagram-flow-003-selfhosted-auth.puml
-participant System
-System -> System: Internal Logic
+@startuml SelfHostedAuthFlow
+title TIMELAPSE - Autenticação Self-Hosted (SRS 4.2)
+actor User
+participant Browser
+participant SelfHostedServer
+participant AuthService
+participant EmailService
+
+User -> Browser: Acessa timelapse.internal.company.com
+Browser -> SelfHostedServer: GET /login
+SelfHostedServer -> Browser: Página de Login
+
+User -> Browser: Informa Email
+Browser -> SelfHostedServer: POST /auth/magic-link {email}
+SelfHostedServer -> AuthService: Solicita Magic Link
+AuthService -> EmailService: Envia Token (domínio interno)
+EmailService -> User: Recebe Email
+
+User -> Browser: Clica no Link
+Browser -> SelfHostedServer: GET /auth/verify?token=...
+SelfHostedServer -> AuthService: Valida Token
+AuthService -> SelfHostedServer: JWT + User
+SelfHostedServer -> Browser: Redireciona para App
+Browser -> User: Acesso Liberado (organização interna)
 @enduml

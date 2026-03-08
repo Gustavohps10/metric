@@ -1,5 +1,27 @@
-﻿@startuml diagram-flow-005-task-creation.puml
-title Functional Diagram diagram-flow-005-task-creation.puml
-participant System
-System -> System: Internal Logic
+@startuml TaskCreationFlow
+title TIMELAPSE - Criação de Tarefa (UC005 - SRS)
+actor User
+participant UI
+participant SyncEngine
+participant DataSource
+participant RxDB
+
+User -> UI: Seleciona criar tarefa
+UI -> User: Exibe formulário
+
+User -> UI: Preenche título, descrição, projeto
+UI -> UI: Valida campos
+
+alt Com fonte externa configurada
+    UI -> SyncEngine: createTask(taskData)
+    SyncEngine -> DataSource: POST /issues (ou equivalente)
+    DataSource -> SyncEngine: Retorna tarefa criada
+    SyncEngine -> SyncEngine: Mapeia para padrão interno
+    SyncEngine -> RxDB: Inserir na coleção tasks
+else Modo offline / sem fonte
+    UI -> RxDB: Inserir tarefa local
+end
+
+RxDB -> UI: Confirma persistência
+UI -> User: Tarefa criada com sucesso
 @enduml

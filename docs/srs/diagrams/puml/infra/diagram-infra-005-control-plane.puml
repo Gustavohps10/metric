@@ -1,5 +1,38 @@
-﻿@startuml diagram-infra-005-control-plane.puml
-title Functional Diagram diagram-infra-005-control-plane.puml
-participant System
-System -> System: Internal Logic
+@startuml ControlPlane
+title TIMELAPSE - Control Plane (SRS 4.3)
+package "Timelapse Cloud (app.timelapse.dev)" {
+    component [Magic Link Auth] as Auth {
+        [POST /auth/magic-link]
+        [GET /auth/verify]
+    }
+    component [Organizations] as Orgs {
+        [GET /orgs]
+        [POST /orgs/invite]
+    }
+    component [License Manager] as Lic {
+        [GET /license/status]
+        [POST /license/activate]
+    }
+    component [Admin Panel] as Admin {
+        [Dashboard]
+        [Membros]
+        [Analytics]
+    }
+}
+
+actor "Desktop Client" as Desktop
+actor "Self-Hosted" as SelfHosted
+actor "Web Client" as Web
+
+Desktop --> Auth : autenticação
+Desktop --> Lic : verificar licença
+SelfHosted --> Auth : autenticação
+Web --> Auth : autenticação
+Web --> Admin : painel admin
+Web --> Orgs : gestão de orgs
+
+note bottom of package
+  Apenas gestão de contas,
+  organizações e licenças
+end note
 @enduml

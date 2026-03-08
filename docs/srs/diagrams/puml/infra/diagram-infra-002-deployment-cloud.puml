@@ -1,5 +1,34 @@
-﻿@startuml diagram-infra-002-deployment-cloud.puml
-title Functional Diagram diagram-infra-002-deployment-cloud.puml
-participant System
-System -> System: Internal Logic
+@startuml DeploymentCloud
+title TIMELAPSE - Deploy Control Plane (app.timelapse.dev - SRS 4.3)
+node "Timelapse Cloud" {
+    cloud "Control Plane" {
+        component [Auth API] as Auth
+        component [Organizations API] as Orgs
+        component [License Manager] as Lic
+        component [Admin Panel] as Admin
+    }
+    database "PostgreSQL" {
+        collections [users]
+        collections [organizations]
+        collections [licenses]
+        collections [invites]
+    }
+}
+
+cloud "Internet" {
+}
+
+Auth --> PostgreSQL : users
+Orgs --> PostgreSQL : organizations
+Lic --> PostgreSQL : licenses
+Admin --> Auth
+Admin --> Orgs
+Admin --> Lic
+
+note right of "Control Plane"
+  NÃO armazena:
+  - Tarefas
+  - Time Entries
+  - Dados de produtividade
+end note
 @enduml

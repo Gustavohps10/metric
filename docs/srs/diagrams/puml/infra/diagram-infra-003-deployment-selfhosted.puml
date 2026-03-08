@@ -1,5 +1,36 @@
-﻿@startuml diagram-infra-003-deployment-selfhosted.puml
-title Functional Diagram diagram-infra-003-deployment-selfhosted.puml
-participant System
-System -> System: Internal Logic
+@startuml DeploymentSelfHosted
+title TIMELAPSE - Deploy Self-Hosted (SRS 4.2)
+node "Infraestrutura da Empresa" {
+    node "timelapse.internal.company.com" {
+        component [Web Server] as Web
+        component [Auth Service] as Auth
+        component [Sync Server] as Sync
+        component [Admin Panel] as Admin
+    }
+    database "PostgreSQL Local" {
+        [users]
+        [organizations]
+        [tasks]
+        [time_entries]
+    }
+}
+
+cloud "Intranet / VPN" {
+}
+
+actor "Usuário" as User
+
+User --> Web : HTTPS
+Web --> Auth : autenticação
+Web --> Admin : painel admin
+Web --> Sync : sync (opcional)
+
+Auth --> "PostgreSQL Local" : sessions
+Sync --> "PostgreSQL Local" : dados operacionais
+Admin --> "PostgreSQL Local" : gestão
+
+note right of node
+  Compliance, isolamento,
+  dados não saem da rede
+end note
 @enduml

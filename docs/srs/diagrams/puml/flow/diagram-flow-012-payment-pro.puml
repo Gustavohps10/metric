@@ -1,5 +1,30 @@
-﻿@startuml diagram-flow-012-payment-pro.puml
-title Functional Diagram diagram-flow-012-payment-pro.puml
-participant System
-System -> System: Internal Logic
+@startuml PaymentProFlow
+title TIMELAPSE - Ativação Pro (UC003 - RF010)
+actor User
+participant DesktopApp
+participant ControlPlane
+participant AuthAPI
+participant LicenseManager
+participant EmailService
+
+User -> DesktopApp: Clica em "Ativar Pro"
+DesktopApp -> User: Solicita código da organização
+User -> DesktopApp: Informa código
+DesktopApp -> User: Solicita email
+User -> DesktopApp: Informa email
+
+DesktopApp -> ControlPlane: POST /auth/magic-link {email, orgCode}
+ControlPlane -> AuthAPI: Validar orgCode + registrar Magic Link
+AuthAPI -> EmailService: Enviar Magic Link
+EmailService -> User: Recebe email
+
+User -> DesktopApp: Clica no Link (ou insere token)
+DesktopApp -> ControlPlane: POST /auth/verify {token}
+ControlPlane -> AuthAPI: Validar token
+AuthAPI -> ControlPlane: JWT + User + Org
+
+ControlPlane -> LicenseManager: Ativar licença Pro para org
+LicenseManager -> ControlPlane: Licença ativada
+ControlPlane -> DesktopApp: Sucesso - Pro ativo
+DesktopApp -> User: Acesso Pro liberado
 @enduml

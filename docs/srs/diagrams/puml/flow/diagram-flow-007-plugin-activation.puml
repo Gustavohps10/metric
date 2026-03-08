@@ -1,5 +1,27 @@
-﻿@startuml diagram-flow-007-plugin-activation.puml
-title Functional Diagram diagram-flow-007-plugin-activation.puml
-participant System
-System -> System: Internal Logic
+@startuml PluginActivationFlow
+title TIMELAPSE - Ativação de Plugin/Addon (UC001 - RF002, RF003)
+actor User
+participant UI
+participant AddonMarket
+participant PluginHost
+participant WorkspaceConfig
+
+User -> UI: Acessa Loja de Addons
+UI -> AddonMarket: Listar addons disponíveis
+AddonMarket -> UI: Jira, Redmine, Git, etc
+
+User -> UI: Seleciona Addon (ex: Redmine)
+UI -> AddonMarket: Instalar addon
+AddonMarket -> PluginHost: Registrar plugin
+
+User -> UI: Configurar credenciais
+UI -> User: Exibe campos (URL, API Key, etc)
+User -> UI: Preenche URL + API Key
+
+UI -> PluginHost: Configurar datasource
+PluginHost -> PluginHost: Validar conexão
+PluginHost -> WorkspaceConfig: Salvar configuração
+
+PluginHost -> UI: Plugin ativado
+UI -> User: Addon configurado - Sincronizar?
 @enduml

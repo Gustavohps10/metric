@@ -1,5 +1,28 @@
-﻿@startuml diagram-flow-008-sync-success.puml
-title Functional Diagram diagram-flow-008-sync-success.puml
-participant System
-System -> System: Internal Logic
+@startuml SyncSuccessFlow
+title TIMELAPSE - Sincronização Pull - Sucesso (RF004, RF005 - UC001)
+participant UI
+participant SyncEngine
+participant Plugin
+participant DataSource
+participant RxDB
+
+UI -> SyncEngine: triggerSync()
+SyncEngine -> Plugin: getLastCheckpoint()
+Plugin -> SyncEngine: retorna checkpoint (updatedAt)
+
+SyncEngine -> Plugin: pull(checkpoint)
+Plugin -> DataSource: GET /issues?updated>checkpoint
+DataSource -> Plugin: JSON (tarefas + metadata)
+
+Plugin -> Plugin: Mapeia para padrão interno (RF005)
+Plugin -> SyncEngine: tasks[], metadata[], timeEntries[]
+
+SyncEngine -> RxDB: upsert tasks
+SyncEngine -> RxDB: upsert timeEntries
+SyncEngine -> RxDB: upsert metadata
+RxDB -> SyncEngine: OK
+
+SyncEngine -> Plugin: saveCheckpoint(newUpdatedAt)
+SyncEngine -> UI: syncComplete(success)
+UI -> UI: Atualiza indicador de sync
 @enduml

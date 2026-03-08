@@ -1,5 +1,26 @@
-﻿@startuml diagram-integration-005-sync-pull.puml
-title Functional Diagram diagram-integration-005-sync-pull.puml
-participant System
-System -> System: Internal Logic
+@startuml IntegrationSyncPull
+title TIMELAPSE - Sincronização Pull (RF004, RF005 - UC001)
+participant UI
+participant SyncEngine
+participant CheckpointStore
+participant Plugin
+participant DataSource
+participant RxDB
+
+UI -> SyncEngine: triggerPull()
+SyncEngine -> CheckpointStore: getLastCheckpoint(datasourceId)
+CheckpointStore -> SyncEngine: {updatedAt, source}
+
+SyncEngine -> Plugin: pull(checkpoint)
+Plugin -> DataSource: GET issues?updated>checkpoint
+DataSource -> Plugin: issues[], metadata[]
+Plugin -> Plugin: Map to internal format (RF005)
+
+Plugin -> SyncEngine: tasks[], timeEntries[], metadata[]
+SyncEngine -> RxDB: upsert tasks
+SyncEngine -> RxDB: upsert timeEntries
+SyncEngine -> RxDB: upsert metadata
+
+SyncEngine -> CheckpointStore: saveCheckpoint(newUpdatedAt)
+SyncEngine -> UI: syncComplete()
 @enduml

@@ -1,5 +1,25 @@
-﻿@startuml diagram-component-004-addons-market.puml
-title Functional Diagram diagram-component-004-addons-market.puml
-participant System
-System -> System: Internal Logic
+@startuml ComponentAddonsMarket
+title TIMELAPSE - Loja de Addons (RF002)
+package "Desktop App" {
+    component [Addons Market UI] as MarketUI
+    component [Plugin Installer] as Installer
+    component [Workspace Config] as Workspace
+}
+
+package "Marketplace" {
+    [Addon Registry] as Registry
+    [Jira Addon] as Jira
+    [Redmine Addon] as Redmine
+    [Git Addon] as Git
+}
+
+MarketUI --> Installer : Instalar addon
+Installer --> Registry : Listar addons
+Registry --> Installer : Catálogo
+
+Installer --> Jira : Download
+Installer --> Redmine : Download
+Installer --> Git : Download
+
+Installer --> Workspace : Registrar plugin
 @enduml

@@ -1,5 +1,22 @@
-﻿@startuml diagram-classes-005-organizations.puml
-title Functional Diagram diagram-classes-005-organizations.puml
-participant System
-System -> System: Internal Logic
+@startuml ClassOrganizations
+title TIMELAPSE - Organizações (SRS 4.2, 4.3)
+package "Control Plane" {
+    class Organization {
+        +UUID id
+        +String name
+        +String domain
+        +Member[] members
+        +LicensePlan plan
+        --
+        addMember()
+        removeMember()
+    }
+    
+    class Member {
+        +User user
+        +Role role
+        +DateTime joinedAt
+    }
+}
+Organization "1" *-- "0..*" Member
 @enduml

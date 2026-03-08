@@ -1,5 +1,22 @@
-﻿@startuml diagram-flow-002-desktop-auth.puml
-title Functional Diagram diagram-flow-002-desktop-auth.puml
-participant System
-System -> System: Internal Logic
+@startuml DesktopAuthFlow
+title TIMELAPSE - Autenticação Desktop (Modo Free - SRS 4.1)
+actor User
+participant DesktopApp
+participant ControlPlane
+participant EmailService
+
+User -> DesktopApp: Inicia App (sem login)
+DesktopApp -> DesktopApp: Modo Free disponível
+alt Usuário deseja Pro/Enterprise
+    User -> DesktopApp: Solicita Login (Email)
+    DesktopApp -> ControlPlane: POST /auth/magic-link {email}
+    ControlPlane -> EmailService: Enviar Magic Link
+    EmailService -> User: Recebe Email
+    User -> DesktopApp: Clica no Link
+    DesktopApp -> ControlPlane: Validar Token
+    ControlPlane -> DesktopApp: JWT + User Profile + Organizações
+    DesktopApp -> User: Acesso Liberado (Pro)
+else Modo Free
+    DesktopApp -> User: Usa sem autenticação
+end
 @enduml

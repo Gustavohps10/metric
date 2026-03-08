@@ -1,5 +1,31 @@
-﻿@startuml diagram-uml-006-sequence-payment.puml
-title Functional Diagram diagram-uml-006-sequence-payment.puml
-participant System
-System -> System: Internal Logic
+@startuml SequencePayment
+title TIMELAPSE - Sequência: Ativação Pro (UC003)
+actor User
+participant DesktopApp
+participant ControlPlane
+participant AuthAPI
+participant LicenseManager
+participant EmailService
+
+User -> DesktopApp: Clica "Ativar Pro"
+DesktopApp -> User: Solicita código da org
+User -> DesktopApp: Informa código
+DesktopApp -> User: Solicita email
+User -> DesktopApp: Informa email
+
+DesktopApp -> ControlPlane: POST /auth/magic-link {email, orgCode}
+ControlPlane -> AuthAPI: Validar orgCode + criar token
+AuthAPI -> EmailService: Enviar Magic Link
+EmailService -> User: Email recebido
+ControlPlane -> DesktopApp: 200 OK
+
+User -> DesktopApp: Clica no link
+DesktopApp -> ControlPlane: POST /auth/verify {token}
+ControlPlane -> AuthAPI: Validar token
+AuthAPI -> ControlPlane: User + Org
+ControlPlane -> LicenseManager: Ativar Pro para org
+LicenseManager -> LicenseManager: Atualiza licença
+LicenseManager -> ControlPlane: Licença ativada
+ControlPlane -> DesktopApp: JWT + Pro ativo
+DesktopApp -> User: Acesso Pro liberado
 @enduml

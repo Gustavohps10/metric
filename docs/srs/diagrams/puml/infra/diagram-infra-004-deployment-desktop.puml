@@ -1,5 +1,34 @@
-﻿@startuml diagram-infra-004-deployment-desktop.puml
-title Functional Diagram diagram-infra-004-deployment-desktop.puml
-participant System
-System -> System: Internal Logic
+@startuml DeploymentDesktop
+title TIMELAPSE - Deploy Desktop Client (SRS 4.1)
+node "Máquina do Usuário" {
+    component [Electron / Tauri App] as App {
+        component [Shared UI (React)] as UI
+        component [Sync Engine] as Sync
+        component [Plugin Host] as Host
+    }
+    database "RxDB (IndexedDB/SQLite)" {
+        [tasks]
+        [timeEntries]
+        [metadata]
+    }
+}
+
+cloud "Internet" {
+    [app.timelapse.dev] as Cloud
+    [Jira API] as Jira
+    [Redmine API] as Redmine
+}
+
+App --> RxDB : persistência local
+UI --> Sync : sincronização
+Sync --> Host : plugins
+Host --> Jira : datasource
+Host --> Redmine : datasource
+Sync --> Cloud : auth, licença
+
+note right of node
+  Offline-first
+  Não depende de backend
+  para operação básica
+end note
 @enduml

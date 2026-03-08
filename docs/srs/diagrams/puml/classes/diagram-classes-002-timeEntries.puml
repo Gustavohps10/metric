@@ -1,5 +1,31 @@
-﻿@startuml diagram-classes-002-timeEntries.puml
-title Functional Diagram diagram-classes-002-timeEntries.puml
-participant System
-System -> System: Internal Logic
+@startuml ClassTimeEntries
+title TIMELAPSE - Coleção timeEntries (SRS 6.2)
+package "Core Models" {
+    class TimeEntry {
+        +String _id
+        +String id
+        +Object task
+        +Object taskData
+        +Object activity
+        +Object user
+        +DateTime startDate
+        +DateTime endDate
+        +Number timeSpent
+        +String comments
+        +DateTime createdAt
+        +DateTime updatedAt
+        +Enum timeStatus
+        +Enum type
+        +Boolean conflicted
+        +Object conflictData
+        +DateTime syncedAt
+        --
+        calculateDuration()
+        isSynced()
+    }
+}
+note right of TimeEntry
+  timeStatus: running, paused, finished
+  type: increasing, decreasing, manual
+end note
 @enduml

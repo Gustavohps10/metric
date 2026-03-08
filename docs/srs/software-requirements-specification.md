@@ -24,26 +24,24 @@ O **TIMELAPSE** tem como finalidade o rastreamento e a visualização de produti
 
 O sistema atua como um **hub agnóstico** que consome tarefas de **Data Sources externos** (Jira, Redmine, ERPs) e gerencia o tempo investido através de uma arquitetura de sincronização robusta e operação **offline-first**.
 
----
-
 ## 1.2 Escopo
 
 O produto utiliza o modelo **Open-Core**.
 
-O núcleo principal (Desktop/Local) foca em:
+**Núcleo Principal (Desktop/Local):**
 
-- integração técnica com fontes externas
-- operação offline
-- conversão de padrões de dados externos
-- sincronização de tarefas e apontamentos
+- Integração técnica com fontes externas
+- Operação offline
+- Conversão de padrões de dados externos
+- Sincronização de tarefas e apontamentos
 
-Funcionalidades de **gestão organizacional** são proprietárias, incluindo:
+**Funcionalidades Proprietárias (Gestão Organizacional):**
 
-- gestão de times
-- controle de domínios
-- sistema de licenciamento
-- painel administrativo
-- analytics avançado
+- Gestão de times
+- Controle de domínios
+- Sistema de licenciamento
+- Painel administrativo
+- Analytics avançado
 
 Essas funcionalidades são geridas por um **painel administrativo centralizado**.
 
@@ -60,8 +58,6 @@ O sistema é destinado a:
 - Empresas de pequeno, médio e grande porte
 
 O objetivo é **centralizar o controle de orçamento de tempo** baseado em tarefas provenientes de sistemas externos.
-
----
 
 ## 2.2 Ambiente Operacional — Requisitos Mínimos
 
@@ -115,8 +111,6 @@ O Timelapse segue o modelo **Open-Core**.
 
 O Timelapse possui **dois modos principais de execução**.
 
----
-
 ## 4.1 Desktop Client (Modo Padrão)
 
 Aplicativo executado localmente na máquina do usuário.
@@ -129,14 +123,12 @@ Disponível para:
 
 Características:
 
-- arquitetura **offline-first**
-- persistência local utilizando **RxDB**
-- sincronização direta com **Data Sources externos**
-- não depende de backend para funcionamento básico
+- Arquitetura **offline-first**
+- Persistência local utilizando **RxDB**
+- Sincronização direta com **Data Sources externos**
+- Não depende de backend para funcionamento básico
 
 Usuários do plano **Free** podem utilizar o sistema sem autenticação.
-
----
 
 ## 4.2 Self-Hosted
 
@@ -148,16 +140,14 @@ https://timelapse.internal.company.com
 
 Motivações comuns:
 
-- compliance
-- políticas internas de segurança
-- isolamento de dados
-- controle completo da infraestrutura
+- Compliance
+- Políticas internas de segurança
+- Isolamento de dados
+- Controle completo da infraestrutura
 
 Nesse modo geralmente existe **uma única organização interna**.
 
----
-
-# 4.3 Infraestrutura de Controle (Timelapse Cloud)
+## 4.3 Infraestrutura de Controle (Timelapse Cloud)
 
 Além dos modos de execução, o Timelapse utiliza um **serviço centralizado de controle**.
 
@@ -167,32 +157,28 @@ Exemplo:
 
 https://app.timelapse.dev
 
----
+### Responsabilidades do serviço central
 
-## Responsabilidades do serviço central
+- Autenticação via **Magic Link**
+- Gestão de **organizações**
+- Controle de **membros**
+- Gestão de **planos e licenciamento**
+- Painel administrativo
 
-- autenticação via **Magic Link**
-- gestão de **organizações**
-- controle de **membros**
-- gestão de **planos e licenciamento**
-- painel administrativo
-
----
-
-## Dados que o serviço central NÃO armazena
+### Dados que o serviço central NÃO armazena
 
 O **serviço central de controle do Timelapse não armazena dados operacionais da aplicação**, como:
 
-- tarefas
-- registros de tempo
-- histórico de produtividade
-- dados sincronizados das ferramentas externas
+- Tarefas
+- Registros de tempo
+- Histórico de produtividade
+- Dados sincronizados das ferramentas externas
 
 Esses dados permanecem:
 
-- no **banco local do cliente (RxDB)**  
+- No **banco local do cliente (RxDB)**  
   ou
-- nas **ferramentas externas integradas (Jira, Redmine, etc.)**
+- Nas **ferramentas externas integradas (Jira, Redmine, etc.)**
 
 ---
 
@@ -211,9 +197,7 @@ O backend central atua apenas como **Control Plane**, enquanto os dados operacio
 
 # 5. Especificação dos Requisitos
 
----
-
-# 5.1 Requisitos Funcionais (RF)
+## 5.1 Requisitos Funcionais (RF)
 
 | ID    | Descrição                                         | Prioridade | Depende De |
 | ----- | ------------------------------------------------- | ---------- | ---------- |
@@ -228,9 +212,7 @@ O backend central atua apenas como **Control Plane**, enquanto os dados operacio
 | RF009 | Painel administrativo para organizações           | Baixa      | —          |
 | RF010 | Autenticação Magic Link                           | Baixa      | RF009      |
 
----
-
-# 5.2 Requisitos Não Funcionais (RNF)
+## 5.2 Requisitos Não Funcionais (RNF)
 
 | ID     | Descrição                                                          | Categoria      | Prioridade |
 | ------ | ------------------------------------------------------------------ | -------------- | ---------- |
@@ -350,11 +332,46 @@ Estrutura de cores:
 
 ---
 
-# 7. Casos de Uso
+# Diagrama de Classes
+
+### diagram-classes-001-tasks.png
+
+<!--<BEGIN_CLASSES_DIAGRAM> -->
+
+###### diagram-classes-001-tasks.puml
+
+<img src="./diagrams/puml-images/classes/diagram-classes-001-tasks.png" alt="CLASSES_DIAGRAM" />
+
+###### diagram-classes-002-timeEntries.puml
+
+<img src="./diagrams/puml-images/classes/diagram-classes-002-timeEntries.png" alt="CLASSES_DIAGRAM" />
+
+###### diagram-classes-003-metadata.puml
+
+<img src="./diagrams/puml-images/classes/diagram-classes-003-metadata.png" alt="CLASSES_DIAGRAM" />
+
+###### diagram-classes-004-users.puml
+
+<img src="./diagrams/puml-images/classes/diagram-classes-004-users.png" alt="CLASSES_DIAGRAM" />
+
+###### diagram-classes-005-organizations.puml
+
+<img src="./diagrams/puml-images/classes/diagram-classes-005-organizations.png" alt="CLASSES_DIAGRAM" />
+
+###### diagram-classes-006-roles.puml
+
+<img src="./diagrams/puml-images/classes/diagram-classes-006-roles.png" alt="CLASSES_DIAGRAM" />
+
+###### diagram-classes-007-license-plan.puml
+
+<img src="./diagrams/puml-images/classes/diagram-classes-007-license-plan.png" alt="CLASSES_DIAGRAM" />
+<!--END_CLASSES_DIAGRAM -->
 
 ---
 
-# UC001 — Setup e Sincronização Inicial
+# 7. Casos de Uso
+
+## UC001 — Setup e Sincronização Inicial
 
 ### Objetivo
 
@@ -369,9 +386,64 @@ Configurar integração com a fonte externa e sincronizar dados.
 5. Dados são convertidos para o padrão interno
 6. Banco local é populado
 
----
+### Diagrama de Fluxos
 
-# UC002 — Rastreamento de Tempo
+<!--<BEGIN_FLOW> -->
+
+###### diagram-flow-001-login.puml
+
+<img src="./diagrams/puml-images/flow/diagram-flow-001-login.png" alt="FLOW" />
+
+###### diagram-flow-002-desktop-auth.puml
+
+<img src="./diagrams/puml-images/flow/diagram-flow-002-desktop-auth.png" alt="FLOW" />
+
+###### diagram-flow-003-selfhosted-auth.puml
+
+<img src="./diagrams/puml-images/flow/diagram-flow-003-selfhosted-auth.png" alt="FLOW" />
+
+###### diagram-flow-004-timer.puml
+
+<img src="./diagrams/puml-images/flow/diagram-flow-004-timer.png" alt="FLOW" />
+
+###### diagram-flow-005-task-creation.puml
+
+<img src="./diagrams/puml-images/flow/diagram-flow-005-task-creation.png" alt="FLOW" />
+
+###### diagram-flow-006-task-edit.puml
+
+<img src="./diagrams/puml-images/flow/diagram-flow-006-task-edit.png" alt="FLOW" />
+
+###### diagram-flow-007-plugin-activation.puml
+
+<img src="./diagrams/puml-images/flow/diagram-flow-007-plugin-activation.png" alt="FLOW" />
+
+###### diagram-flow-008-sync-success.puml
+
+<img src="./diagrams/puml-images/flow/diagram-flow-008-sync-success.png" alt="FLOW" />
+
+###### diagram-flow-009-sync-conflict.puml
+
+<img src="./diagrams/puml-images/flow/diagram-flow-009-sync-conflict.png" alt="FLOW" />
+
+###### diagram-flow-010-panel-admin-success.puml
+
+<img src="./diagrams/puml-images/flow/diagram-flow-010-panel-admin-success.png" alt="FLOW" />
+
+###### diagram-flow-011-panel-admin-error.puml
+
+<img src="./diagrams/puml-images/flow/diagram-flow-011-panel-admin-error.png" alt="FLOW" />
+
+###### diagram-flow-012-payment-pro.puml
+
+<img src="./diagrams/puml-images/flow/diagram-flow-012-payment-pro.png" alt="FLOW" />
+
+###### diagram-flow-013-invite-flow.puml
+
+<img src="./diagrams/puml-images/flow/diagram-flow-013-invite-flow.png" alt="FLOW" />
+<!--END_FLOW -->
+
+## UC002 — Rastreamento de Tempo
 
 ### Objetivo
 
@@ -386,11 +458,32 @@ Permitir que o usuário registre tempo em tarefas.
 5. Tempo é salvo localmente
 6. Alterações são sincronizadas posteriormente
 
----
+### Diagrama de Componentes
 
-# UC003 — Ativação Pro
+<!--<BEGIN_COMPONENT_DIAGRAM> -->
 
-_(Prioridade Baixa)_
+###### diagram-component-001-clock-plugin.puml
+
+<img src="./diagrams/puml-images/component/diagram-component-001-clock-plugin.png" alt="COMPONENT_DIAGRAM" />
+
+###### diagram-component-002-git-plugin.puml
+
+<img src="./diagrams/puml-images/component/diagram-component-002-git-plugin.png" alt="COMPONENT_DIAGRAM" />
+
+###### diagram-component-003-custom-extensions.puml
+
+<img src="./diagrams/puml-images/component/diagram-component-003-custom-extensions.png" alt="COMPONENT_DIAGRAM" />
+
+###### diagram-component-004-addons-market.puml
+
+<img src="./diagrams/puml-images/component/diagram-component-004-addons-market.png" alt="COMPONENT_DIAGRAM" />
+
+###### diagram-component-005-shared-ui.puml
+
+<img src="./diagrams/puml-images/component/diagram-component-005-shared-ui.png" alt="COMPONENT_DIAGRAM" />
+<!--END_COMPONENT_DIAGRAM -->
+
+## UC003 — Ativação Pro _(Prioridade Baixa)_
 
 ### Objetivo
 
@@ -404,13 +497,111 @@ Ativar licença corporativa.
 4. Usuário autentica
 5. Licença Pro é ativada
 
+# Diagrama de Infraestrutura
+
+<!--<BEGIN_INFRA_DIAGRAM> -->
+
+###### diagram-infra-001-architecture.puml
+
+<img src="./diagrams/puml-images/infra/diagram-infra-001-architecture.png" alt="INFRA_DIAGRAM" />
+
+###### diagram-infra-002-deployment-cloud.puml
+
+<img src="./diagrams/puml-images/infra/diagram-infra-002-deployment-cloud.png" alt="INFRA_DIAGRAM" />
+
+###### diagram-infra-003-deployment-selfhosted.puml
+
+<img src="./diagrams/puml-images/infra/diagram-infra-003-deployment-selfhosted.png" alt="INFRA_DIAGRAM" />
+
+###### diagram-infra-004-deployment-desktop.puml
+
+<img src="./diagrams/puml-images/infra/diagram-infra-004-deployment-desktop.png" alt="INFRA_DIAGRAM" />
+
+###### diagram-infra-005-control-plane.puml
+
+<img src="./diagrams/puml-images/infra/diagram-infra-005-control-plane.png" alt="INFRA_DIAGRAM" />
+
+###### diagram-infra-006-sync-engine.puml
+
+<img src="./diagrams/puml-images/infra/diagram-infra-006-sync-engine.png" alt="INFRA_DIAGRAM" />
+
+###### diagram-infra-007-rxdb-setup.puml
+
+<img src="./diagrams/puml-images/infra/diagram-infra-007-rxdb-setup.png" alt="INFRA_DIAGRAM" />
+<!--END_INFRA_DIAGRAM -->
+
+# Diagrama de integrações
+
+<!--<BEGIN_INTEGRATION_DIAGRAM> -->
+
+###### diagram-integration-001-jira.puml
+
+<img src="./diagrams/puml-images/integration/diagram-integration-001-jira.png" alt="INTEGRATION_DIAGRAM" />
+
+###### diagram-integration-002-redmine.puml
+
+<img src="./diagrams/puml-images/integration/diagram-integration-002-redmine.png" alt="INTEGRATION_DIAGRAM" />
+
+###### diagram-integration-003-other-datasources.puml
+
+<img src="./diagrams/puml-images/integration/diagram-integration-003-other-datasources.png" alt="INTEGRATION_DIAGRAM" />
+
+###### diagram-integration-004-webhooks.puml
+
+<img src="./diagrams/puml-images/integration/diagram-integration-004-webhooks.png" alt="INTEGRATION_DIAGRAM" />
+
+###### diagram-integration-005-sync-pull.puml
+
+<img src="./diagrams/puml-images/integration/diagram-integration-005-sync-pull.png" alt="INTEGRATION_DIAGRAM" />
+
+###### diagram-integration-006-sync-replication.puml
+
+<img src="./diagrams/puml-images/integration/diagram-integration-006-sync-replication.png" alt="INTEGRATION_DIAGRAM" />
+<!--END_INTEGRATION_DIAGRAM -->
+
+# Diagrama de UML
+
+<!--<BEGIN_UML_DIAGRAM> -->
+
+###### diagram-uml-001-use-case-setup.puml
+
+<img src="./diagrams/puml-images/uml/diagram-uml-001-use-case-setup.png" alt="UML_DIAGRAM" />
+
+###### diagram-uml-002-use-case-timer.puml
+
+<img src="./diagrams/puml-images/uml/diagram-uml-002-use-case-timer.png" alt="UML_DIAGRAM" />
+
+###### diagram-uml-003-use-case-panel.puml
+
+<img src="./diagrams/puml-images/uml/diagram-uml-003-use-case-panel.png" alt="UML_DIAGRAM" />
+
+###### diagram-uml-004-sequence-login.puml
+
+<img src="./diagrams/puml-images/uml/diagram-uml-004-sequence-login.png" alt="UML_DIAGRAM" />
+
+###### diagram-uml-005-sequence-sync.puml
+
+<img src="./diagrams/puml-images/uml/diagram-uml-005-sequence-sync.png" alt="UML_DIAGRAM" />
+
+###### diagram-uml-006-sequence-payment.puml
+
+<img src="./diagrams/puml-images/uml/diagram-uml-006-sequence-payment.png" alt="UML_DIAGRAM" />
+
+###### diagram-uml-007-component-overview.puml
+
+<img src="./diagrams/puml-images/uml/diagram-uml-007-component-overview.png" alt="UML_DIAGRAM" />
+<!--END_UML_DIAGRAM -->
+
+---
+
 # Mermaid Diagram
+
 ```mermaid
 flowchart TB
     subgraph LeftColumn [ ]
         direction TB
         style LeftColumn fill:none,stroke:none
-        
+
         subgraph ControlPlane [Control Plane]
             direction TB
             Auth[Authentication]
@@ -435,7 +626,7 @@ flowchart TB
             SharedUI[Shared UI]
             RxDB[(RxDB Local Database)]
             Sync[Sync Engine]
-            
+
             SharedUI --> RxDB --> Sync
         end
 
@@ -446,7 +637,7 @@ flowchart TB
                 Redmine[Redmine]
                 Other[Other Systems]
             end
-            
+
             subgraph Plugins [Plugins]
                 Clock[Time Clock Plugin]
                 Git[Git Activity Plugin]
@@ -455,17 +646,11 @@ flowchart TB
         end
     end
 
-    %% Connections to Control Plane
     Desktop & Mobile & SelfHosted --> Auth
     Desktop & Mobile & SelfHosted --> Orgs
     Desktop & Mobile & SelfHosted --> Lic
-
-    %% Connections to Application Core
     Desktop & Mobile & SelfHosted --> SharedUI
-
-    %% Connections to Integrations
     Sync --> DataSources
     Sync --> Plugins
-
-    %% Layout constraint to keep columns side-by-side
     LeftColumn ~~~ RightColumn
+```

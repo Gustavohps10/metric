@@ -1,5 +1,18 @@
-﻿@startuml diagram-classes-007-license-plan.puml
-title Functional Diagram diagram-classes-007-license-plan.puml
-participant System
-System -> System: Internal Logic
+@startuml ClassLicensePlan
+title TIMELAPSE - Planos de Licença (SRS 3, 4.3)
+package "Control Plane" {
+    class LicensePlan {
+        +String id
+        +String name
+        +Integer maxMembers
+        +String[] features
+    }
+    
+    enum PlanType {
+        free
+        pro
+        enterprise
+    }
+}
+LicensePlan ..> PlanType : plan
 @enduml

@@ -1,5 +1,28 @@
-﻿@startuml diagram-classes-003-metadata.puml
-title Functional Diagram diagram-classes-003-metadata.puml
-participant System
-System -> System: Internal Logic
+@startuml ClassMetadata
+title TIMELAPSE - Coleção metadata (SRS 6.3)
+package "Core Models" {
+    class Metadata {
+        +String _id
+        +Array taskStatuses
+        +Array taskPriorities
+        +Array activities
+        +Array trackStatuses
+        +Array participantRoles
+        +Array estimationTypes
+        +Boolean conflicted
+        +Object conflictData
+        +DateTime syncedAt
+    }
+    
+    class MetadataItem {
+        +String id
+        +String name
+        +String icon
+        +Object colors
+    }
+}
+Metadata *-- MetadataItem : contains
+note right of MetadataItem
+  colors: badge, background, text, border
+end note
 @enduml

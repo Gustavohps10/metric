@@ -1,5 +1,41 @@
-﻿@startuml diagram-flow-013-invite-flow.puml
-title Functional Diagram diagram-flow-013-invite-flow.puml
-participant System
-System -> System: Internal Logic
+@startuml InviteFlow
+title TIMELAPSE - Fluxo de Convite para Organização (SRS 4.3)
+actor Admin
+participant Browser
+participant ControlPlane
+participant AuthAPI
+participant EmailService
+actor InvitedUser
+
+Admin -> Browser: Acessa painel admin
+Admin -> Browser: Invitar membro
+Browser -> Admin: Solicita email do convidado
+Admin -> Browser: Informa email@empresa.com
+
+Browser -> ControlPlane: POST /orgs/{id}/invite {email, role}
+ControlPlane -> AuthAPI: Gerar token de convite
+AuthAPI -> AuthAPI: Cria convite pendente
+AuthAPI -> EmailService: Enviar email de convite
+EmailService -> InvitedUser: Recebe convite para organização
+
+InvitedUser -> Browser: Clica no link do convite
+Browser -> ControlPlane: GET /invite/accept?token=...
+ControlPlane -> AuthAPI: Validar token de convite
+AuthAPI -> ControlPlane: Token válido - org, role
+
+alt Usuário não tem conta
+    ControlPlane -> Browser: Exibe cadastro (Magic Link)
+    InvitedUser -> Browser: Informa email
+    Browser -> ControlPlane: POST /auth/magic-link
+    AuthAPI -> InvitedUser: Envia Magic Link
+    InvitedUser -> Browser: Completa autenticação
+else Usuário já tem conta
+    ControlPlane -> Browser: Solicita login
+    InvitedUser -> Browser: Faz login (Magic Link)
+end
+
+ControlPlane -> AuthAPI: Adiciona membro à organização
+AuthAPI -> ControlPlane: Membros atualizados
+ControlPlane -> Browser: Redireciona para painel
+Browser -> InvitedUser: Membro adicionado - acesso à org
 @enduml

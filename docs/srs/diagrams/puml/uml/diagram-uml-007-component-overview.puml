@@ -1,5 +1,44 @@
-﻿@startuml diagram-uml-007-component-overview.puml
-title Functional Diagram diagram-uml-007-component-overview.puml
-participant System
-System -> System: Internal Logic
+@startuml ComponentOverview
+title TIMELAPSE - Visão Geral de Componentes (SRS)
+package "Control Plane (app.timelapse.dev)" {
+    [Auth]
+    [Organizations]
+    [Licensing]
+}
+
+package "Clients" {
+    [Desktop Client]
+    [Mobile Client]
+    [Self-Hosted Web]
+}
+
+package "Application Core" {
+    [Shared UI]
+    database "RxDB" as RxDB
+    [Sync Engine]
+}
+
+package "Integrations" {
+    package "Data Sources" {
+        [Jira]
+        [Redmine]
+        [Other Systems]
+    }
+    package "Plugins" {
+        [Clock Plugin]
+        [Git Plugin]
+        [Custom Extensions]
+    }
+}
+
+[Desktop Client] --> [Shared UI]
+[Desktop Client] --> [Auth]
+[Desktop Client] --> [Licensing]
+[Shared UI] --> RxDB
+RxDB --> [Sync Engine]
+[Sync Engine] --> [Jira]
+[Sync Engine] --> [Redmine]
+[Sync Engine] --> [Other Systems]
+[Sync Engine] --> [Clock Plugin]
+[Sync Engine] --> [Git Plugin]
 @enduml

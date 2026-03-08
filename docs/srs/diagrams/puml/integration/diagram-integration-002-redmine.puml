@@ -1,5 +1,20 @@
-﻿@startuml diagram-integration-002-redmine.puml
-title Functional Diagram diagram-integration-002-redmine.puml
-participant System
-System -> System: Internal Logic
+@startuml IntegrationRedmine
+title TIMELAPSE - Integração Redmine (RF003, RF004)
+participant Timelapse
+participant RedmineAdapter
+participant RedmineAPI
+
+Timelapse -> RedmineAdapter: Request Sync (lastCheckpoint)
+RedmineAdapter -> RedmineAPI: GET /issues.json?updated_on=>checkpoint
+RedmineAPI -> RedmineAdapter: JSON (issues)
+
+RedmineAdapter -> RedmineAdapter: Map RedmineIssue -> TimelapseTask
+RedmineAdapter -> RedmineAdapter: Map status, tracker, priority
+RedmineAdapter -> Timelapse: Return Normalized Data
+
+note over RedmineAdapter
+  Conversão de metadados
+  Redmine -> Padrão interno
+  (RF005)
+end note
 @enduml

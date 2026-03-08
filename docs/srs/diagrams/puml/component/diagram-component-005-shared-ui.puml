@@ -1,5 +1,32 @@
-﻿@startuml diagram-component-005-shared-ui.puml
-title Functional Diagram diagram-component-005-shared-ui.puml
-participant System
-System -> System: Internal Logic
+@startuml ComponentSharedUI
+title TIMELAPSE - Application Layer Compartilhada (RNF001)
+package "Shared UI Layer" {
+    component [Task List Component] as TaskList
+    component [Timer Component] as Timer
+    component [Sync Status Component] as SyncStatus
+    component [Settings Component] as Settings
+}
+
+package "Platforms" {
+    [Desktop Client] as Desktop
+    [Self-Hosted Web] as Web
+    [Cloud App] as Cloud
+}
+
+package "Data Layer" {
+    [RxDB] as RxDB
+    [Sync Engine] as Sync
+}
+
+TaskList --> RxDB : tasks
+Timer --> RxDB : timeEntries
+SyncStatus --> Sync : status
+Settings --> RxDB : config
+
+Desktop --> TaskList
+Desktop --> Timer
+Web --> TaskList
+Web --> Timer
+Cloud --> TaskList
+Cloud --> SyncStatus
 @enduml

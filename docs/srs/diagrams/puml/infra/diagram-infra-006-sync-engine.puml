@@ -1,5 +1,38 @@
-﻿@startuml diagram-infra-006-sync-engine.puml
-title Functional Diagram diagram-infra-006-sync-engine.puml
-participant System
-System -> System: Internal Logic
+@startuml SyncEngine
+title TIMELAPSE - Motor de Sincronização (RF004, RF005, RF008)
+package "Sync Engine" {
+    component [Checkpoint Manager] as Checkpoint {
+        [getLastCheckpoint()]
+        [saveCheckpoint()]
+    }
+    component [Pull Handler] as Pull {
+        [fetchFromSource()]
+        [normalizeData()]
+        [upsertToRxDB()]
+    }
+    component [Push Handler] as Push {
+        [collectLocalChanges()]
+        [mapToExternal()]
+        [replicateToSource()]
+    }
+    component [Conflict Resolver] as Conflict {
+        [detectConflict()]
+        [mergeOrNotify()]
+    }
+}
+
+database "RxDB Local" as RxDB
+component [DataSource Plugin] as Plugin
+component [External API] as ExtAPI
+
+Checkpoint --> RxDB : checkpoint
+Pull --> Checkpoint : checkpoint
+Pull --> Plugin : pull()
+Plugin --> ExtAPI : HTTP
+Pull --> RxDB : tasks, timeEntries, metadata
+Push --> RxDB : ler alterações
+Push --> Plugin : push()
+Plugin --> ExtAPI : HTTP
+Conflict --> Pull : conflito
+Conflict --> Push : conflito
 @enduml

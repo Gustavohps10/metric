@@ -1,5 +1,28 @@
-﻿@startuml diagram-flow-011-panel-admin-error.puml
-title Functional Diagram diagram-flow-011-panel-admin-error.puml
-participant System
-System -> System: Internal Logic
+@startuml PanelAdminErrorFlow
+title TIMELAPSE - Painel Admin - Fluxo de Erro (UC003)
+actor Admin
+participant Browser
+participant ControlPlane
+participant AuthAPI
+participant LicenseManager
+
+Admin -> Browser: Acessa app.timelapse.dev
+Browser -> ControlPlane: GET /admin
+
+alt Não autenticado
+    ControlPlane -> Browser: 401 - Redireciona /login
+    Browser -> Admin: Exibe página de login
+else Token expirado
+    Admin -> Browser: Ação no painel
+    Browser -> ControlPlane: Request (JWT expirado)
+    ControlPlane -> AuthAPI: Validar token
+    AuthAPI -> ControlPlane: 401 Token inválido
+    ControlPlane -> Browser: Redireciona /login
+    Browser -> Admin: Sessão expirada - faça login novamente
+else Licença insuficiente
+    ControlPlane -> LicenseManager: Verificar licença
+    LicenseManager -> ControlPlane: Free / não autorizado
+    ControlPlane -> Browser: 403 Forbidden
+    Browser -> Admin: Upgrade para Pro/Enterprise necessário
+end
 @enduml

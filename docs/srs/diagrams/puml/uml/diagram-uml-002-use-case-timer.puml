@@ -1,5 +1,24 @@
-﻿@startuml diagram-uml-002-use-case-timer.puml
-title Functional Diagram diagram-uml-002-use-case-timer.puml
-participant System
-System -> System: Internal Logic
+@startuml UseCaseTimer
+title TIMELAPSE - Casos de Uso: Rastreamento de Tempo (UC002 - SRS)
+left to right direction
+actor "User" as U
+
+rectangle "Timelapse System" {
+    usecase "Selecionar Tarefa" as UC1
+    usecase "Iniciar Timer" as UC2
+    usecase "Pausar Timer" as UC3
+    usecase "Finalizar Timer" as UC4
+    usecase "Registrar Tempo Manual" as UC5
+    usecase "Visualizar Apontamentos" as UC6
+}
+
+U --> UC1
+UC1 --> UC2
+UC2 --> UC3
+UC3 --> UC2 : retomar
+UC2 --> UC4 : parar
+UC4 ..> UC1 : <<include>>
+U --> UC5
+U --> UC6
+UC5 ..> UC6 : <<include>>
 @enduml

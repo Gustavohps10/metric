@@ -1,5 +1,24 @@
-﻿@startuml diagram-integration-004-webhooks.puml
-title Functional Diagram diagram-integration-004-webhooks.puml
-participant System
-System -> System: Internal Logic
+@startuml IntegrationWebhooks
+title TIMELAPSE - Webhooks (Integrações assíncronas)
+participant ExternalSystem
+participant Timelapse
+participant SyncEngine
+participant RxDB
+
+ExternalSystem -> Timelapse: POST /webhook {event, data}
+Timelapse -> Timelapse: Validar assinatura
+
+alt event: issue.updated
+    Timelapse -> SyncEngine: triggerIncrementalSync(issueId)
+    SyncEngine -> ExternalSystem: GET /issue/{id}
+    ExternalSystem -> SyncEngine: Dados atualizados
+    SyncEngine -> SyncEngine: Normalizar
+    SyncEngine -> RxDB: upsert task
+else event: time_entry.created
+    Timelapse -> SyncEngine: syncTimeEntry(data)
+    SyncEngine -> RxDB: upsert timeEntry
+end
+
+SyncEngine -> Timelapse: OK
+Timelapse -> ExternalSystem: 200 OK
 @enduml

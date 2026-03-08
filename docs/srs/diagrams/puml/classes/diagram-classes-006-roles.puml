@@ -1,5 +1,18 @@
-﻿@startuml diagram-classes-006-roles.puml
-title Functional Diagram diagram-classes-006-roles.puml
-participant System
-System -> System: Internal Logic
+@startuml ClassRoles
+title TIMELAPSE - Papéis e Permissões (SRS 4.3)
+package "Control Plane" {
+    class Role {
+        +String id
+        +String name
+        +String[] permissions
+    }
+    
+    enum RoleType {
+        owner
+        admin
+        member
+        viewer
+    }
+}
+Role ..> RoleType : type
 @enduml

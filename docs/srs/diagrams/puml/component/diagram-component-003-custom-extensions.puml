@@ -1,5 +1,22 @@
-﻿@startuml diagram-component-003-custom-extensions.puml
-title Functional Diagram diagram-component-003-custom-extensions.puml
-participant System
-System -> System: Internal Logic
+@startuml ComponentCustomExtensions
+title TIMELAPSE - Extensões Customizadas (RF002)
+package "Plugin Host" {
+    component [Extension API] as ExtAPI
+    interface "IDataSourcePlugin" as IDS
+    interface "IActivityPlugin" as IAct
+}
+
+package "Custom Extensions" {
+    [ERP Adapter] --> IDS
+    [Custom Timer Logic] --> IAct
+    [Webhook Listener] --> IAct
+}
+
+ExtAPI -- IDS
+ExtAPI -- IAct
+note right of ExtAPI
+  Plugins customizados
+  para integração com
+  outros Data Sources
+end note
 @enduml

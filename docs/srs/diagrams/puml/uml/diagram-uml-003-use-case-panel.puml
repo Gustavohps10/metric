@@ -1,5 +1,23 @@
-﻿@startuml diagram-uml-003-use-case-panel.puml
-title Functional Diagram diagram-uml-003-use-case-panel.puml
-participant System
-System -> System: Internal Logic
+@startuml UseCasePanel
+title TIMELAPSE - Casos de Uso: Painel Administrativo (UC003 - SRS)
+left to right direction
+actor "Admin" as A
+actor "Member" as M
+
+rectangle "Timelapse System (Pro/Enterprise)" {
+    usecase "Acessar Painel Admin" as UC1
+    usecase "Gerenciar Organizações" as UC2
+    usecase "Gerenciar Membros" as UC3
+    usecase "Convidar Membro" as UC4
+    usecase "Visualizar Analytics" as UC5
+    usecase "Gerenciar Licença" as UC6
+}
+
+A --> UC1
+A --> UC2
+A --> UC3
+UC3 ..> UC4 : <<include>>
+A --> UC5
+A --> UC6
+M --> UC5 : limitado
 @enduml

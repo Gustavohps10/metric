@@ -1,5 +1,33 @@
-﻿@startuml diagram-integration-006-sync-replication.puml
-title Functional Diagram diagram-integration-006-sync-replication.puml
-participant System
-System -> System: Internal Logic
+@startuml IntegrationSyncReplication
+title TIMELAPSE - Replicação de Apontamentos (RF008)
+participant UI
+participant SyncEngine
+participant RxDB
+participant Plugin
+participant DataSource
+
+UI -> RxDB: Timer cria timeEntry (local)
+RxDB -> RxDB: Persiste com syncedAt=null
+
+UI -> SyncEngine: triggerPush() (background)
+SyncEngine -> RxDB: getUnsyncedTimeEntries()
+RxDB -> SyncEngine: timeEntries[]
+
+loop Para cada timeEntry
+    SyncEngine -> Plugin: replicateTimeEntry(timeEntry)
+    Plugin -> Plugin: Map TimeEntry -> ExternalFormat
+    Plugin -> DataSource: POST /time_entries (ou equivalente)
+    alt Sucesso
+        DataSource -> Plugin: 201 Created {id}
+        Plugin -> SyncEngine: OK
+        SyncEngine -> RxDB: update syncedAt, externalId
+    else Conflito 409
+        DataSource -> Plugin: 409 Conflict
+        Plugin -> SyncEngine: conflict
+        SyncEngine -> RxDB: marcar conflicted
+        SyncEngine -> UI: notificar conflito
+    end
+end
+
+SyncEngine -> UI: pushComplete()
 @enduml
