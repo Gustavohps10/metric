@@ -8,6 +8,7 @@ type PlainWorkspace = {
   name: string
   dataSource: string
   dataSourceConfiguration?: Record<string, unknown>
+  dataSourceConnections?: { id: string; config?: Record<string, unknown> }[]
   createdAt: string
   updatedAt: string
 }
@@ -30,6 +31,7 @@ export class JSONWorkspacesRepository implements IWorkspacesRepository {
           name: p.name,
           dataSource: p.dataSource,
           dataSourceConfiguration: p.dataSourceConfiguration,
+          dataSourceConnections: p.dataSourceConnections ?? [],
           createdAt: new Date(p.createdAt),
           updatedAt: new Date(p.updatedAt),
         })
@@ -41,14 +43,21 @@ export class JSONWorkspacesRepository implements IWorkspacesRepository {
   }
 
   private async _writeWorkspaces(workspaces: Workspace[]): Promise<void> {
-    const plain: PlainWorkspace[] = workspaces.map((ws) => ({
-      id: ws.id,
-      name: ws.name,
-      dataSource: ws.dataSource,
-      dataSourceConfiguration: ws.dataSourceConfiguration,
-      createdAt: ws.createdAt.toISOString(),
-      updatedAt: ws.updatedAt.toISOString(),
-    }))
+    const plain: PlainWorkspace[] = workspaces.map((ws) => {
+      const connections = ws.dataSourceConnections
+      return {
+        id: ws.id,
+        name: ws.name,
+        dataSource: ws.dataSource,
+        dataSourceConfiguration: ws.dataSourceConfiguration,
+        dataSourceConnections:
+          connections?.length > 0
+            ? connections.map((c) => ({ id: c.id, config: c.config }))
+            : undefined,
+        createdAt: ws.createdAt.toISOString(),
+        updatedAt: ws.updatedAt.toISOString(),
+      }
+    })
 
     await fs.writeFile(this.filePath, JSON.stringify(plain, null, 2))
   }

@@ -12,6 +12,7 @@ type PlainWorkspace = {
   name: string
   dataSource: string
   dataSourceConfiguration?: Record<string, unknown>
+  dataSourceConnections?: { id: string; config?: Record<string, unknown> }[]
   createdAt: string
   updatedAt: string
 }
@@ -32,6 +33,7 @@ export class JSONWorkspacesQuery implements IQueryBase<WorkspaceDTO> {
         name: p.name,
         dataSource: p.dataSource,
         dataSourceConfiguration: p.dataSourceConfiguration,
+        dataSourceConnections: p.dataSourceConnections,
         createdAt: new Date(p.createdAt),
         updatedAt: new Date(p.updatedAt),
       }))

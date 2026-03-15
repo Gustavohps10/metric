@@ -18,6 +18,7 @@ export interface SyncEstimatedTimeRxDBDTO {
 export interface SyncTaskRxDBDTO {
   _id: string
   _deleted: boolean
+  dataSourceId: string
   id: string
   title: string
   description?: string
@@ -59,8 +60,9 @@ export const tasksSyncSchema: RxJsonSchema<SyncTaskRxDBDTO> = {
   type: 'object',
   primaryKey: '_id',
   properties: {
-    _id: { type: 'string', maxLength: 100 },
+    _id: { type: 'string', maxLength: 200 },
     _deleted: { type: 'boolean' },
+    dataSourceId: { type: 'string', maxLength: 100 },
     id: { type: 'string', maxLength: 100 },
     title: { type: 'string', maxLength: 250 },
     description: { type: 'string' },
@@ -186,8 +188,17 @@ export const tasksSyncSchema: RxJsonSchema<SyncTaskRxDBDTO> = {
     },
     timeEntries: { type: 'array', items: { type: 'object' } },
   },
-  required: ['_id', 'id', 'title', 'status', 'createdAt', 'updatedAt'],
+  required: [
+    '_id',
+    'dataSourceId',
+    'id',
+    'title',
+    'status',
+    'createdAt',
+    'updatedAt',
+  ],
   indexes: [
+    'dataSourceId',
     'status.name',
     'priority.name',
     'createdAt',

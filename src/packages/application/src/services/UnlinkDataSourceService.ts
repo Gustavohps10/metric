@@ -6,6 +6,7 @@ import {
 } from '@timelapse/cross-cutting/helpers'
 
 import {
+  ICredentialsStorage,
   IUnlinkDataSourceUseCase,
   IWorkspacesRepository,
   UnlinkDataSourceInput,
@@ -13,7 +14,10 @@ import {
 import { WorkspaceDTO } from '@/dtos'
 
 export class UnlinkDataSourceService implements IUnlinkDataSourceUseCase {
-  constructor(private readonly workspacesRepository: IWorkspacesRepository) {}
+  constructor(
+    private readonly workspacesRepository: IWorkspacesRepository,
+    private readonly credentialsStorage: ICredentialsStorage,
+  ) {}
 
   public async execute(
     input: UnlinkDataSourceInput,
@@ -26,7 +30,12 @@ export class UnlinkDataSourceService implements IUnlinkDataSourceUseCase {
         return Either.failure(NotFoundError.danger('Workspace não encontrado'))
       }
 
-      const result = workspace.unlinkDataSource()
+      if (input.dataSourceId) {
+        const storageKey = `workspace-session-${input.workspaceId}-${input.dataSourceId}`
+        await this.credentialsStorage.deleteToken('timelapse', storageKey)
+      }
+
+      const result = workspace.unlinkDataSource(input.dataSourceId)
       if (result.isFailure()) return result.forwardFailure()
 
       await this.workspacesRepository.update(workspace)

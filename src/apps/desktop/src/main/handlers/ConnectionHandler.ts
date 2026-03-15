@@ -11,12 +11,14 @@ import { IpcMainInvokeEvent } from 'electron'
 
 export interface ConnectDataSourceRequest {
   workspaceId: string
+  dataSourceId: string
   credentials: Record<string, unknown>
   configuration: Record<string, unknown>
 }
 
 export interface DisconnectDataSourceRequest {
   workspaceId: string
+  dataSourceId: string
 }
 
 export class ConnectionHandler {

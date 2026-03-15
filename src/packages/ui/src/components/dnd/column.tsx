@@ -63,8 +63,8 @@ const stateStyles: { [Key in TColumnState['type']]: string } = {
 const idle = { type: 'idle' } satisfies TColumnState
 
 const CardList = memo(function CardList({ column }: { column: TColumn }) {
-  return column.cards.map((card, index) => (
-    <Card key={index} card={card} columnId={column.id} />
+  return column.cards.map((card) => (
+    <Card key={card.task._id} card={card} columnId={column.id} />
   ))
 })
 

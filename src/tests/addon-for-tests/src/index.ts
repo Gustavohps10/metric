@@ -1,4 +1,4 @@
-import { Context, IConnector } from '@timelapse/sdk'
+import { DataSourceContext, IDataSource } from '@timelapse/sdk'
 
 import { configurationFieldGroups, credentialFieldGroups } from '@/configFields'
 import { RedmineAuthenticationStrategy } from '@/RedmineAuthenticationStrategy'
@@ -9,7 +9,7 @@ import { RedmineTaskRepository } from '@/RedmineTaskRepository'
 import { RedmineTimeEntryQuery } from '@/RedmineTimeEntryQuery'
 import { RedmineTimeEntryRepository } from '@/RedmineTimeEntryRepository'
 
-const RedmineConnector: IConnector = {
+const RedmineDataSource: IDataSource = {
   id: '@timelapse/redmine-plugin',
   dataSourceType: 'redmine',
   displayName: 'Redmine (Oficial)',
@@ -19,14 +19,14 @@ const RedmineConnector: IConnector = {
   },
 
   /* eslint-disable */
-  getAuthenticationStrategy: (context: Context) => new RedmineAuthenticationStrategy(),
-  getTaskQuery: (context: Context) => new RedmineTaskQuery(context),
-  getTimeEntryQuery: (context: Context) => new RedmineTimeEntryQuery(context),
-  getTimeEntryRepository: (context: Context) => new RedmineTimeEntryRepository(context),
-  getMemberQuery: (context: Context) => new RedmineMemberQuery(context),
-  getTaskRepository: (context: Context) => new RedmineTaskRepository(),
-  getMetadataQuery: (context: Context) => new RedmineMetadataQuery(context),
+  getAuthenticationStrategy: (context: DataSourceContext) => new RedmineAuthenticationStrategy(),
+  getTaskQuery: (context: DataSourceContext) => new RedmineTaskQuery(context),
+  getTimeEntryQuery: (context: DataSourceContext) => new RedmineTimeEntryQuery(context),
+  getTimeEntryRepository: (context: DataSourceContext) => new RedmineTimeEntryRepository(context),
+  getMemberQuery: (context: DataSourceContext) => new RedmineMemberQuery(context),
+  getTaskRepository: (context: DataSourceContext) => new RedmineTaskRepository(),
+  getMetadataQuery: (context: DataSourceContext) => new RedmineMetadataQuery(context),
     /* eslint-enable */
 }
 
-export default RedmineConnector
+export default RedmineDataSource

@@ -7,7 +7,11 @@ import {
 } from '@timelapse/cross-cutting/helpers'
 import { TimeEntry } from '@timelapse/domain'
 
-import { ITimeEntryRepository } from '@/contracts'
+import {
+  IDataSourceResolver,
+  ITimeEntryRepository,
+  IWorkspacesRepository,
+} from '@/contracts'
 import {
   ITimeEntriesPushUseCase,
   PushTimeEntriesInput,
@@ -18,7 +22,8 @@ import { SessionManager } from '@/workflow'
 export class TimeEntriesPushService implements ITimeEntriesPushUseCase {
   constructor(
     private readonly sessionManager: SessionManager,
-    private readonly timeEntryRepository: ITimeEntryRepository,
+    private readonly workspacesRepository: IWorkspacesRepository,
+    private readonly dataSourceResolver: IDataSourceResolver,
   ) {}
 
   public async execute(
@@ -31,10 +36,25 @@ export class TimeEntriesPushService implements ITimeEntriesPushUseCase {
           UnauthorizedError.danger('USUARIO_NAO_ENCONTRADO'),
         )
 
+      const workspace = await this.workspacesRepository.findById(
+        input.workspaceId,
+      )
+      if (!workspace || workspace.dataSource === 'local') {
+        return Either.failure(
+          UnauthorizedError.danger('Workspace não configurado'),
+        )
+      }
+
+      const adapter = await this.dataSourceResolver.getDataSource(
+        input.workspaceId,
+        input.dataSourceId,
+      )
+      const timeEntryRepository = adapter.timeEntryRepository
+
       const results: SyncTimeEntryDTO[] = []
 
       for (const entry of input.entries) {
-        results.push(await this.processEntry(entry))
+        results.push(await this.processEntry(entry, timeEntryRepository))
       }
 
       return Either.success(results)
@@ -45,6 +65,7 @@ export class TimeEntriesPushService implements ITimeEntriesPushUseCase {
 
   private async processEntry(
     entry: SyncTimeEntryDTO,
+    timeEntryRepository: ITimeEntryRepository,
   ): Promise<SyncTimeEntryDTO> {
     const { id, _deleted } = entry
 
@@ -52,13 +73,14 @@ export class TimeEntriesPushService implements ITimeEntriesPushUseCase {
     if (validationError) return { ...entry, validationError: validationError }
 
     try {
-      if (_deleted) return this.handleDeleted(entry)
+      if (_deleted) return this.handleDeleted(entry, timeEntryRepository)
 
-      const existing = await this.timeEntryRepository.findById(id!)
+      const existing = await timeEntryRepository.findById(id!)
 
-      if (existing) return this.handleExisting(entry, existing)
+      if (existing)
+        return this.handleExisting(entry, existing, timeEntryRepository)
 
-      return this.handleNew(entry)
+      return this.handleNew(entry, timeEntryRepository)
     } catch {
       return {
         ...entry,
@@ -77,14 +99,16 @@ export class TimeEntriesPushService implements ITimeEntriesPushUseCase {
 
   private async handleDeleted(
     entry: SyncTimeEntryDTO,
+    timeEntryRepository: ITimeEntryRepository,
   ): Promise<SyncTimeEntryDTO> {
-    await this.timeEntryRepository.delete(entry.id!)
+    await timeEntryRepository.delete(entry.id!)
     return { ...entry, syncedAt: new Date() }
   }
 
   private async handleExisting(
     entry: SyncTimeEntryDTO,
     existing: TimeEntry,
+    timeEntryRepository: ITimeEntryRepository,
   ): Promise<SyncTimeEntryDTO> {
     const { assumedMasterState } = entry
 
@@ -110,12 +134,15 @@ export class TimeEntriesPushService implements ITimeEntriesPushUseCase {
     }
 
     existing.updateComments(entry.comments)
-    await this.timeEntryRepository.update(existing)
+    await timeEntryRepository.update(existing)
 
     return { ...entry, syncedAt: new Date() }
   }
 
-  private async handleNew(entry: SyncTimeEntryDTO): Promise<SyncTimeEntryDTO> {
+  private async handleNew(
+    entry: SyncTimeEntryDTO,
+    timeEntryRepository: ITimeEntryRepository,
+  ): Promise<SyncTimeEntryDTO> {
     const result = TimeEntry.create({
       task: { id: entry.task.id },
       activity: { id: entry.activity.id },
@@ -132,7 +159,7 @@ export class TimeEntriesPushService implements ITimeEntriesPushUseCase {
         validationError: ValidationError.danger('TIME_ENTRY_INVALID'),
       }
 
-    await this.timeEntryRepository.create(result.success)
+    await timeEntryRepository.create(result.success)
     return { ...entry, syncedAt: new Date() }
   }
 }

@@ -4,6 +4,7 @@ import { WorkspaceDTO } from '@/dtos'
 
 export type UnlinkDataSourceInput = {
   workspaceId: string
+  dataSourceId?: string
 }
 
 export interface IUnlinkDataSourceUseCase {

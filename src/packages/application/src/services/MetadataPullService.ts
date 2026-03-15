@@ -4,7 +4,7 @@ import {
   InternalServerError,
 } from '@timelapse/cross-cutting/helpers'
 
-import { IMetadataQuery } from '@/contracts'
+import { IDataSourceResolver } from '@/contracts/resolvers'
 import {
   IMetadataPullUseCase,
   PullMetadataInput,
@@ -12,14 +12,19 @@ import {
 import { MetadataDTO } from '@/dtos'
 
 export class MetadataPullService implements IMetadataPullUseCase {
-  constructor(private metadataQuery: IMetadataQuery) {}
+  constructor(private readonly dataSourceResolver: IDataSourceResolver) {}
 
   async execute(
     input: PullMetadataInput,
   ): Promise<Either<AppError, MetadataDTO>> {
     try {
-      const metadata = await this.metadataQuery.getMetadata(
-        input.checkpoint.id,
+      const adapter = await this.dataSourceResolver.getDataSource(
+        input.workspaceId,
+        input.dataSourceId,
+      )
+
+      const metadata = await adapter.metadataQuery.getMetadata(
+        input.memberId,
         input.checkpoint,
         input.batch,
       )

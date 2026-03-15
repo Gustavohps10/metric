@@ -57,12 +57,14 @@ export interface IWorkspacesAPI {
   unlinkDataSource(
     input: IRequest<{
       workspaceId: string
+      dataSourceId?: string
     }>,
   ): Promise<ViewModel<WorkspaceViewModel>>
 
   connectDataSource(
     input: IRequest<{
       workspaceId: string
+      dataSourceId: string
       configuration: Record<string, unknown>
       credentials: Record<string, unknown>
     }>,
@@ -71,6 +73,7 @@ export interface IWorkspacesAPI {
   disconnectDataSource(
     input: IRequest<{
       workspaceId: string
+      dataSourceId: string
     }>,
   ): Promise<ViewModel<WorkspaceViewModel>>
 }
@@ -88,6 +91,7 @@ export interface ITaskAPI {
   pull: (
     payload: IRequest<{
       workspaceId: string
+      dataSourceId: string
       memberId: string
       checkpoint: { updatedAt: Date; id: string }
       batch: number
@@ -99,6 +103,7 @@ export interface IMetadataAPI {
   pull: (
     payload: IRequest<{
       workspaceId: string
+      dataSourceId: string
       memberId: string
       checkpoint: { updatedAt: Date; id: string }
       batch: number
@@ -110,6 +115,7 @@ export interface ITimeEntriesAPI {
   findByMemberId: (
     payload: IRequest<{
       workspaceId: string
+      dataSourceId: string
       memberId: string
       startDate: Date
       endDate: Date
@@ -119,6 +125,7 @@ export interface ITimeEntriesAPI {
   pull: (
     payload: IRequest<{
       workspaceId: string
+      dataSourceId: string
       memberId: string
       checkpoint: { updatedAt: Date; id: string }
       batch: number

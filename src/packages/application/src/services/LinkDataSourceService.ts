@@ -30,11 +30,16 @@ export class LinkDataSourceService implements ILinkDataSourceUseCase {
 
       await this.workspacesRepository.update(workspace)
 
+      const conns = workspace.dataSourceConnections
       const workspaceDTO: WorkspaceDTO = {
         id: workspace.id,
         name: workspace.name,
         dataSource: workspace.dataSource,
         dataSourceConfiguration: workspace.dataSourceConfiguration,
+        dataSourceConnections:
+          conns?.length > 0
+            ? conns.map((c) => ({ id: c.id, config: c.config }))
+            : undefined,
         createdAt: workspace.createdAt,
         updatedAt: workspace.updatedAt,
       }

@@ -5,6 +5,7 @@ import { SyncTaskRxDBDTO } from '@/db/schemas/tasks-sync-schema'
 export interface SyncTimeEntryRxDBDTO {
   _id: string
   _deleted: boolean
+  dataSourceId: string
   id: string
   task: { id: string }
   taskData?: SyncTaskRxDBDTO
@@ -32,7 +33,8 @@ export const timeEntriesSyncSchema: RxJsonSchema<SyncTimeEntryRxDBDTO> = {
   type: 'object',
   primaryKey: '_id',
   properties: {
-    _id: { type: 'string', maxLength: 100 },
+    _id: { type: 'string', maxLength: 200 },
+    dataSourceId: { type: 'string', maxLength: 100 },
     id: { type: 'string', maxLength: 100 },
     task: {
       type: 'object',
@@ -81,6 +83,7 @@ export const timeEntriesSyncSchema: RxJsonSchema<SyncTimeEntryRxDBDTO> = {
   },
   required: [
     '_id',
+    'dataSourceId',
     'id',
     'task',
     'activity',

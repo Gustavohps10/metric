@@ -1,5 +1,5 @@
 import {
-  Context,
+  DataSourceContext,
   IMemberQuery,
   MemberDTO,
   PagedResultDTO,
@@ -30,7 +30,7 @@ interface RedmineUserResponse {
 }
 
 export class RedmineMemberQuery extends RedmineBase implements IMemberQuery {
-  constructor(context: Context) {
+  constructor(context: DataSourceContext) {
     super(context)
   }
   findByCredentials(login: string, password: string): Promise<MemberDTO> {

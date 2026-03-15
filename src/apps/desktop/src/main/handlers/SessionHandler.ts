@@ -8,12 +8,13 @@ export class SessionHandler {
   constructor(private readonly getCurrentUserService: IGetCurrentUserUseCase) {}
 
   public async listTimeEntries(
-    // NOME POSSIVELMENTE ERRADO ALTERAR
     _event: Electron.IpcMainInvokeEvent,
-    {}: IRequest,
+    { body }: IRequest<{ workspaceId: string }>,
   ): Promise<ViewModel<MemberViewModel>> {
     const result: Either<AppError, MemberDTO> =
-      await this.getCurrentUserService.execute()
+      await this.getCurrentUserService.execute({
+        workspaceId: body.workspaceId,
+      })
     if (result.isFailure()) {
       return {
         statusCode: 500,

@@ -7,12 +7,10 @@ import {
 
 import {
   ConnectDataSourceInput,
-  IAuthenticationStrategy,
   IConnectDataSourceUseCase,
   ICredentialsStorage,
+  IDataSourceResolver,
   IJWTService,
-  ITaskQuery,
-  ITimeEntryQuery,
   IWorkspacesRepository,
 } from '@/contracts'
 import { AuthenticationDTO } from '@/dtos'
@@ -22,17 +20,7 @@ export class ConnectDataSourceService implements IConnectDataSourceUseCase {
     private readonly jwtService: IJWTService,
     private readonly credentialsStorage: ICredentialsStorage,
     private readonly workspacesRepository: IWorkspacesRepository,
-
-    // vem do data source - quero
-    private readonly authenticationStrategy: IAuthenticationStrategy<any>,
-    private readonly taskQuery: ITaskQuery,
-    private readonly timeEntryQuery: ITimeEntryQuery,
-    // outros metodos de data source..
-    //
-
-    //idea nova trabalhar com factory de data source
-    // private readonly serviceProvider: IServiceProvider,
-    // private readonly dataSourceFactory: IDataSourceFactory, // ao inves inves de injetar cada um, injectar uma factory que cria os data sources conforme necessidade
+    private readonly dataSourceResolver: IDataSourceResolver,
   ) {}
 
   public async execute<
@@ -48,7 +36,16 @@ export class ConnectDataSourceService implements IConnectDataSourceUseCase {
       return Either.failure(NotFoundError.danger('Workspace não encontrado'))
     }
 
-    const authResult = await this.authenticationStrategy.authenticate({
+    const adapter = await this.dataSourceResolver.getDataSource(
+      input.workspaceId,
+      input.dataSourceId,
+      {
+        config: input.configuration,
+        credentials: input.credentials as Record<string, unknown>,
+      },
+    )
+
+    const authResult = await adapter.authenticationStrategy.authenticate({
       configuration: input.configuration,
       credentials: input.credentials,
     })
@@ -58,7 +55,7 @@ export class ConnectDataSourceService implements IConnectDataSourceUseCase {
 
     const { member, credentials } = authResult.success
     const serializedCredentials = JSON.stringify(credentials)
-    const storageKey = `workspace-session-${input.workspaceId}`
+    const storageKey = `workspace-session-${input.workspaceId}-${input.dataSourceId}`
 
     try {
       await this.credentialsStorage.saveToken(
@@ -67,7 +64,10 @@ export class ConnectDataSourceService implements IConnectDataSourceUseCase {
         serializedCredentials,
       )
 
-      const connectResult = workspace.connectDataSource(input.configuration)
+      const connectResult = workspace.connectDataSource(
+        input.configuration as Record<string, unknown>,
+        input.dataSourceId,
+      )
 
       if (connectResult.isFailure()) {
         throw new Error(connectResult.failure.messageKey)
@@ -83,7 +83,10 @@ export class ConnectDataSourceService implements IConnectDataSourceUseCase {
 
       return Either.success<AuthenticationDTO>({ member, token })
     } catch (error) {
-      await this.credentialsStorage.deleteToken('timelapse', storageKey)
+      await this.credentialsStorage.deleteToken(
+        'timelapse',
+        `workspace-session-${input.workspaceId}-${input.dataSourceId}`,
+      )
       const errorMessage =
         error instanceof Error
           ? error.message

@@ -3,6 +3,9 @@ import { AppError, Either } from '@timelapse/cross-cutting/helpers'
 import { TaskDTO } from '@/dtos'
 
 export type PullTasksInput = {
+  workspaceId: string
+  dataSourceId: string
+  memberId: string
   checkpoint: { updatedAt: Date; id: string }
   batch: number
 }

@@ -1,11 +1,11 @@
-import { Context } from '@timelapse/sdk'
+import type { DataSourceContext } from '@timelapse/sdk'
 import axios, { AxiosInstance } from 'axios'
 
 export abstract class RedmineBase {
   private apiClient: AxiosInstance | null = null
   private cachedApiKey: string | null = null
 
-  constructor(protected readonly context: Context) {}
+  constructor(protected readonly context: DataSourceContext) {}
 
   protected getAuthenticatedClient(): AxiosInstance {
     const apiUrl = this.context?.config?.apiUrl

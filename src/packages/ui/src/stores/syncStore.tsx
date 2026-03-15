@@ -1,7 +1,14 @@
 'use client'
 
 import { IApplicationAPI } from '@timelapse/application'
-import { createContext, ReactNode, useContext, useRef } from 'react'
+import {
+  createContext,
+  ReactNode,
+  useContext,
+  useEffect,
+  useRef,
+  useState,
+} from 'react'
 import {
   addRxPlugin,
   createRxDatabase,
@@ -76,6 +83,10 @@ export type SyncStore = SyncState & {
   destroy: () => Promise<void>
 }
 
+function compositeId(dataSourceId: string, externalId: string): string {
+  return `${dataSourceId}::${externalId}`
+}
+
 class MetadataStrategy implements IReplicationStrategy<
   SyncMetadataRxDBDTO,
   ReplicationCheckpoint
@@ -83,16 +94,18 @@ class MetadataStrategy implements IReplicationStrategy<
   constructor(
     private client: IApplicationAPI,
     private workspaceId: string,
+    private dataSourceId: string,
   ) {}
 
   async pull(checkpoint: ReplicationCheckpoint | undefined, batchSize: number) {
-    if (checkpoint && checkpoint.id === 'metadata_fixed') {
+    if (checkpoint && checkpoint.id === `metadata_${this.dataSourceId}`) {
       return { documents: [], checkpoint }
     }
 
     const response = await this.client.services.metadata.pull({
       body: {
         workspaceId: this.workspaceId,
+        dataSourceId: this.dataSourceId,
         memberId: '',
         batch: batchSize,
         checkpoint: {
@@ -102,12 +115,18 @@ class MetadataStrategy implements IReplicationStrategy<
       },
     })
 
-    if (!response.data) return { documents: [], checkpoint: checkpoint! }
+    if (!response.data)
+      return {
+        documents: [],
+        checkpoint: checkpoint || { updatedAt: '', id: '' },
+      }
 
     const document: SyncMetadataRxDBDTO = JSON.parse(
       JSON.stringify({
-        _id: 'metadata_singleton',
+        _id: compositeId(this.dataSourceId, 'metadata'),
         _deleted: false,
+        dataSourceId: this.dataSourceId,
+        id: 'metadata',
         participantRoles: response.data.participantRoles || [],
         estimationTypes: response.data.estimationTypes || [],
         trackStatuses: response.data.trackStatuses || [],
@@ -122,7 +141,7 @@ class MetadataStrategy implements IReplicationStrategy<
       documents: [document],
       checkpoint: {
         updatedAt: '1970-01-01T00:00:00.000Z',
-        id: 'metadata_fixed',
+        id: `metadata_${this.dataSourceId}`,
       },
     }
   }
@@ -138,12 +157,14 @@ class TasksStrategy implements IReplicationStrategy<
   constructor(
     private client: IApplicationAPI,
     private workspaceId: string,
+    private dataSourceId: string,
   ) {}
 
   async pull(checkpoint: ReplicationCheckpoint | undefined, batchSize: number) {
     const response = await this.client.services.tasks.pull({
       body: {
         workspaceId: this.workspaceId,
+        dataSourceId: this.dataSourceId,
         memberId: '',
         batch: batchSize,
         checkpoint: {
@@ -161,7 +182,8 @@ class TasksStrategy implements IReplicationStrategy<
       JSON.stringify(
         data.map((item) => ({
           ...item,
-          _id: item.id,
+          _id: compositeId(this.dataSourceId, String(item.id)),
+          dataSourceId: this.dataSourceId,
           _deleted: false,
           createdAt:
             item.createdAt instanceof Date
@@ -216,12 +238,14 @@ class TimeEntriesStrategy implements IReplicationStrategy<
   constructor(
     private client: IApplicationAPI,
     private workspaceId: string,
+    private dataSourceId: string,
   ) {}
 
   async pull(checkpoint: ReplicationCheckpoint | undefined, batchSize: number) {
     const response = await this.client.services.timeEntries.pull({
       body: {
         workspaceId: this.workspaceId,
+        dataSourceId: this.dataSourceId,
         memberId: '',
         batch: batchSize,
         checkpoint: {
@@ -239,7 +263,8 @@ class TimeEntriesStrategy implements IReplicationStrategy<
       JSON.stringify(
         data.map((item) => ({
           ...item,
-          _id: item.id!,
+          _id: compositeId(this.dataSourceId, String(item.id!)),
+          dataSourceId: this.dataSourceId,
           _deleted: false,
           id: item.id!,
           task: { id: item.task.id },
@@ -377,11 +402,16 @@ class ReplicationModule {
   }
 }
 
+export interface DataSourceRef {
+  id: string
+}
+
 export const createSyncStore = (
   workspaceId: string,
+  dataSources: DataSourceRef[],
   client: IApplicationAPI,
 ): StoreApi<SyncStore> => {
-  const engineModules: Record<string, ReplicationModule> = {}
+  const engineModules: ReplicationModule[] = []
 
   return createStore<SyncStore>((set, get) => ({
     db: null,
@@ -390,31 +420,24 @@ export const createSyncStore = (
 
     destroy: async () => {
       const { db } = get()
-      await Promise.all(Object.values(engineModules).map((m) => m.destroy()))
+      await Promise.all(engineModules.map((m) => m.destroy()))
+      engineModules.length = 0
       if (db) await db.close()
       set({ db: null, isInitialized: false, statuses: {} })
     },
 
     init: async () => {
       if (get().isInitialized) return
+      if (dataSources.length === 0) {
+        set({ isInitialized: true })
+        return
+      }
 
       const { RxDBDevModePlugin } = await import('rxdb/plugins/dev-mode')
       const { RxDBQueryBuilderPlugin } =
         await import('rxdb/plugins/query-builder')
       addRxPlugin(RxDBDevModePlugin)
       addRxPlugin(RxDBQueryBuilderPlugin)
-
-      // Nao utilizado devido a falta de um storage gratuito para main process, Dexie funciona apenas no renderer
-      // const isElectron = typeof window !== 'undefined' && !!(window as any).electron
-      // console.log(isElectron, 'IS ELECTRON')
-
-      // const storageBase = (isElectron
-      //   ? getRxStorageIpcRenderer({
-      //       mode: 'database',
-      //       key: 'main-storage',
-      //       ipcRenderer: (window as any).electron.ipcRenderer,
-      //     })
-      //   : getRxStorageDexie()) as RxStorage<unknown, unknown>
 
       const db = await createRxDatabase<AppCollections>({
         name: `db-${workspaceId}`,
@@ -442,51 +465,60 @@ export const createSyncStore = (
         id: '',
       }
 
-      const configs = [
+      const collectionConfigs = [
         {
           name: 'metadata',
-          strategy: new MetadataStrategy(client, workspaceId),
+          strategyFactory: (dsId: string) =>
+            new MetadataStrategy(client, workspaceId, dsId),
           interval: 0,
           batch: 1,
         },
         {
           name: 'tasks',
-          strategy: new TasksStrategy(client, workspaceId),
+          strategyFactory: (dsId: string) =>
+            new TasksStrategy(client, workspaceId, dsId),
           interval: 300,
           batch: 30,
         },
         {
           name: 'timeEntries',
-          strategy: new TimeEntriesStrategy(client, workspaceId),
+          strategyFactory: (dsId: string) =>
+            new TimeEntriesStrategy(client, workspaceId, dsId),
           interval: 60,
           batch: 30,
         },
       ] as const
 
-      for (const config of configs) {
-        const module = new ReplicationModule(
-          db[config.name as keyof AppCollections] as RxCollection,
-          config.strategy as IReplicationStrategy<unknown, unknown>,
-          {
-            identifier: `rep_${config.name}_${workspaceId}`,
-            resyncSeconds: config.interval,
-            batchSize: config.batch,
-            initialCheckpoint,
-            onStatusChange: (status) =>
-              set((state) => ({
-                statuses: {
-                  ...state.statuses,
-                  [config.name]: {
-                    ...state.statuses[config.name],
-                    ...(status as ReplicationStatus),
+      for (const dataSource of dataSources) {
+        const dsId = dataSource.id
+        for (const config of collectionConfigs) {
+          const statusKey = `${config.name}_${dsId}`
+          const module = new ReplicationModule(
+            db[config.name as keyof AppCollections] as RxCollection,
+            config.strategyFactory(dsId) as IReplicationStrategy<
+              unknown,
+              unknown
+            >,
+            {
+              identifier: `rep_${config.name}_${workspaceId}_${dsId}`,
+              resyncSeconds: config.interval,
+              batchSize: config.batch,
+              initialCheckpoint,
+              onStatusChange: (status) =>
+                set((state) => ({
+                  statuses: {
+                    ...state.statuses,
+                    [statusKey]: {
+                      ...state.statuses[statusKey],
+                      ...(status as ReplicationStatus),
+                    },
                   },
-                },
-              })),
-          },
-        )
-
-        await module.start()
-        engineModules[config.name] = module
+                })),
+            },
+          )
+          await module.start()
+          engineModules.push(module)
+        }
       }
 
       set({ db, isInitialized: true })
@@ -504,9 +536,37 @@ export const SyncProvider: React.FC<{ children: ReactNode }> = ({
   const { workspace } = useWorkspace()
   const client = useClient()
   const storeRef = useRef<StoreApi<SyncStore> | null>(null)
+  const workspaceIdRef = useRef<string | null>(null)
+  const [, setRefresh] = useState(0)
+
+  const dataSources =
+    workspace?.dataSourceConnections?.length > 0
+      ? workspace.dataSourceConnections!.map((c) => ({ id: c.id }))
+      : workspace?.dataSource && workspace.dataSource !== 'local'
+        ? [{ id: workspace.dataSource }]
+        : []
+
+  useEffect(() => {
+    const prevId = workspaceIdRef.current
+    const nextId = workspace?.id ?? null
+    if (prevId !== nextId) {
+      if (prevId !== null && storeRef.current) {
+        storeRef.current
+          .getState()
+          .destroy()
+          .then(() => {
+            storeRef.current = null
+            workspaceIdRef.current = nextId
+            setRefresh((n) => n + 1)
+          })
+      } else {
+        workspaceIdRef.current = nextId
+      }
+    }
+  }, [workspace?.id])
 
   if (workspace && !storeRef.current) {
-    storeRef.current = createSyncStore(workspace.id, client)
+    storeRef.current = createSyncStore(workspace.id, dataSources, client)
   }
 
   if (!storeRef.current) return <>{children}</>

@@ -5,7 +5,7 @@ import {
   UnauthorizedError,
 } from '@timelapse/cross-cutting/helpers'
 
-import { ITimeEntryQuery } from '@/contracts/data'
+import { IDataSourceResolver } from '@/contracts/resolvers'
 import {
   ITimeEntriesPullUseCase,
   PullTimeEntriesInput,
@@ -14,31 +14,31 @@ import { TimeEntryDTO } from '@/dtos'
 import { SessionManager } from '@/workflow'
 
 export class TimeEntriesPullService implements ITimeEntriesPullUseCase {
-  private readonly sessionManager: SessionManager
-  private readonly timeEntryQuery: ITimeEntryQuery
-
   public constructor(
-    sessionManager: SessionManager,
-    timeEntryQuery: ITimeEntryQuery,
-  ) {
-    this.sessionManager = sessionManager
-    this.timeEntryQuery = timeEntryQuery
-  }
+    private readonly sessionManager: SessionManager,
+    private readonly dataSourceResolver: IDataSourceResolver,
+  ) {}
 
   public async execute(
     input: PullTimeEntriesInput,
   ): Promise<Either<AppError, TimeEntryDTO[]>> {
     try {
       const sessionUser = this.sessionManager.getCurrentUser()
+      const memberId = sessionUser?.id ?? input.memberId
 
-      if (!sessionUser) {
+      if (!memberId) {
         return Either.failure(
           UnauthorizedError.danger('Usuário não autenticado.'),
         )
       }
 
-      const timeEntries = await this.timeEntryQuery.pull(
-        sessionUser.id,
+      const adapter = await this.dataSourceResolver.getDataSource(
+        input.workspaceId,
+        input.dataSourceId,
+      )
+
+      const timeEntries = await adapter.timeEntryQuery.pull(
+        memberId,
         input.checkpoint,
         input.batch,
       )

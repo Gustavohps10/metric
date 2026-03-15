@@ -5,18 +5,21 @@ import {
 } from '@timelapse/cross-cutting/helpers'
 
 import {
+  DisconnectDataSourceInput,
+  ICredentialsStorage,
   IDisconnectDataSourceUseCase,
   IWorkspacesRepository,
 } from '@/contracts'
 
-interface Input {
-  workspaceId: string
-}
-
 export class DisconnectDataSourceService implements IDisconnectDataSourceUseCase {
-  constructor(private readonly workspacesRepository: IWorkspacesRepository) {}
+  constructor(
+    private readonly workspacesRepository: IWorkspacesRepository,
+    private readonly credentialsStorage: ICredentialsStorage,
+  ) {}
 
-  public async execute(input: Input): Promise<Either<AppError, void>> {
+  public async execute(
+    input: DisconnectDataSourceInput,
+  ): Promise<Either<AppError, void>> {
     const workspace = await this.workspacesRepository.findById(
       input.workspaceId,
     )
@@ -24,7 +27,10 @@ export class DisconnectDataSourceService implements IDisconnectDataSourceUseCase
       return Either.failure(NotFoundError.danger('Workspace não encontrado'))
     }
 
-    const result = workspace.disconnectDataSource()
+    const storageKey = `workspace-session-${input.workspaceId}-${input.dataSourceId}`
+    await this.credentialsStorage.deleteToken('timelapse', storageKey)
+
+    const result = workspace.disconnectDataSource(input.dataSourceId)
     if (result.isFailure()) return result.forwardFailure()
 
     await this.workspacesRepository.update(workspace)

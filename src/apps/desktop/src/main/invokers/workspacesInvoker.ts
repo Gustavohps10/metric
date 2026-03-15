@@ -51,30 +51,36 @@ export const workspacesInvoker: IWorkspacesClient = {
     >('WORKSPACES_LINK_DATASOURCE', request),
 
   unlinkDataSource: (
-    request: IRequest<{ workspaceId: string }>,
+    request: IRequest<{ workspaceId: string; dataSourceId?: string }>,
   ): Promise<ViewModel<WorkspaceViewModel>> =>
     IpcInvoker.invoke<
-      IRequest<{ workspaceId: string }>,
+      IRequest<{ workspaceId: string; dataSourceId?: string }>,
       ViewModel<WorkspaceViewModel>
     >('WORKSPACES_UNLINK_DATASOURCE', request),
 
   connectDataSource: (
     request: IRequest<{
       workspaceId: string
+      dataSourceId: string
       credentials: Record<string, unknown>
       configuration: Record<string, unknown>
     }>,
   ): Promise<ViewModel<AuthenticationViewModel>> =>
     IpcInvoker.invoke<
-      IRequest<{ workspaceId: string; credentials: Record<string, unknown> }>,
+      IRequest<{
+        workspaceId: string
+        dataSourceId: string
+        credentials: Record<string, unknown>
+        configuration: Record<string, unknown>
+      }>,
       ViewModel<AuthenticationViewModel>
     >('WORKSPACES_CONNECT_DATASOURCE', request),
 
   disconnectDataSource: (
-    request: IRequest<{ workspaceId: string }>,
+    request: IRequest<{ workspaceId: string; dataSourceId: string }>,
   ): Promise<ViewModel<WorkspaceViewModel>> =>
     IpcInvoker.invoke<
-      IRequest<{ workspaceId: string }>,
+      IRequest<{ workspaceId: string; dataSourceId: string }>,
       ViewModel<WorkspaceViewModel>
     >('WORKSPACES_DISCONNECT_DATASOURCE', request),
 }

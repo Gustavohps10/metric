@@ -102,6 +102,7 @@ import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group'
 import { SyncMetadataItem } from '@/db/schemas/metadata-sync-schema'
 import { SyncTaskRxDBDTO } from '@/db/schemas/tasks-sync-schema'
 import { SyncTimeEntryRxDBDTO } from '@/db/schemas/time-entries-sync-schema'
+import { useWorkspace } from '@/hooks'
 import { useAuth } from '@/hooks'
 import { useActiveTimer } from '@/hooks/use-active-timer'
 import { cn } from '@/lib'
@@ -253,7 +254,12 @@ MemoizedCommentInput.displayName = 'MemoizedCommentInput'
 
 export function TimeEntries() {
   const db = useSyncStore((state) => state?.db)
+  const { workspace } = useWorkspace()
   const { user } = useAuth()
+  const dataSourceId =
+    workspace?.dataSource && workspace.dataSource !== 'local'
+      ? workspace.dataSource
+      : 'local'
   const queryClient = useQueryClient()
   const [searchParams, setSearchParams] = useSearchParams()
   const [taskLookupOpen, setTaskLookupOpen] = useState(false)
@@ -397,8 +403,9 @@ export function TimeEntries() {
 
       const id = crypto.randomUUID()
       await db?.timeEntries.insert({
-        _id: id,
+        _id: `${dataSourceId}::local-${id}`,
         id,
+        dataSourceId,
         task: { id: selectedTask.id },
         activity: { id: selectedActivity },
         user: { id: user?.id.toString() || 'local' },
@@ -418,6 +425,7 @@ export function TimeEntries() {
       await createNewTimeEntry(db!, {
         taskId: selectedTask.id,
         activityId: selectedActivity,
+        dataSourceId: selectedTask.dataSourceId ?? dataSourceId,
         type: timeEntryType,
         comments,
         userId: user?.id.toString(),
@@ -470,9 +478,12 @@ export function TimeEntries() {
         return
       }
 
+      const dsId =
+        (row.task as { dataSourceId?: string })?.dataSourceId ?? dataSourceId
       await db.timeEntries.insert({
-        _id: id,
+        _id: `${dsId}::local-${id}`,
         id,
+        dataSourceId: dsId,
         task: { id: edited.task?.id || row.task?.id },
         activity: { id: edited.activity?.id || row.activity?.id },
         user: { id: row.user?.id || user?.id.toString() || 'local' },

@@ -5,6 +5,8 @@ import { SyncDocumentDTO, TimeEntryDTO } from '@/dtos'
 export type SyncTimeEntryDTO = SyncDocumentDTO<TimeEntryDTO>
 
 export type PushTimeEntriesInput = {
+  workspaceId: string
+  dataSourceId: string
   entries: SyncTimeEntryDTO[]
 }
 

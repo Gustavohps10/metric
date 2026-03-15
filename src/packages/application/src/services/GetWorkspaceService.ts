@@ -25,11 +25,16 @@ export class GetWorkspaceService implements IGetWorkspaceUseCase {
       return Either.failure(NotFoundError.danger('Workspace não encontrado.'))
     }
 
+    const connections = workspace.dataSourceConnections
     const workspaceDTO: WorkspaceDTO = {
       id: workspace.id,
       name: workspace.name,
       dataSource: workspace.dataSource,
       dataSourceConfiguration: workspace.dataSourceConfiguration,
+      dataSourceConnections:
+        connections?.length > 0
+          ? connections.map((c) => ({ id: c.id, config: c.config }))
+          : undefined,
       createdAt: workspace.createdAt,
       updatedAt: workspace.updatedAt,
     }

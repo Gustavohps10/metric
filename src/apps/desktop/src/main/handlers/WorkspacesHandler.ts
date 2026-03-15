@@ -27,6 +27,7 @@ export interface LinkDataSourceRequest {
 
 export interface UnlinkDataSourceRequest {
   workspaceId: string
+  dataSourceId?: string
 }
 
 export class WorkspacesHandler {
@@ -53,6 +54,7 @@ export class WorkspacesHandler {
     }
 
     const newWorkspace = result.success
+    const conns = newWorkspace.dataSourceConnections
     return {
       isSuccess: true,
       statusCode: 201,
@@ -61,6 +63,10 @@ export class WorkspacesHandler {
         name: newWorkspace.name,
         dataSource: newWorkspace.dataSource,
         dataSourceConfiguration: newWorkspace.dataSourceConfiguration,
+        dataSourceConnections:
+          conns?.length > 0
+            ? conns.map((c) => ({ id: c.id, config: c.config }))
+            : undefined,
         createdAt: newWorkspace.createdAt,
         updatedAt: newWorkspace.updatedAt,
       },
@@ -84,14 +90,21 @@ export class WorkspacesHandler {
 
     const pagedDto = result.success
     const workspaces = pagedDto.items ?? []
-    const viewModels: WorkspaceViewModel[] = workspaces.map((w) => ({
-      id: w.id,
-      name: w.name,
-      dataSource: w.dataSource,
-      dataSourceConfiguration: w.dataSourceConfiguration,
-      createdAt: w.createdAt,
-      updatedAt: w.updatedAt,
-    }))
+    const viewModels: WorkspaceViewModel[] = workspaces.map((w) => {
+      const conns = w.dataSourceConnections
+      return {
+        id: w.id,
+        name: w.name,
+        dataSource: w.dataSource,
+        dataSourceConfiguration: w.dataSourceConfiguration,
+        dataSourceConnections:
+          conns?.length > 0
+            ? conns.map((c) => ({ id: c.id, config: c.config }))
+            : undefined,
+        createdAt: w.createdAt,
+        updatedAt: w.updatedAt,
+      }
+    })
 
     return {
       statusCode: 200,
@@ -118,6 +131,7 @@ export class WorkspacesHandler {
     }
 
     const workspace = result.success
+    const conns = workspace.dataSourceConnections
     return {
       isSuccess: true,
       statusCode: 200,
@@ -126,6 +140,10 @@ export class WorkspacesHandler {
         name: workspace.name,
         dataSource: workspace.dataSource,
         dataSourceConfiguration: workspace.dataSourceConfiguration,
+        dataSourceConnections:
+          conns?.length > 0
+            ? conns.map((c) => ({ id: c.id, config: c.config }))
+            : undefined,
         createdAt: workspace.createdAt,
         updatedAt: workspace.updatedAt,
       },
@@ -145,6 +163,7 @@ export class WorkspacesHandler {
       }
     }
     const workspace = result.success
+    const conns = workspace.dataSourceConnections
     return {
       isSuccess: true,
       statusCode: 200,
@@ -153,6 +172,10 @@ export class WorkspacesHandler {
         name: workspace.name,
         dataSource: workspace.dataSource,
         dataSourceConfiguration: workspace.dataSourceConfiguration,
+        dataSourceConnections:
+          conns?.length > 0
+            ? conns.map((c) => ({ id: c.id, config: c.config }))
+            : undefined,
         createdAt: workspace.createdAt,
         updatedAt: workspace.updatedAt,
       },
@@ -172,6 +195,7 @@ export class WorkspacesHandler {
       }
     }
     const workspace = result.success
+    const conns = workspace.dataSourceConnections
     return {
       isSuccess: true,
       statusCode: 200,
@@ -180,6 +204,10 @@ export class WorkspacesHandler {
         name: workspace.name,
         dataSource: workspace.dataSource,
         dataSourceConfiguration: workspace.dataSourceConfiguration,
+        dataSourceConnections:
+          conns?.length > 0
+            ? conns.map((c) => ({ id: c.id, config: c.config }))
+            : undefined,
         createdAt: workspace.createdAt,
         updatedAt: workspace.updatedAt,
       },

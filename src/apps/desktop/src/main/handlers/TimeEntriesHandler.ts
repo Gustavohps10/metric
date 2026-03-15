@@ -12,12 +12,17 @@ import {
 } from '@timelapse/presentation/view-models'
 
 export interface ListTimeEntriesRequest {
+  workspaceId: string
+  dataSourceId: string
   memberId: string
   startDate: Date
   endDate: Date
 }
 
 export interface PullTimeEntriesRequest {
+  workspaceId: string
+  dataSourceId: string
+  memberId: string
   checkpoint: { updatedAt: Date; id: string }
   batch: number
 }
@@ -31,15 +36,9 @@ export class TimeEntriesHandler {
 
   public async listTimeEntries(
     _event: Electron.IpcMainInvokeEvent,
-    {
-      body: { memberId, startDate, endDate },
-    }: IRequest<ListTimeEntriesRequest>,
+    { body }: IRequest<ListTimeEntriesRequest>,
   ): Promise<PaginatedViewModel<TimeEntryViewModel[]>> {
-    const result = await this.listTimeEntriesService.execute(
-      memberId,
-      startDate,
-      endDate,
-    )
+    const result = await this.listTimeEntriesService.execute(body)
 
     if (result.isFailure()) {
       return {
@@ -70,6 +69,9 @@ export class TimeEntriesHandler {
     { body }: IRequest<PullTimeEntriesRequest>,
   ): Promise<TimeEntryViewModel[]> {
     const result = await this.timeEntriesPullService.execute({
+      workspaceId: body.workspaceId,
+      dataSourceId: body.dataSourceId,
+      memberId: body.memberId,
       checkpoint: body.checkpoint,
       batch: body.batch,
     })

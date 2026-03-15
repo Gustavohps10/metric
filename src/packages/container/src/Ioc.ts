@@ -5,6 +5,7 @@ import {
   GetCurrentUserService,
   GetWorkspaceService,
   ICredentialsStorage,
+  IDataSourceResolver,
   ImportAddonService,
   IServiceProvider,
   IWorkspacesQuery,
@@ -24,7 +25,6 @@ import { JwtService } from '@timelapse/infra/auth'
 import { AddonsFacade } from '@timelapse/infra/facades'
 import { HttpClient } from '@timelapse/infra/http'
 import { FileManager } from '@timelapse/infra/storage'
-import { UnitOfWork } from '@timelapse/infra/workflow'
 import {
   asClass,
   asValue,
@@ -46,6 +46,7 @@ export interface PlatformDependencies {
   credentialsStorage: ICredentialsStorage
   workspacesRepository: IWorkspacesRepository
   workspacesQuery: IWorkspacesQuery
+  dataSourceResolver: IDataSourceResolver
 }
 
 /**
@@ -70,6 +71,7 @@ export class ContainerBuilder {
       credentialsStorage: asValue(deps.credentialsStorage),
       workspacesRepository: asValue(deps.workspacesRepository),
       workspacesQuery: asValue(deps.workspacesQuery),
+      dataSourceResolver: asValue(deps.dataSourceResolver),
     })
     return this
   }
@@ -108,9 +110,7 @@ export class ContainerBuilder {
     this.container.register({
       httpClient: asClass(HttpClient).transient(),
       jwtService: asClass(JwtService).scoped(),
-      unitOfWork: asClass(UnitOfWork).scoped(),
       fileManager: asClass(FileManager).scoped(),
-
       addonsFacade: asClass(AddonsFacade).scoped(),
     })
     return this

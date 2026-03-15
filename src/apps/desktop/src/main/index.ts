@@ -21,6 +21,7 @@ import {
 import { AddonsHandler } from '@/main/handlers/AddonsHandler'
 import { MetadataHandler } from '@/main/handlers/MetadataHandler'
 import { WorkspacesHandler } from '@/main/handlers/WorkspacesHandler'
+import { DataSourceResolver } from '@/main/resolvers/data-source-resolver'
 import { openIpcRoutes } from '@/main/routes/openIpcRoutes'
 
 let mainWindow: BrowserWindow | null = null
@@ -148,10 +149,22 @@ const createTray = () => {
 }
 
 app.whenReady().then(async () => {
+  const userDataPath = app.getPath('userData')
+  const credentialsStorage = new KeytarTokenStorage()
+  const workspacesRepository = new JSONWorkspacesRepository(userDataPath)
+  const workspacesQuery = new JSONWorkspacesQuery(userDataPath)
+
   const platformDeps: PlatformDependencies = {
-    credentialsStorage: new KeytarTokenStorage(),
-    workspacesRepository: new JSONWorkspacesRepository(app.getPath('userData')),
-    workspacesQuery: new JSONWorkspacesQuery(app.getPath('userData')),
+    credentialsStorage,
+    workspacesRepository,
+    workspacesQuery,
+    dataSourceResolver: new DataSourceResolver(
+      workspacesRepository,
+      credentialsStorage,
+      {
+        addonsBasePath: join(__dirname, '../addons/datasource'),
+      },
+    ),
   }
 
   const serviceProvider = new ContainerBuilder()

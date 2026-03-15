@@ -1,5 +1,12 @@
 export * from './AddonConfig'
-export { Context, FieldGroup, IConnector } from './Connector'
+export {
+  ConfigField,
+  Context,
+  DataSourceContext,
+  FieldGroup,
+  IConnector,
+  IDataSource,
+} from './data-source'
 export * from './utils/MarkupConverter'
 export type {
   AuthenticationDTO,

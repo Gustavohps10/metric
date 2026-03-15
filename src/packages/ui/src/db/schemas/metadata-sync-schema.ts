@@ -15,6 +15,8 @@ export interface SyncMetadataItem {
 export interface SyncMetadataRxDBDTO {
   _id: string
   _deleted: boolean
+  dataSourceId: string
+  id: string
   taskStatuses: SyncMetadataItem[]
   taskPriorities: SyncMetadataItem[]
   activities: SyncMetadataItem[]
@@ -36,8 +38,10 @@ export const metadataSyncSchema: RxJsonSchema<SyncMetadataRxDBDTO> = {
   primaryKey: '_id',
   type: 'object',
   properties: {
-    _id: { type: 'string', maxLength: 100 },
+    _id: { type: 'string', maxLength: 200 },
     _deleted: { type: 'boolean' },
+    dataSourceId: { type: 'string', maxLength: 100 },
+    id: { type: 'string', maxLength: 100 },
     taskStatuses: {
       type: 'array',
       items: {
@@ -184,6 +188,8 @@ export const metadataSyncSchema: RxJsonSchema<SyncMetadataRxDBDTO> = {
   },
   required: [
     '_id',
+    'dataSourceId',
+    'id',
     'taskStatuses',
     'taskPriorities',
     'activities',

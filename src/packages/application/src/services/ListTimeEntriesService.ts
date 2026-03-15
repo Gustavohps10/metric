@@ -4,28 +4,31 @@ import {
   InternalServerError,
 } from '@timelapse/cross-cutting/helpers'
 
-import { ITimeEntryQuery } from '@/contracts'
-import { IListTimeEntriesUseCase } from '@/contracts/use-cases/IListTimeEntriesUseCase'
-import { IUnitOfWork } from '@/contracts/workflow/IUnitOfWork'
+import { IDataSourceResolver } from '@/contracts/resolvers'
+import {
+  IListTimeEntriesUseCase,
+  ListTimeEntriesInput,
+} from '@/contracts/use-cases/IListTimeEntriesUseCase'
 import { PagedResultDTO, TimeEntryDTO } from '@/dtos'
 
 export class ListTimeEntriesService implements IListTimeEntriesUseCase {
-  private readonly timeEntryQuery: ITimeEntryQuery
-
-  public constructor(unitOfWork: IUnitOfWork) {
-    this.timeEntryQuery = unitOfWork.timeEntryQuery
-  }
+  public constructor(
+    private readonly dataSourceResolver: IDataSourceResolver,
+  ) {}
 
   public async execute(
-    memberId: string,
-    startDate: Date,
-    endDate: Date,
+    input: ListTimeEntriesInput,
   ): Promise<Either<AppError, PagedResultDTO<TimeEntryDTO>>> {
     try {
-      const timeEntries = await this.timeEntryQuery.findByMemberId(
-        memberId,
-        startDate,
-        endDate,
+      const adapter = await this.dataSourceResolver.getDataSource(
+        input.workspaceId,
+        input.dataSourceId,
+      )
+
+      const timeEntries = await adapter.timeEntryQuery.findByMemberId(
+        input.memberId,
+        input.startDate,
+        input.endDate,
       )
 
       return Either.success(timeEntries)

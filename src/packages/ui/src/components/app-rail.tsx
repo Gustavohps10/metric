@@ -1,7 +1,7 @@
 import { useQuery } from '@tanstack/react-query'
 import { cva } from 'class-variance-authority'
 import { motion } from 'framer-motion'
-import { BoxIcon, Compass, HomeIcon, PlusIcon } from 'lucide-react'
+import { Compass, HomeIcon, LayoutGridIcon, PlusIcon } from 'lucide-react'
 import { useState } from 'react'
 import { NavLink } from 'react-router-dom'
 
@@ -90,7 +90,7 @@ export function AppRail() {
                       }}
                     />
                   )}
-                  <BoxIcon className="size-5" />
+                  <LayoutGridIcon className="size-5" />
                 </>
               )}
             </NavLink>

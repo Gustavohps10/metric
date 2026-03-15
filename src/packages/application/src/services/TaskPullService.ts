@@ -4,7 +4,7 @@ import {
   InternalServerError,
 } from '@timelapse/cross-cutting/helpers'
 
-import { ITaskQuery } from '@/contracts/data'
+import { IDataSourceResolver } from '@/contracts/resolvers'
 import { ITaskPullUseCase, PullTasksInput } from '@/contracts/use-cases'
 import { TaskDTO } from '@/dtos'
 import { SessionManager } from '@/workflow'
@@ -12,7 +12,7 @@ import { SessionManager } from '@/workflow'
 export class TaskPullService implements ITaskPullUseCase {
   public constructor(
     private readonly sessionManager: SessionManager,
-    private readonly taskQuery: ITaskQuery,
+    private readonly dataSourceResolver: IDataSourceResolver,
   ) {}
 
   public async execute(
@@ -20,9 +20,15 @@ export class TaskPullService implements ITaskPullUseCase {
   ): Promise<Either<AppError, TaskDTO[]>> {
     try {
       const sessionUser = this.sessionManager.getCurrentUser()
+      const memberId = sessionUser?.id ?? input.memberId
 
-      const tasks = await this.taskQuery.pull(
-        sessionUser!.id,
+      const adapter = await this.dataSourceResolver.getDataSource(
+        input.workspaceId,
+        input.dataSourceId,
+      )
+
+      const tasks = await adapter.taskQuery.pull(
+        memberId,
         input.checkpoint,
         input.batch,
       )

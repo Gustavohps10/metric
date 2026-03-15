@@ -21,12 +21,12 @@ export class TasksHandler {
 
   public async listTasks(
     _event: Electron.IpcMainInvokeEvent,
-    _request?: any,
+    { body }: IRequest<{ workspaceId: string; dataSourceId: string }>,
   ): Promise<PaginatedViewModel<TaskViewModel[]>> {
     const result: Either<
       AppError,
       PagedResultDTO<TaskDTO>
-    > = await this.listTasksService.execute()
+    > = await this.listTasksService.execute(body)
 
     if (result.isFailure()) {
       return {

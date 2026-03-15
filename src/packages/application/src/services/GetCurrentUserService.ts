@@ -6,23 +6,43 @@ import {
   UnauthorizedError,
 } from '@timelapse/cross-cutting/helpers'
 
-import { IGetCurrentUserUseCase, IMemberQuery } from '@/contracts'
+import {
+  GetCurrentUserInput,
+  IDataSourceResolver,
+  IGetCurrentUserUseCase,
+  IWorkspacesRepository,
+} from '@/contracts'
 import { MemberDTO } from '@/dtos'
 import { SessionManager } from '@/workflow'
 
 export class GetCurrentUserService implements IGetCurrentUserUseCase {
   constructor(
     private readonly sessionManager: SessionManager,
-    private readonly memberQuery: IMemberQuery,
+    private readonly workspacesRepository: IWorkspacesRepository,
+    private readonly dataSourceResolver: IDataSourceResolver,
   ) {}
 
-  public async execute(): Promise<Either<AppError, MemberDTO>> {
+  public async execute(
+    input: GetCurrentUserInput,
+  ): Promise<Either<AppError, MemberDTO>> {
     try {
       const sessionUser = this.sessionManager.getCurrentUser()
       if (!sessionUser)
         return Either.failure(UnauthorizedError.danger('USUARIO_NAO_LOGADO'))
 
-      const user = await this.memberQuery.findById(sessionUser.id)
+      const workspace = await this.workspacesRepository.findById(
+        input.workspaceId,
+      )
+      if (!workspace || workspace.dataSource === 'local') {
+        return Either.failure(NotFoundError.danger('Workspace não configurado'))
+      }
+
+      const adapter = await this.dataSourceResolver.getDataSource(
+        input.workspaceId,
+        workspace.dataSource,
+      )
+
+      const user = await adapter.memberQuery.findById(sessionUser.id)
       if (!user)
         return Either.failure(NotFoundError.danger('USUARIO_NAO_ENCONTRADO'))
 

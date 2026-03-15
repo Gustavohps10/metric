@@ -4,6 +4,7 @@ import { AuthenticationDTO } from '@/dtos'
 
 export interface ConnectDataSourceInput<Credentials, Configuration> {
   workspaceId: string
+  dataSourceId: string
   credentials: Credentials
   configuration: Configuration
 }

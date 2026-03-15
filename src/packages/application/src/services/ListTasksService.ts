@@ -4,22 +4,26 @@ import {
   InternalServerError,
 } from '@timelapse/cross-cutting/helpers'
 
-import { ITaskQuery } from '@/contracts'
-import { IListTasksUseCase } from '@/contracts/use-cases/IListTasksUseCase'
-import { IUnitOfWork } from '@/contracts/workflow/IUnitOfWork'
+import { IDataSourceResolver } from '@/contracts/resolvers'
+import {
+  IListTasksUseCase,
+  ListTasksInput,
+} from '@/contracts/use-cases/IListTasksUseCase'
 import { TaskDTO } from '@/dtos'
 import { PagedResultDTO } from '@/dtos/pagination'
 
 export class ListTaskService implements IListTasksUseCase {
-  private readonly taskQuery: ITaskQuery
+  constructor(private readonly dataSourceResolver: IDataSourceResolver) {}
 
-  constructor(unitOfWork: IUnitOfWork) {
-    this.taskQuery = unitOfWork.taskQuery
-  }
-
-  public async execute(): Promise<Either<AppError, PagedResultDTO<TaskDTO>>> {
+  public async execute(
+    input: ListTasksInput,
+  ): Promise<Either<AppError, PagedResultDTO<TaskDTO>>> {
     try {
-      const tasks = await this.taskQuery.findAll()
+      const adapter = await this.dataSourceResolver.getDataSource(
+        input.workspaceId,
+        input.dataSourceId,
+      )
+      const tasks = await adapter.taskQuery.findAll()
       return Either.success(tasks)
     } catch (error: unknown) {
       return Either.failure(InternalServerError.danger('ERRO_INESPERADO'))

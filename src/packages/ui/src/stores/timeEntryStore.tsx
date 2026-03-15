@@ -14,6 +14,7 @@ import { AppDatabase } from '@/stores/syncStore'
 export interface CreateTimeEntryData {
   taskId: string
   activityId: string
+  dataSourceId: string
   type: 'increasing' | 'decreasing' | 'manual'
   comments?: string
   userId?: string
@@ -62,9 +63,10 @@ export const createTimeEntryStore = (): StoreApi<TimeEntryStore> => {
       const now = new Date().toISOString()
 
       const newEntry: SyncTimeEntryRxDBDTO = {
-        _id: id,
+        _id: `${data.dataSourceId}::local-${id}`,
         id,
         _deleted: false,
+        dataSourceId: data.dataSourceId,
         task: { id: data.taskId },
         activity: { id: data.activityId },
         user: { id: data.userId ?? 'local-user' },

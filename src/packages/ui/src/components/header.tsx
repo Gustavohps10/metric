@@ -2,11 +2,22 @@
 
 import { format } from 'date-fns'
 import { ptBR } from 'date-fns/locale'
-import { Activity, Clock, Database, Share2Icon } from 'lucide-react'
+import {
+  Activity,
+  ChevronRight,
+  Clock,
+  Database,
+  Share2Icon,
+} from 'lucide-react'
 import { AiOutlineCloudSync } from 'react-icons/ai'
 
 import logoAtak from '@/assets/logo-atak.png'
 import { Button } from '@/components/ui/button'
+import {
+  Collapsible,
+  CollapsibleContent,
+  CollapsibleTrigger,
+} from '@/components/ui/collapsible'
 import {
   Popover,
   PopoverContent,
@@ -20,7 +31,41 @@ import {
   TooltipTrigger,
 } from '@/components/ui/tooltip'
 import { useWorkspace } from '@/hooks'
-import { useSyncStore } from '@/stores/syncStore'
+import { type ReplicationStatus, useSyncStore } from '@/stores/syncStore'
+
+const COLLECTION_LABELS: Record<string, string> = {
+  metadata: 'Metadata',
+  tasks: 'Tarefas',
+  timeEntries: 'Apontamentos',
+}
+
+function dataSourceDisplayName(id: string): string {
+  return id
+    .split(/[-_]/)
+    .map((s) => s.charAt(0).toUpperCase() + s.slice(1).toLowerCase())
+    .join(' ')
+}
+
+function groupStatusesByDataSource(
+  statuses: Record<string, ReplicationStatus>,
+): Map<string, { collection: string; status: ReplicationStatus }[]> {
+  const map = new Map<
+    string,
+    { collection: string; status: ReplicationStatus }[]
+  >()
+  for (const key of Object.keys(statuses)) {
+    const idx = key.indexOf('_')
+    if (idx <= 0) continue
+    const collection = key.slice(0, idx)
+    const dataSourceId = key.slice(idx + 1)
+    if (!map.has(dataSourceId)) map.set(dataSourceId, [])
+    map.get(dataSourceId)!.push({
+      collection,
+      status: statuses[key]!,
+    })
+  }
+  return map
+}
 
 export function Header() {
   const { workspace } = useWorkspace()
@@ -37,7 +82,9 @@ export function Header() {
     return 'bg-green-500'
   }
 
-  const replicationNames = statuses ? Object.keys(statuses) : []
+  const grouped = statuses
+    ? groupStatusesByDataSource(statuses)
+    : new Map<string, { collection: string; status: ReplicationStatus }[]>()
 
   return (
     <header className="pointer-events-none absolute top-0 left-0 z-50 flex w-full justify-center bg-transparent pl-[calc(72px+240px)]">
@@ -112,66 +159,84 @@ export function Header() {
                     </div>
                   </div>
 
-                  {/* List of Replication */}
+                  {/* List grouped by datasource (ADR-002) */}
                   <div className="max-h-[300px] overflow-y-auto p-1">
-                    <div className="space-y-0.5">
-                      {isInitialized && replicationNames.length > 0 ? (
-                        replicationNames.map((name) => {
-                          const status = statuses?.[name]
-                          if (!status) return null
-
-                          const dotStatusColor = status.error
-                            ? 'bg-red-500'
-                            : status.isPulling || status.isPushing
-                              ? 'bg-blue-500 animate-pulse'
-                              : 'bg-green-500'
-
-                          return (
-                            <div
-                              key={name}
-                              className="hover:bg-accent/30 rounded-sm border border-transparent px-2 py-1.5 transition-colors"
+                    {isInitialized && grouped.size > 0 ? (
+                      <div className="space-y-0.5">
+                        {Array.from(grouped.entries()).map(
+                          ([dataSourceId, items]) => (
+                            <Collapsible
+                              key={dataSourceId}
+                              defaultOpen
+                              className="rounded-sm border border-transparent"
                             >
-                              <div className="flex items-center justify-between gap-6">
-                                <span className="text-foreground/90 text-[10px] font-bold capitalize">
-                                  {name}
+                              <CollapsibleTrigger className="hover:bg-accent/30 flex w-full items-center gap-1.5 rounded-sm px-2 py-1.5 text-left transition-colors [&[data-state=open]>svg]:rotate-90">
+                                <ChevronRight
+                                  size={12}
+                                  className="text-muted-foreground shrink-0 transition-transform"
+                                />
+                                <span className="text-foreground/90 text-[10px] font-bold">
+                                  {dataSourceDisplayName(dataSourceId)}
                                 </span>
-
-                                {/* Status Indicator */}
-                                <div className="flex items-center gap-1.5">
-                                  <span
-                                    className={`h-1.5 w-1.5 rounded-full ${dotStatusColor}`}
-                                  />
-                                  <span className="text-muted-foreground text-[9px] font-bold">
-                                    {status.error
-                                      ? 'Erro'
-                                      : status.isPulling
-                                        ? 'Buscando dados...'
-                                        : 'Sincronizado'}
-                                  </span>
+                              </CollapsibleTrigger>
+                              <CollapsibleContent>
+                                <div className="border-border/50 ml-4 space-y-0.5 border-l pl-2">
+                                  {items.map(({ collection, status }) => {
+                                    const dotStatusColor = status.error
+                                      ? 'bg-red-500'
+                                      : status.isPulling || status.isPushing
+                                        ? 'bg-blue-500 animate-pulse'
+                                        : 'bg-green-500'
+                                    return (
+                                      <div
+                                        key={collection}
+                                        className="hover:bg-accent/20 rounded-sm px-1.5 py-1 transition-colors"
+                                      >
+                                        <div className="flex items-center justify-between gap-2">
+                                          <span className="text-muted-foreground text-[10px] font-medium">
+                                            {COLLECTION_LABELS[collection] ??
+                                              collection}
+                                          </span>
+                                          <div className="flex items-center gap-1.5">
+                                            <span
+                                              className={`h-1.5 w-1.5 rounded-full ${dotStatusColor}`}
+                                            />
+                                            <span className="text-muted-foreground text-[9px]">
+                                              {status.error
+                                                ? 'Erro'
+                                                : status.isPulling
+                                                  ? 'Buscando...'
+                                                  : 'Sincronizado'}
+                                            </span>
+                                          </div>
+                                        </div>
+                                        <div className="text-muted-foreground/80 flex items-center gap-1 text-[8px]">
+                                          <Clock
+                                            size={8}
+                                            className="shrink-0"
+                                          />
+                                          {status.lastReplication
+                                            ? format(
+                                                status.lastReplication,
+                                                "HH:mm 'em' dd/MM",
+                                                { locale: ptBR },
+                                              )
+                                            : 'Pendente'}
+                                        </div>
+                                      </div>
+                                    )
+                                  })}
                                 </div>
-                              </div>
-
-                              <div className="text-muted-foreground mt-1 flex items-center gap-1 text-[8px] font-medium">
-                                <Clock size={8} className="shrink-0" />
-                                <span>
-                                  {status.lastReplication
-                                    ? format(
-                                        status.lastReplication,
-                                        "HH:mm:ss 'em' dd/MM",
-                                        { locale: ptBR },
-                                      )
-                                    : 'Pendente'}
-                                </span>
-                              </div>
-                            </div>
-                          )
-                        })
-                      ) : (
-                        <div className="text-muted-foreground py-4 text-center text-[9px] italic">
-                          Inicializando...
-                        </div>
-                      )}
-                    </div>
+                              </CollapsibleContent>
+                            </Collapsible>
+                          ),
+                        )}
+                      </div>
+                    ) : (
+                      <div className="text-muted-foreground py-4 text-center text-[9px] italic">
+                        Inicializando...
+                      </div>
+                    )}
                   </div>
                 </PopoverContent>
               </Popover>

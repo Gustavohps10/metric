@@ -46,7 +46,7 @@ export function DataTable<TData extends { subRows?: TData[]; id: string }>({
     getCoreRowModel: getCoreRowModel(),
     getExpandedRowModel: getExpandedRowModel(),
     getSubRows: (row) => row.subRows,
-    getRowId: (row) => row.id,
+    getRowId: (row) => (row as { _id?: string })._id ?? row.id,
   })
 
   return (
