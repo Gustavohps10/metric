@@ -18,6 +18,8 @@ A arquitetura foi construída para que **os dados operacionais pertençam ao cli
 
 Isso permite que o sistema funcione **offline**, seja **self-hosted** e continue rápido mesmo com APIs externas lentas.
 
+As decisões de produto e arquitetura estão documentadas em **[docs/ADR-001.md](docs/ADR-001.md)** e **[docs/ADR-002.md](docs/ADR-002.md)**.
+
 ---
 
 # 🧠 Princípios Arquiteturais
@@ -36,45 +38,11 @@ O projeto é guiado pelos seguintes pilares:
 
 # 🏗️ Modelo de Execução
 
-O Timelapse pode operar em **dois modos principais**.
+O Timelapse opera em **três modos** (ver **ADR-001**):
 
----
-
-## 💻 Desktop / Local Mode
-
-Aplicação executada localmente na máquina do usuário.
-
-Características:
-
-- operação **offline-first**
-- banco de dados local
-- sincronização com APIs externas
-- sem necessidade de backend para funcionamento básico
-
-Os dados ficam armazenados localmente via **RxDB**.
-
----
-
-## 🏢 Self-Hosted Mode
-
-Empresas podem executar o Timelapse em sua própria infraestrutura.
-
-Exemplo:
-
-https://timelapse.internal.company.com
-
-Motivações comuns:
-
-- compliance
-- isolamento de dados
-- políticas internas de segurança
-- controle da infraestrutura
-
-Nesse modo o backend é usado apenas para:
-
-- autenticação
-- gestão de organizações
-- controle de licenças
+- **Desktop** — cliente na máquina do usuário (Windows / Linux / macOS); modo padrão; dados locais (RxDB), sync com datasources via plugins.
+- **Cloud SaaS** — backend hospedado pelo Timelapse (ex.: app.timelapse.dev); autenticação, painel admin, organizações, planos.
+- **Self-Hosted** — empresas rodam em sua própria infraestrutura (ex.: timelapse.internal.company.com); compliance, dados internos, isolamento.
 
 ---
 
@@ -108,106 +76,52 @@ Esses dados permanecem:
 
 # 🧩 Ecossistema de Plugins
 
-A extensibilidade do Timelapse é baseada em **conectores de fontes de dados**.
-
-Cada plugin é responsável por comunicar com uma API externa.
-
-Exemplos:
-
-- Redmine
-- Jira
-- GitHub Issues
-- sistemas internos de empresas
-
-Arquitetura:
-
-Timelapse Client
-│
-│
-Connector SDK
-│
-├── redmine-plugin
-├── jira-plugin
-└── custom-company-plugin
+A extensibilidade é baseada em **conectores de fontes de dados** (datasources). Cada plugin comunica com uma API externa (Redmine, Jira, etc.). Um **mesmo workspace** pode ter **várias conexões** (N datasources) — ver **ADR-002**.
 
 ---
 
 # 🧱 Workspaces
 
-O **Workspace** é a unidade central de trabalho.
+O **Workspace** é a unidade central de trabalho (ver **ADR-002**).
 
-Ele define:
+- Um workspace pode ter **múltiplas conexões** (N datasources): ex. Redmine + Jira no mesmo workspace.
+- Cada conexão tem **credenciais e configuração próprias**; o login é **por conexão**, não por workspace.
+- Conexões são gerenciadas na **página de Plugins** (conectar/desconectar/editar por datasource).
+- A **sincronização** é por (workspace, conexão): cada conexão tem seu motor de sync (metadata, tarefas, apontamentos) e checkpoint próprio; falha em uma não derruba as outras.
+- No **header**, o status de sync aparece **agrupado por datasource** (cada conexão com seu bloco: Metadata, Tarefas, Apontamentos).
 
-- qual fonte de dados está conectada
-- qual plugin será utilizado
-- qual contexto de tarefas será carregado
-
-Características:
-
-- criação **100% local**
-- conexão dinâmica com APIs
-- isolamento completo entre workspaces
-
-Cada apontamento (`TimeEntry`) mantém a referência da origem:
-
-source_plugin_id
-
-Isso garante integridade ao trocar conectores.
+Fluxo: criar workspace → na página de Plugins, conectar as fontes desejadas → sync roda por conexão → dados locais (RxDB) identificados por `dataSourceId`.
 
 ---
 
 # 💻 Arquitetura Técnica
 
-O projeto utiliza um **Monorepo** gerenciado pelo **Turbo Repo**.
+O projeto utiliza um **Monorepo** gerenciado pelo **Turbo Repo** (ver **ADR-001**).
 
-apps/
-desktop
-mobile
-web
-
-packages/
-ui
-core
-connector-sdk
-plugins
+```
+apps/          → desktop (em construção), web e mobile (futuro)
+packages/      → ui, domain, application, sdk, container, infra, etc.
+```
 
 ---
 
 ## Clientes
 
-O sistema possui três clientes principais:
+### 🖥️ Desktop — **Em construção**
 
-### 🖥️ Desktop
-
-Tecnologia:
-
-Electron + React
-
-Aplicação completa **Local-First + Offline-First**.
+Electron + React. Aplicação **Local-First + Offline-First**; banco local (RxDB), sincronização com datasources via plugins.
 
 ---
 
-### 📱 Mobile
+### 🌐 Web — **Futuro**
 
-Tecnologia:
-
-Capacitor + React
-
-Permite apontamento de horas em qualquer lugar.
+React + Vite; banco local no navegador (ex.: PGlite).
 
 ---
 
-### 🌐 Web
+### 📱 Mobile — **Futuro**
 
-Tecnologia:
-
-React + Vite
-
-Após o carregamento inicial utiliza:
-
-PGlite (PostgreSQL em WebAssembly)
-
-para executar o banco local no navegador.
+Capacitor + React; apontamento em qualquer lugar.
 
 ---
 
@@ -235,42 +149,25 @@ Ele fornece:
 
 # 🔄 Sincronização
 
-A sincronização ocorre entre:
-
-Local Database (RxDB)
-│
-│
-Connector Plugin
-│
-│
-External API
-
-O backend do Timelapse **não participa da sincronização operacional**.
-
-Isso reduz:
-
-- latência
-- custos de infraestrutura
-- riscos de privacidade
+A sincronização ocorre entre o **banco local (RxDB)** e as **APIs externas**, via **plugins** (datasources). Cada (workspace, conexão) tem seu próprio motor de sync e checkpoint — ver **ADR-002**. O backend Timelapse **não participa da sincronização operacional** (tarefas/apontamentos ficam no cliente ou nas ferramentas integradas).
 
 ---
 
 # ⚙️ Ambiente de Desenvolvimento
 
-Este projeto utiliza:
-
-Turbo Repo + Yarn v4
+Este projeto utiliza **Turbo Repo + Yarn v4**.
 
 ---
 
-## Pré-requisitos
+## Como rodar
 
-- Node.js LTS
-- Yarn v4
+Instalação do Node, Yarn (via npm), liberação de scripts no Windows, Yarn 4 e comandos `yarn install` / `yarn build` / `yarn dev` estão descritos em detalhe em:
+
+**[docs/como-rodar.md](docs/como-rodar.md)**
 
 ---
 
-## Comandos Principais
+## Comandos principais
 
 | Comando                        | Descrição                          |
 | ------------------------------ | ---------------------------------- |
@@ -348,22 +245,14 @@ Extensões recomendadas:
 
 ### 🚧 Em Progresso
 
-**Motor de sincronização Local-First**
-
-Objetivo:
-
-- replicação incremental
-- sincronização contínua
-- resolução de conflitos
-
-Tecnologia:
-
-RxDB Replication
+- **Cliente Desktop** (Electron + React, Local-First)
+- Motor de sincronização Local-First (replicação incremental, sync contínuo, resolução de conflitos — RxDB Replication)
 
 ---
 
 ### 🔜 Futuro
 
+- **Web** e **Mobile** (clientes)
 - dashboards de produtividade
 - colaboração P2P entre usuários
 - analytics por workspace
