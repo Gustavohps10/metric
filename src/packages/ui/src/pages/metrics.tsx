@@ -3,6 +3,7 @@ import {
   eachDayOfInterval,
   endOfDay,
   endOfMonth,
+  endOfWeek,
   format,
   isAfter,
   isValid,
@@ -280,6 +281,7 @@ async function fetchSummaryData(db: any) {
 
   const today = new Date()
   const weekStart = startOfWeek(today, { weekStartsOn: 1 })
+  const weekEnd = endOfWeek(today, { weekStartsOn: 1 })
   const monthStart = startOfMonth(today)
   const todayStr = format(today, 'yyyy-MM-dd')
 
@@ -295,7 +297,8 @@ async function fetchSummaryData(db: any) {
       const hours = Number(entry.timeSpent ?? 0)
 
       if (format(entryDate, 'yyyy-MM-dd') === todayStr) acc.today += hours
-      if (entryDate >= weekStart) acc.week += hours
+      // Semana: só entradas dentro da semana (evita somar tudo como “esta semana”)
+      if (entryDate >= weekStart && entryDate <= weekEnd) acc.week += hours
       acc.month += hours // Todos já são do mês
       return acc
     },

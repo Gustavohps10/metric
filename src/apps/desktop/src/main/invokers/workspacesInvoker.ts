@@ -2,6 +2,7 @@ import { IWorkspacesClient } from '@timelapse/application'
 import { IRequest } from '@timelapse/cross-cutting/transport'
 import {
   AuthenticationViewModel,
+  MemberViewModel,
   PaginatedViewModel,
   ViewModel,
   WorkspaceViewModel,
@@ -33,14 +34,16 @@ export const workspacesInvoker: IWorkspacesClient = {
       'WORKSPACES_GET_ALL',
     ),
 
-  getDataSourceFields: (): Promise<{
+  getDataSourceFields: (
+    request: IRequest<{ dataSourceId: string }>,
+  ): Promise<{
     credentials: FieldGroup[]
     configuration: FieldGroup[]
   }> =>
     IpcInvoker.invoke<
-      never,
+      IRequest<{ dataSourceId: string }>,
       { credentials: FieldGroup[]; configuration: FieldGroup[] }
-    >('DATA_SOURCE_GET_FIELDS'),
+    >('DATA_SOURCE_GET_FIELDS', request),
 
   linkDataSource: (
     request: IRequest<{ workspaceId: string; dataSource: string }>,
@@ -83,4 +86,15 @@ export const workspacesInvoker: IWorkspacesClient = {
       IRequest<{ workspaceId: string; dataSourceId: string }>,
       ViewModel<WorkspaceViewModel>
     >('WORKSPACES_DISCONNECT_DATASOURCE', request),
+
+  getConnectionMember: (
+    request: IRequest<{
+      workspaceId: string
+      dataSourceId: string
+    }>,
+  ): Promise<ViewModel<MemberViewModel | null>> =>
+    IpcInvoker.invoke<
+      IRequest<{ workspaceId: string; dataSourceId: string }>,
+      ViewModel<MemberViewModel | null>
+    >('WORKSPACES_GET_CONNECTION_MEMBER', request),
 }

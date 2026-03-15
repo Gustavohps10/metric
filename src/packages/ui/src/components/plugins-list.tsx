@@ -320,7 +320,7 @@ export function DataSourceList({
                       <Skeleton className="ml-auto h-6 w-20 rounded" />
                     </Card>
                   ))
-                : installedPlugins?.map(renderPluginCard)}
+                : (installedPlugins ?? []).map(renderPluginCard)}
             </TabsContent>
 
             <TabsContent value="available" className="mt-4 space-y-2">

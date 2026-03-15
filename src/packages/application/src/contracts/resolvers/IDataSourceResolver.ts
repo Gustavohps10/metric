@@ -1,3 +1,5 @@
+import type { FieldGroup } from '@/contracts/api/IApplicationAPI'
+
 import { IDataSourceAdapter } from './IDataSourceAdapter'
 
 export interface DataSourceContext {
@@ -13,4 +15,9 @@ export interface IDataSourceResolver {
   ): Promise<IDataSourceAdapter>
 
   getDataSourcesForWorkspace(workspaceId: string): Promise<{ id: string }[]>
+
+  getConfigFields(dataSourceId: string): Promise<{
+    credentials: FieldGroup[]
+    configuration: FieldGroup[]
+  }>
 }

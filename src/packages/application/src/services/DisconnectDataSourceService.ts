@@ -10,6 +10,7 @@ import {
   IDisconnectDataSourceUseCase,
   IWorkspacesRepository,
 } from '@/contracts'
+import { getMemberStorageKey } from '@/credentials-storage-keys'
 
 export class DisconnectDataSourceService implements IDisconnectDataSourceUseCase {
   constructor(
@@ -29,6 +30,10 @@ export class DisconnectDataSourceService implements IDisconnectDataSourceUseCase
 
     const storageKey = `workspace-session-${input.workspaceId}-${input.dataSourceId}`
     await this.credentialsStorage.deleteToken('timelapse', storageKey)
+    await this.credentialsStorage.deleteToken(
+      'timelapse',
+      getMemberStorageKey(input.workspaceId, input.dataSourceId),
+    )
 
     const result = workspace.disconnectDataSource(input.dataSourceId)
     if (result.isFailure()) return result.forwardFailure()

@@ -1,5 +1,5 @@
-import Redmine4Test from '@timelapse/addon-for-tests'
-import { IServiceProvider } from '@timelapse/application'
+import { IDataSourceResolver, IServiceProvider } from '@timelapse/application'
+import { IRequest } from '@timelapse/cross-cutting/transport'
 import { app } from 'electron'
 
 import { IpcHandler } from '@/main/adapters/IpcHandler'
@@ -21,6 +21,10 @@ export function openIpcRoutes(serviceProvider: IServiceProvider): void {
 
   IpcHandler.register('SYSTEM_VERSION', () => {
     return Promise.resolve(app.getVersion())
+  })
+
+  IpcHandler.register('SYSTEM_GET_ENVIRONMENT', () => {
+    return Promise.resolve({ isDevelopment: !app.isPackaged })
   })
 
   IpcHandler.register('METADATA_PULL', [ensureAuthenticated], (event, req) => {
@@ -76,8 +80,25 @@ export function openIpcRoutes(serviceProvider: IServiceProvider): void {
     return connectionHandler.disconnectDataSource(event, req)
   })
 
-  IpcHandler.register('DATA_SOURCE_GET_FIELDS', () =>
-    Promise.resolve(Redmine4Test.configFields),
+  IpcHandler.register('WORKSPACES_GET_CONNECTION_MEMBER', (event, req) => {
+    const connectionHandler =
+      serviceProvider.resolve<ConnectionHandler>('connectionHandler')
+    return connectionHandler.getConnectionMember(event, req)
+  })
+
+  IpcHandler.register(
+    'DATA_SOURCE_GET_FIELDS',
+    (_event, req: IRequest<{ dataSourceId: string }>) => {
+      const dataSourceId = req?.body?.dataSourceId
+      if (!dataSourceId) {
+        return Promise.reject(
+          new Error('getDataSourceFields requer body.dataSourceId'),
+        )
+      }
+      const resolver =
+        serviceProvider.resolve<IDataSourceResolver>('dataSourceResolver')
+      return resolver.getConfigFields(dataSourceId)
+    },
   )
 
   IpcHandler.register('DISCORD_LOGIN', () => handleDiscordLogin())

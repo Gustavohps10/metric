@@ -1,4 +1,4 @@
-import Redmine4Test from '@timelapse/addon-for-tests'
+import type { FieldGroup } from '@timelapse/application'
 import {
   DataSourceContext,
   ICredentialsStorage,
@@ -6,12 +6,21 @@ import {
   IDataSourceResolver,
   IWorkspacesRepository,
 } from '@timelapse/application'
+import DataSourceFake from '@timelapse/datasource-fake'
+import Redmine4Test from '@timelapse/redmine-for-tests'
 import { existsSync } from 'fs'
 import { resolve } from 'path'
 import { pathToFileURL } from 'url'
 
+export const FAKE_DATASOURCE_ADDON_ID = 'timelapse-datasource-fake'
+export const REDMINE4TEST_ADDON_ID = '@timelapse/redmine-plugin'
+
 /** Minimal shape expected from a datasource module default export (IDataSource from SDK) */
 interface DataSourceModule {
+  configFields: {
+    credentials: { id: string; label: string; fields: unknown[] }[]
+    configuration: { id: string; label: string; fields: unknown[] }[]
+  }
   getAuthenticationStrategy: (
     ctx: DataSourceContext,
   ) => IDataSourceAdapter['authenticationStrategy']
@@ -32,6 +41,8 @@ interface DataSourceModule {
 }
 export interface DataSourceResolverOptions {
   addonsBasePath: string
+  /** When true, resolver loads Fake e Redmine4Test por id; addons em disco não são usados. */
+  isDevelopment?: boolean
 }
 
 export class DataSourceResolver implements IDataSourceResolver {
@@ -71,42 +82,16 @@ export class DataSourceResolver implements IDataSourceResolver {
         'timelapse',
         `workspace-session-${workspaceId}-${dataSourceId}`,
       )
-      const fallbackKey = `workspace-session-${workspaceId}`
-      const fallbackSerialized = credentialsSerialized
-        ? null
-        : await this.credentialsStorage.getToken('timelapse', fallbackKey)
       const credentials = credentialsSerialized
         ? JSON.parse(credentialsSerialized)
-        : fallbackSerialized
-          ? JSON.parse(fallbackSerialized)
-          : undefined
+        : undefined
       context = {
         config,
         credentials,
       }
     }
 
-    const addonPath = resolve(
-      this.options.addonsBasePath,
-      dataSourceId,
-      'index.js',
-    )
-    const useTestPlugin = !existsSync(addonPath)
-
-    let datasource: DataSourceModule
-    if (useTestPlugin) {
-      datasource = Redmine4Test as DataSourceModule
-    } else {
-      const addonURL = pathToFileURL(addonPath).href
-      const datasourceModule = await import(addonURL)
-      const defaultExport = datasourceModule?.default
-      if (!defaultExport || typeof defaultExport.getTaskQuery !== 'function') {
-        throw new Error(
-          `Datasource inválido em ${addonPath}: default export não implementa IDataSource`,
-        )
-      }
-      datasource = defaultExport as DataSourceModule
-    }
+    const datasource = await this.loadModule(dataSourceId)
 
     const adapter: IDataSourceAdapter = {
       id: dataSourceId,
@@ -130,5 +115,48 @@ export class DataSourceResolver implements IDataSourceResolver {
     const connections = workspace.dataSourceConnections
     if (!connections?.length) return []
     return connections.map((c) => ({ id: c.id }))
+  }
+
+  async getConfigFields(dataSourceId: string): Promise<{
+    credentials: FieldGroup[]
+    configuration: FieldGroup[]
+  }> {
+    const mod = await this.loadModule(dataSourceId)
+    return mod.configFields as {
+      credentials: FieldGroup[]
+      configuration: FieldGroup[]
+    }
+  }
+
+  private async loadModule(dataSourceId: string): Promise<DataSourceModule> {
+    const isDev = this.options.isDevelopment === true
+
+    if (isDev && dataSourceId === FAKE_DATASOURCE_ADDON_ID) {
+      return DataSourceFake as DataSourceModule
+    }
+
+    if (isDev && dataSourceId === REDMINE4TEST_ADDON_ID) {
+      return Redmine4Test as DataSourceModule
+    }
+
+    const addonPath = resolve(
+      this.options.addonsBasePath,
+      dataSourceId,
+      'index.js',
+    )
+    if (!existsSync(addonPath)) {
+      throw new Error(
+        `Datasource não encontrado: ${dataSourceId}. Em desenvolvimento use "${FAKE_DATASOURCE_ADDON_ID}" ou "${REDMINE4TEST_ADDON_ID}".`,
+      )
+    }
+    const addonURL = pathToFileURL(addonPath).href
+    const datasourceModule = await import(addonURL)
+    const defaultExport = datasourceModule?.default
+    if (!defaultExport || typeof defaultExport.getTaskQuery !== 'function') {
+      throw new Error(
+        `Datasource inválido em ${addonPath}: default export não implementa IDataSource`,
+      )
+    }
+    return defaultExport as DataSourceModule
   }
 }

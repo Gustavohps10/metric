@@ -24,7 +24,8 @@ export class TimeEntriesPullService implements ITimeEntriesPullUseCase {
   ): Promise<Either<AppError, TimeEntryDTO[]>> {
     try {
       const sessionUser = this.sessionManager.getCurrentUser()
-      const memberId = sessionUser?.id ?? input.memberId
+      const memberId =
+        (input.memberId && String(input.memberId).trim()) || sessionUser?.id
 
       if (!memberId) {
         return Either.failure(

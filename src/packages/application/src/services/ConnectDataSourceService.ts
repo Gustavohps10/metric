@@ -13,6 +13,7 @@ import {
   IJWTService,
   IWorkspacesRepository,
 } from '@/contracts'
+import { getMemberStorageKey } from '@/credentials-storage-keys'
 import { AuthenticationDTO } from '@/dtos'
 
 export class ConnectDataSourceService implements IConnectDataSourceUseCase {
@@ -63,6 +64,11 @@ export class ConnectDataSourceService implements IConnectDataSourceUseCase {
         storageKey,
         serializedCredentials,
       )
+      await this.credentialsStorage.saveToken(
+        'timelapse',
+        getMemberStorageKey(input.workspaceId, input.dataSourceId),
+        JSON.stringify(member),
+      )
 
       const connectResult = workspace.connectDataSource(
         input.configuration as Record<string, unknown>,
@@ -86,6 +92,10 @@ export class ConnectDataSourceService implements IConnectDataSourceUseCase {
       await this.credentialsStorage.deleteToken(
         'timelapse',
         `workspace-session-${input.workspaceId}-${input.dataSourceId}`,
+      )
+      await this.credentialsStorage.deleteToken(
+        'timelapse',
+        getMemberStorageKey(input.workspaceId, input.dataSourceId),
       )
       const errorMessage =
         error instanceof Error

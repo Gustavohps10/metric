@@ -1,6 +1,7 @@
 import { zodResolver } from '@hookform/resolvers/zod'
 import { useMutation, useQuery } from '@tanstack/react-query'
 import { AddonManifest, FieldGroup } from '@timelapse/application'
+import type { IRequest } from '@timelapse/cross-cutting/transport'
 import {
   CheckCircle2,
   DatabaseZapIcon,
@@ -125,7 +126,7 @@ function getConnections(
 }
 
 export function WorkspaceSettings() {
-  const { login, user } = useAuth()
+  const { login } = useAuth()
   const client = useClient()
   const { workspaceId } = useParams<{ workspaceId: string }>()
 
@@ -153,10 +154,26 @@ export function WorkspaceSettings() {
   const [connectingDataSourceId, setConnectingDataSourceId] = useState<
     string | null
   >(null)
-  const [dynamicFields, setDynamicFields] = useState<{
-    credentials: FieldGroup[]
-    configuration: FieldGroup[]
-  }>({ credentials: [], configuration: [] })
+
+  const { data: connectionFields } = useQuery({
+    queryKey: ['datasource-fields', connectingDataSourceId],
+    queryFn: () =>
+      (
+        client.services.workspaces as {
+          getDataSourceFields(
+            input: IRequest<{ dataSourceId: string }>,
+          ): Promise<{ credentials: FieldGroup[]; configuration: FieldGroup[] }>
+        }
+      ).getDataSourceFields({
+        body: { dataSourceId: connectingDataSourceId! },
+      }),
+    enabled: !!connectingDataSourceId,
+  })
+
+  const dynamicFields = connectionFields ?? {
+    credentials: [] as FieldGroup[],
+    configuration: [] as FieldGroup[],
+  }
 
   const connectionFormSchema = useMemo(
     () => buildConnectionFormSchema(dynamicFields),
@@ -169,12 +186,10 @@ export function WorkspaceSettings() {
   })
 
   React.useEffect(() => {
-    const load = async () => {
-      const response = await client.services.workspaces.getDataSourceFields()
-      setDynamicFields(response)
+    if (connectingDataSourceId && connectionFields) {
+      connectionForm.reset({ credentials: {}, configuration: {} })
     }
-    load()
-  }, [client])
+  }, [connectingDataSourceId, connectionFields])
 
   const linkMutation = useMutation({
     mutationFn: (dataSource: AddonManifest) =>
@@ -224,11 +239,19 @@ export function WorkspaceSettings() {
         toast.error(response.error ?? 'Falha ao conectar.')
         return
       }
-      queryClient.invalidateQueries({ queryKey: workspaceQueryKey })
-      toast.success(`Conectado com sucesso.`)
-      if (response.data?.member && response.data?.token) {
+      const workspace = queryClient.getQueryData(workspaceQueryKey) as
+        | { dataSourceConnections?: { id: string; config?: unknown }[] }
+        | undefined
+      const conns = workspace?.dataSourceConnections ?? []
+      const hadOtherConnected = conns.some(
+        (c) => c.id !== variables.dataSourceId && c.config,
+      )
+      if (!hadOtherConnected && response.data?.member && response.data?.token) {
         login(response.data.member, response.data.token)
       }
+      queryClient.invalidateQueries({ queryKey: workspaceQueryKey })
+      queryClient.invalidateQueries({ queryKey: ['connection-member'] })
+      toast.success(`Conectado com sucesso.`)
       setConnectingDataSourceId(null)
       connectionForm.reset({ credentials: {}, configuration: {} })
     },
@@ -447,16 +470,6 @@ export function WorkspaceSettings() {
                       onUnlink={() => unlinkMutation.mutate(conn.id)}
                       disconnectMutation={disconnectMutation}
                       unlinkMutation={unlinkMutation}
-                      user={
-                        user
-                          ? {
-                              id: String(user.id),
-                              firstname: user.firstname,
-                              lastname: user.lastname,
-                              login: user.login,
-                            }
-                          : null
-                      }
                     />
                   ))}
                 </ul>
@@ -498,12 +511,6 @@ interface ConnectionRowProps {
   onUnlink: () => void
   disconnectMutation: { isPending: boolean }
   unlinkMutation: { isPending: boolean }
-  user: {
-    id?: string
-    firstname?: string
-    lastname?: string
-    login?: string
-  } | null
 }
 
 function ConnectionRow({
@@ -521,9 +528,30 @@ function ConnectionRow({
   onUnlink,
   disconnectMutation,
   unlinkMutation,
-  user,
 }: ConnectionRowProps) {
   const client = useClient()
+  const { data: connectionMember } = useQuery({
+    queryKey: ['connection-member', workspaceId, connectionId],
+    queryFn: async () => {
+      const workspaces = client.services.workspaces as unknown as {
+        getConnectionMember(req: {
+          body: { workspaceId: string; dataSourceId: string }
+        }): Promise<{
+          data: {
+            id: number
+            login: string
+            firstname: string
+            lastname: string
+          } | null
+        }>
+      }
+      const res = await workspaces.getConnectionMember({
+        body: { workspaceId, dataSourceId: connectionId },
+      })
+      return res.data ?? null
+    },
+    enabled: !!workspaceId && !!connectionId,
+  })
   const { data: addon } = useQuery({
     queryKey: ['local-addon', workspaceId, connectionId],
     queryFn: async () => {
@@ -626,13 +654,15 @@ function ConnectionRow({
         </div>
       </div>
 
-      {user && (
+      {connectionMember && (
         <div className="mt-3 flex items-center gap-1 border-t pt-3 text-sm">
           <UserCogIcon size={16} className="text-muted-foreground" />
           <span className="text-muted-foreground">Sessão:</span>
-          <span className="font-mono">{user.login ?? user.id}</span>
+          <span className="font-mono">
+            {connectionMember.login ?? String(connectionMember.id)}
+          </span>
           <span className="text-muted-foreground">
-            ({user.firstname} {user.lastname})
+            ({connectionMember.firstname} {connectionMember.lastname})
           </span>
         </div>
       )}

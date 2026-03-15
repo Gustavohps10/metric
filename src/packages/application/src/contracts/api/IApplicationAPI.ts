@@ -42,7 +42,7 @@ export interface IWorkspacesAPI {
 
   listAll(): Promise<PaginatedViewModel<WorkspaceViewModel[]>>
 
-  getDataSourceFields(): Promise<{
+  getDataSourceFields(input: IRequest<{ dataSourceId: string }>): Promise<{
     credentials: FieldGroup[]
     configuration: FieldGroup[]
   }>
@@ -76,6 +76,13 @@ export interface IWorkspacesAPI {
       dataSourceId: string
     }>,
   ): Promise<ViewModel<WorkspaceViewModel>>
+
+  getConnectionMember(
+    input: IRequest<{
+      workspaceId: string
+      dataSourceId: string
+    }>,
+  ): Promise<ViewModel<MemberViewModel | null>>
 }
 
 export interface ISessionAPI {
@@ -227,8 +234,13 @@ export interface IAddonsAPI {
   ): Promise<ViewModel>
 }
 
+export interface EnvironmentInfo {
+  isDevelopment: boolean
+}
+
 export interface ISystemAPI {
   getAppVersion(): Promise<string>
+  getEnvironment(): Promise<EnvironmentInfo>
 }
 
 export interface IApplicationAPI {

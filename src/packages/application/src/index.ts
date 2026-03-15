@@ -1,4 +1,5 @@
 export * from './contracts'
+export * from './credentials-storage-keys'
 export * from './dtos'
 export * from './services'
 export * from './workflow'

@@ -1,5 +1,6 @@
 export * from './use-auth'
 export * from './use-client'
 export * from './use-drag-to-scroll'
+export * from './use-environment'
 export * from './use-mobile'
 export * from './use-workspace'

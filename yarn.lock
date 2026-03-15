@@ -4998,19 +4998,6 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@timelapse/addon-for-tests@workspace:*, @timelapse/addon-for-tests@workspace:src/tests/addon-for-tests":
-  version: 0.0.0-use.local
-  resolution: "@timelapse/addon-for-tests@workspace:src/tests/addon-for-tests"
-  dependencies:
-    "@changesets/cli": "npm:^2.29.6"
-    "@timelapse/sdk": "workspace:*"
-    "@types/node": "npm:^24.3.0"
-    axios: "npm:^1.7.9"
-    tsup: "npm:^8.5.0"
-    typescript: "npm:^5.8.3"
-  languageName: unknown
-  linkType: soft
-
 "@timelapse/application@workspace:*, @timelapse/application@workspace:src/packages/application":
   version: 0.0.0-use.local
   resolution: "@timelapse/application@workspace:src/packages/application"
@@ -5039,6 +5026,16 @@ __metadata:
   languageName: unknown
   linkType: soft
 
+"@timelapse/datasource-fake@workspace:*, @timelapse/datasource-fake@workspace:src/tests/datasource-fake":
+  version: 0.0.0-use.local
+  resolution: "@timelapse/datasource-fake@workspace:src/tests/datasource-fake"
+  dependencies:
+    "@timelapse/sdk": "workspace:*"
+    tsup: "npm:^8.5.0"
+    typescript: "npm:^5.8.3"
+  languageName: unknown
+  linkType: soft
+
 "@timelapse/desktop@workspace:src/apps/desktop":
   version: 0.0.0-use.local
   resolution: "@timelapse/desktop@workspace:src/apps/desktop"
@@ -5050,11 +5047,12 @@ __metadata:
     "@tailwindcss/postcss": "npm:^4.1.11"
     "@tailwindcss/typography": "npm:^0.5.16"
     "@tailwindcss/vite": "npm:^4.0.6"
-    "@timelapse/addon-for-tests": "workspace:*"
     "@timelapse/application": "workspace:*"
     "@timelapse/cross-cutting": "workspace:*"
+    "@timelapse/datasource-fake": "workspace:*"
     "@timelapse/infra": "workspace:*"
     "@timelapse/presentation": "workspace:*"
+    "@timelapse/redmine-for-tests": "workspace:*"
     "@timelapse/redmine-plugin": "npm:^1.0.0"
     "@timelapse/ui": "workspace:*"
     "@types/better-sqlite3": "npm:^7.6.13"
@@ -5124,6 +5122,19 @@ __metadata:
 "@timelapse/presentation@workspace:*, @timelapse/presentation@workspace:src/packages/presentation":
   version: 0.0.0-use.local
   resolution: "@timelapse/presentation@workspace:src/packages/presentation"
+  languageName: unknown
+  linkType: soft
+
+"@timelapse/redmine-for-tests@workspace:*, @timelapse/redmine-for-tests@workspace:src/tests/redmine-for-tests":
+  version: 0.0.0-use.local
+  resolution: "@timelapse/redmine-for-tests@workspace:src/tests/redmine-for-tests"
+  dependencies:
+    "@changesets/cli": "npm:^2.29.6"
+    "@timelapse/sdk": "workspace:*"
+    "@types/node": "npm:^24.3.0"
+    axios: "npm:^1.7.9"
+    tsup: "npm:^8.5.0"
+    typescript: "npm:^5.8.3"
   languageName: unknown
   linkType: soft
 

@@ -163,6 +163,7 @@ app.whenReady().then(async () => {
       credentialsStorage,
       {
         addonsBasePath: join(__dirname, '../addons/datasource'),
+        isDevelopment: !app.isPackaged,
       },
     ),
   }

@@ -1,5 +1,6 @@
 export const IpcChannels = {
   SYSTEM_VERSION: 'system:version',
+  SYSTEM_GET_ENVIRONMENT: 'system:get-environment',
 
   METADATA_PULL: 'metadata:pull',
 

@@ -11,6 +11,7 @@ import {
   IWorkspacesRepository,
   UnlinkDataSourceInput,
 } from '@/contracts'
+import { getMemberStorageKey } from '@/credentials-storage-keys'
 import { WorkspaceDTO } from '@/dtos'
 
 export class UnlinkDataSourceService implements IUnlinkDataSourceUseCase {
@@ -33,6 +34,10 @@ export class UnlinkDataSourceService implements IUnlinkDataSourceUseCase {
       if (input.dataSourceId) {
         const storageKey = `workspace-session-${input.workspaceId}-${input.dataSourceId}`
         await this.credentialsStorage.deleteToken('timelapse', storageKey)
+        await this.credentialsStorage.deleteToken(
+          'timelapse',
+          getMemberStorageKey(input.workspaceId, input.dataSourceId),
+        )
       }
 
       const result = workspace.unlinkDataSource(input.dataSourceId)

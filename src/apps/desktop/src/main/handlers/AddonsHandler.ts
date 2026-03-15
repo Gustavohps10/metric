@@ -7,7 +7,47 @@ import {
 } from '@timelapse/application'
 import { IRequest } from '@timelapse/cross-cutting/transport'
 import { ViewModel } from '@timelapse/presentation/view-models'
-import { IpcMainInvokeEvent } from 'electron'
+import { app, type IpcMainInvokeEvent } from 'electron'
+
+import {
+  FAKE_DATASOURCE_ADDON_ID,
+  REDMINE4TEST_ADDON_ID,
+} from '@/main/resolvers/data-source-resolver'
+
+const DEV_FAKE_MANIFEST: AddonManifest = {
+  id: FAKE_DATASOURCE_ADDON_ID,
+  name: 'DataSource Fake (Testes)',
+  creator: 'Timelapse',
+  description:
+    'Datasource mock com 1000 tarefas e 1000 apontamentos locais para testes e validação de envio de dados.',
+  path: '',
+  logo: '',
+  downloads: 0,
+  version: '1.0.0',
+  stars: 0,
+  installed: true,
+  tags: ['teste', 'mock', 'desenvolvimento'],
+}
+
+const DEV_REDMINE_MANIFEST: AddonManifest = {
+  id: REDMINE4TEST_ADDON_ID,
+  name: 'Redmine (Oficial)',
+  creator: 'Timelapse',
+  description: 'Conector Redmine para testes.',
+  path: '',
+  logo: '',
+  downloads: 0,
+  version: '1.0.3',
+  stars: 0,
+  installed: true,
+  tags: ['redmine', 'teste'],
+}
+
+const DEV_ADDONS: AddonManifest[] = [DEV_FAKE_MANIFEST, DEV_REDMINE_MANIFEST]
+
+function isDevelopment(): boolean {
+  return !app.isPackaged
+}
 
 export class AddonsHandler {
   constructor(
@@ -43,6 +83,9 @@ export class AddonsHandler {
     _event?: IpcMainInvokeEvent,
     _req?: IRequest,
   ): Promise<AddonManifest[]> {
+    if (isDevelopment()) {
+      return [...DEV_ADDONS]
+    }
     const result = await this.addonsFacade.listInstalled()
     if (result.isFailure()) return []
 
@@ -66,6 +109,12 @@ export class AddonsHandler {
     _event: IpcMainInvokeEvent,
     { body }: IRequest<{ addonId: string }>,
   ): Promise<ViewModel<AddonManifest>> {
+    if (isDevelopment()) {
+      const dev = DEV_ADDONS.find((a) => a.id === body.addonId)
+      if (dev) {
+        return { isSuccess: true, statusCode: 200, data: dev }
+      }
+    }
     const result = await this.addonsFacade.getInstalledById(body.addonId)
     if (result.isFailure()) {
       return {
