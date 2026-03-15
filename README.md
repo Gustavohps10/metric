@@ -52,7 +52,7 @@ O Timelapse possui um serviço central opcional chamado **Control Plane**.
 
 Ele **não armazena dados operacionais** da aplicação.
 
-Responsabilidades:
+## Responsabilidades:
 
 - autenticação via Magic Link
 - gestão de organizações
@@ -60,17 +60,16 @@ Responsabilidades:
 - licenciamento
 - painel administrativo
 
-O backend **não armazena**:
+### Esse serviço de licenças **não armazena**:
 
 - tarefas
 - apontamentos de horas
 - atividades
 - dados de produtividade
 
-Esses dados permanecem:
-
-- no **banco local do cliente**
-- ou nas **ferramentas externas integradas**
+  _Esses dados operacionais permanecem_ :
+  - no **banco local do cliente**
+  - ou nas **ferramentas externas integradas (Redmine, Jira, Youtrack, etc...)**
 
 ---
 
