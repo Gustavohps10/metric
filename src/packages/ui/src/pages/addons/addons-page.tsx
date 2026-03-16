@@ -1,0 +1,458 @@
+'use client'
+
+import { useMutation, useQuery } from '@tanstack/react-query'
+import { AddonManifest, FieldGroup } from '@timelapse/application'
+import type { IRequest } from '@timelapse/cross-cutting/transport'
+import { Search, UploadIcon } from 'lucide-react'
+import { useMemo, useState } from 'react'
+import { useParams } from 'react-router-dom'
+import { toast } from 'sonner'
+
+import { FileUploadButton } from '@/components'
+import { Input } from '@/components/ui/input'
+import { ScrollArea } from '@/components/ui/scroll-area'
+import { useAuth } from '@/hooks'
+import { useClient } from '@/hooks/use-client'
+import { queryClient } from '@/lib'
+
+import {
+  type AddonCategory,
+  AddonCategorySidebar,
+} from './addon-category-sidebar'
+import {
+  AddConnectionDialog,
+  AddonDetailsDialog,
+  type ConnectionFormData,
+  InstallPluginDialog,
+} from './addon-dialogs'
+import { AddonList } from './addon-list'
+import type { AddonConnection, AddonItem } from './addon-types'
+
+function getConnections(
+  workspace: {
+    dataSource?: string
+    dataSourceConnections?: { id: string; config?: Record<string, unknown> }[]
+  } | null,
+): { id: string; config?: Record<string, unknown> }[] {
+  if (!workspace) return []
+  const conns = workspace.dataSourceConnections
+  if (conns && conns.length > 0) return conns
+  if (workspace.dataSource && workspace.dataSource !== 'local') {
+    return [{ id: workspace.dataSource }]
+  }
+  return []
+}
+
+function manifestToAddonItem(
+  m: AddonManifest,
+  connections: AddonConnection[],
+  category: AddonCategory,
+): AddonItem {
+  return {
+    id: m.id,
+    name: m.name,
+    description: m.description ?? '',
+    author: m.creator ?? '',
+    version: m.version,
+    logo: m.logo ?? '',
+    installed: m.installed,
+    category,
+    connections,
+    documentationUrl: m.sourceUrl,
+    installerManifestUrl: m.installerManifestUrl,
+  }
+}
+
+/** Derive category from addon (tags or id); default data-sources for datasource addons */
+function addonCategory(m: AddonManifest): AddonCategory {
+  const tags = (m.tags ?? []).map((t) => t.toLowerCase())
+  if (tags.some((t) => t.includes('theme') || t === 'tema')) return 'themes'
+  if (tags.some((t) => t.includes('util') || t === 'utility'))
+    return 'utilities'
+  return 'data-sources'
+}
+
+export function AddonsPage() {
+  const client = useClient()
+  const { login } = useAuth()
+  const { workspaceId } = useParams<{ workspaceId: string }>()
+  const [activeCategory, setActiveCategory] = useState<AddonCategory>('all')
+  const [searchQuery, setSearchQuery] = useState('')
+
+  const [installDialogOpen, setInstallDialogOpen] = useState(false)
+  const [connectionDialogOpen, setConnectionDialogOpen] = useState(false)
+  const [detailsDialogOpen, setDetailsDialogOpen] = useState(false)
+  const [selectedAddon, setSelectedAddon] = useState<AddonItem | null>(null)
+  const [installVersions, setInstallVersions] = useState<
+    { value: string; label: string }[]
+  >([])
+  const [isInstalling, setIsInstalling] = useState(false)
+
+  const workspaceQueryKey = ['workspace', workspaceId]
+  const { data: workspace } = useQuery({
+    queryKey: workspaceQueryKey,
+    queryFn: async () => {
+      if (!workspaceId) return null
+      const res = await client.services.workspaces.getById({
+        body: { workspaceId },
+      })
+      return res.data ?? null
+    },
+    enabled: !!workspaceId,
+  })
+
+  const { data: installedList = [] } = useQuery({
+    queryKey: ['plugins', 'installed'],
+    queryFn: () => client.integrations.addons.listInstalled(),
+  })
+
+  const { data: availableList = [] } = useQuery({
+    queryKey: ['plugins', 'available'],
+    queryFn: () => client.integrations.addons.listAvailable(),
+  })
+
+  const connections = useMemo(
+    () => getConnections(workspace ?? null),
+    [workspace],
+  )
+
+  const { data: connectionFields } = useQuery({
+    queryKey: ['datasource-fields', selectedAddon?.id],
+    queryFn: () =>
+      (
+        client.services.workspaces as {
+          getDataSourceFields(
+            input: IRequest<{ dataSourceId: string }>,
+          ): Promise<{
+            credentials: FieldGroup[]
+            configuration: FieldGroup[]
+          }>
+        }
+      ).getDataSourceFields({
+        body: { dataSourceId: selectedAddon!.id },
+      }),
+    enabled: !!selectedAddon?.id && connectionDialogOpen,
+  })
+
+  const dynamicFields = connectionFields ?? {
+    credentials: [] as FieldGroup[],
+    configuration: [] as FieldGroup[],
+  }
+
+  const addons: AddonItem[] = useMemo(() => {
+    const byId = new Map<string, AddonManifest>()
+    installedList.forEach((m) => byId.set(m.id, m))
+    availableList.forEach((m) => {
+      if (!byId.has(m.id)) byId.set(m.id, m)
+    })
+    const list = Array.from(byId.values())
+    return list.map((m) => {
+      const connsForAddon = connections.filter((c) => c.id === m.id)
+      const addonConnections: AddonConnection[] = connsForAddon.map((c) => ({
+        id: c.id,
+        name: (c.config?.name as string) || c.id,
+        url: (c.config?.url as string) || undefined,
+        status: 'connected' as const,
+        lastSync: undefined,
+      }))
+      return manifestToAddonItem(m, addonConnections, addonCategory(m))
+    })
+  }, [installedList, availableList, connections])
+
+  const categoryCounts = useMemo(
+    () => ({
+      all: addons.length,
+      'data-sources': addons.filter((a) => a.category === 'data-sources')
+        .length,
+      utilities: addons.filter((a) => a.category === 'utilities').length,
+      themes: addons.filter((a) => a.category === 'themes').length,
+      installed: addons.filter((a) => a.installed).length,
+      marketplace: addons.filter((a) => !a.installed).length,
+    }),
+    [addons],
+  )
+
+  const filteredAddons = useMemo(() => {
+    let result = addons
+    if (activeCategory === 'installed')
+      result = result.filter((a) => a.installed)
+    else if (activeCategory === 'marketplace')
+      result = result.filter((a) => !a.installed)
+    else if (activeCategory !== 'all')
+      result = result.filter((a) => a.category === activeCategory)
+    if (searchQuery) {
+      const q = searchQuery.toLowerCase()
+      result = result.filter(
+        (a) =>
+          a.name.toLowerCase().includes(q) ||
+          a.description.toLowerCase().includes(q) ||
+          a.author.toLowerCase().includes(q),
+      )
+    }
+    return result
+  }, [addons, activeCategory, searchQuery])
+
+  const linkMutation = useMutation({
+    mutationFn: (dataSourceId: string) =>
+      client.services.workspaces.linkDataSource({
+        body: { workspaceId: workspaceId!, dataSource: dataSourceId },
+      }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: workspaceQueryKey })
+      toast.success('Fonte vinculada.')
+    },
+    onError: (e) => toast.error(e.message),
+  })
+
+  const connectMutation = useMutation({
+    mutationFn: (payload: {
+      dataSourceId: string
+      credentials: Record<string, unknown>
+      configuration: Record<string, unknown>
+    }) =>
+      client.services.workspaces.connectDataSource({
+        body: {
+          workspaceId: workspaceId!,
+          dataSourceId: payload.dataSourceId,
+          credentials: payload.credentials,
+          configuration: payload.configuration,
+        },
+      }),
+    onSuccess: (response, variables) => {
+      if (!response.isSuccess) {
+        toast.error(response.error ?? 'Falha ao conectar.')
+        return
+      }
+      const ws = queryClient.getQueryData(workspaceQueryKey) as
+        | { dataSourceConnections?: { id: string; config?: unknown }[] }
+        | undefined
+      const conns = ws?.dataSourceConnections ?? []
+      const hadOther = conns.some(
+        (c) => c.id !== variables.dataSourceId && c.config,
+      )
+      if (!hadOther && response.data?.member && response.data?.token) {
+        login(response.data.member, response.data.token)
+      }
+      queryClient.invalidateQueries({ queryKey: workspaceQueryKey })
+      queryClient.invalidateQueries({ queryKey: ['connection-member'] })
+      toast.success('Conectado com sucesso.')
+      setConnectionDialogOpen(false)
+      setSelectedAddon(null)
+    },
+    onError: (e) => toast.error(e.message),
+  })
+
+  const disconnectMutation = useMutation({
+    mutationFn: (dataSourceId: string) =>
+      client.services.workspaces.disconnectDataSource({
+        body: { workspaceId: workspaceId!, dataSourceId },
+      }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: workspaceQueryKey })
+      toast.info('Desconectado.')
+    },
+    onError: (e) => toast.error(e.message),
+  })
+
+  const unlinkMutation = useMutation({
+    mutationFn: (dataSourceId: string) =>
+      client.services.workspaces.unlinkDataSource({
+        body: { workspaceId: workspaceId!, dataSourceId },
+      }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: workspaceQueryKey })
+      toast.info('Fonte desvinculada.')
+    },
+    onError: (e) => toast.error(e.message),
+  })
+
+  const handleInstall = (addon: AddonItem, version: string) => {
+    if (!addon.installerManifestUrl) {
+      toast.error('Plugin não possui URL de instalação.')
+      return
+    }
+    setIsInstalling(true)
+    client.integrations.addons
+      .getInstaller({ body: { installerUrl: addon.installerManifestUrl } })
+      .then((installer) => {
+        const pkg = installer.packages.find((p) => p.version === version)
+        if (!pkg) {
+          setIsInstalling(false)
+          toast.error('Versão não encontrada.')
+          return
+        }
+        return client.integrations.addons.install({
+          body: { downloadUrl: pkg.downloadUrl },
+        })
+      })
+      .then(() => {
+        queryClient.invalidateQueries({ queryKey: ['plugins'] })
+        toast.success('Plugin instalado.')
+        setInstallDialogOpen(false)
+        setSelectedAddon(null)
+      })
+      .catch((e) => {
+        toast.error(e?.message ?? 'Falha ao instalar.')
+      })
+      .finally(() => setIsInstalling(false))
+  }
+
+  const handleOpenInstallDialog = (addon: AddonItem) => {
+    if (!addon.installerManifestUrl) {
+      setSelectedAddon(addon)
+      setDetailsDialogOpen(true)
+      return
+    }
+    setSelectedAddon(addon)
+    client.integrations.addons
+      .getInstaller({ body: { installerUrl: addon.installerManifestUrl } })
+      .then((installer) => {
+        setInstallVersions(
+          installer.packages.map((p) => ({
+            value: p.version,
+            label: `v${p.version} (Requer API: ${p.requiredApiVersion})`,
+          })),
+        )
+        setInstallDialogOpen(true)
+      })
+      .catch(() => toast.error('Não foi possível carregar versões.'))
+  }
+
+  const handleAddConnection = (addon: AddonItem) => {
+    setSelectedAddon(addon)
+    const isLinked = connections.some((c) => c.id === addon.id)
+    if (!isLinked) {
+      linkMutation
+        .mutateAsync(addon.id)
+        .then(() => setConnectionDialogOpen(true))
+        .catch(() => {})
+    } else {
+      setConnectionDialogOpen(true)
+    }
+  }
+
+  const handleSaveConnection = (addon: AddonItem, data: ConnectionFormData) => {
+    connectMutation.mutate({
+      dataSourceId: addon.id,
+      credentials: data.credentials,
+      configuration: data.configuration,
+    })
+  }
+
+  const handleDisconnect = (_addon: AddonItem, connection: AddonConnection) => {
+    disconnectMutation.mutate(connection.id)
+  }
+
+  const handleUninstall = (addon: AddonItem) => {
+    unlinkMutation.mutate(addon.id)
+  }
+
+  async function handleImport(files: FileList) {
+    const file = files[0]
+    if (!file) return
+    const buf = await file.arrayBuffer()
+    const res = await client.integrations.addons.import({
+      body: { addon: new Uint8Array(buf) },
+    })
+    if (!res.isSuccess) {
+      toast.error('Falha ao importar: ' + (res.error ?? ''))
+      return
+    }
+    toast.success('Importado com sucesso.')
+    queryClient.invalidateQueries({ queryKey: ['plugins'] })
+    queryClient.invalidateQueries({ queryKey: workspaceQueryKey })
+  }
+
+  return (
+    <div className="bg-background min-h-screen">
+      <header className="border-border border-b">
+        <div className="container mx-auto px-6 py-6">
+          <div className="flex items-center justify-between">
+            <div>
+              <h1 className="text-foreground text-2xl font-semibold">
+                Plugins
+              </h1>
+              <p className="text-muted-foreground mt-1 text-sm">
+                Gerencie integrações, extensões e temas para este workspace
+              </p>
+            </div>
+            <div className="flex items-center gap-3">
+              <div className="relative">
+                <Search className="text-muted-foreground absolute top-1/2 left-3 h-4 w-4 -translate-y-1/2" />
+                <Input
+                  placeholder="Buscar plugins..."
+                  className="bg-secondary border-border w-[280px] pl-9"
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                />
+              </div>
+              <FileUploadButton
+                size="sm"
+                accept=".tladdon"
+                onFileSelect={handleImport}
+              >
+                <UploadIcon className="mr-2 h-4 w-4" />
+                Importar
+              </FileUploadButton>
+            </div>
+          </div>
+        </div>
+      </header>
+
+      <div className="container mx-auto px-6 py-6">
+        <div className="flex gap-6">
+          <AddonCategorySidebar
+            activeCategory={activeCategory}
+            onCategoryChange={setActiveCategory}
+            counts={categoryCounts}
+          />
+          <ScrollArea className="h-[calc(100vh-200px)] flex-1">
+            <div className="pr-4">
+              <AddonList
+                addons={filteredAddons}
+                onInstall={handleOpenInstallDialog}
+                onDetails={(a) => {
+                  setSelectedAddon(a)
+                  setDetailsDialogOpen(true)
+                }}
+                onAddConnection={handleAddConnection}
+                onOpenSettings={() => {}}
+                onSyncNow={() => toast.info('Sincronizar em breve.')}
+                onDisconnect={handleDisconnect}
+                onUpdate={() => toast.info('Atualização em breve.')}
+                onDisable={() => toast.info('Desativar em breve.')}
+                onUninstall={handleUninstall}
+              />
+            </div>
+          </ScrollArea>
+        </div>
+      </div>
+
+      <InstallPluginDialog
+        open={installDialogOpen}
+        onOpenChange={setInstallDialogOpen}
+        addon={selectedAddon}
+        versions={installVersions}
+        onInstall={handleInstall}
+        isInstalling={isInstalling}
+      />
+      <AddConnectionDialog
+        open={connectionDialogOpen}
+        onOpenChange={setConnectionDialogOpen}
+        addon={selectedAddon}
+        dynamicFields={dynamicFields}
+        onSave={handleSaveConnection}
+        isSaving={connectMutation.isPending}
+      />
+      <AddonDetailsDialog
+        open={detailsDialogOpen}
+        onOpenChange={setDetailsDialogOpen}
+        addon={selectedAddon}
+        onInstall={(a) => {
+          setDetailsDialogOpen(false)
+          handleOpenInstallDialog(a)
+        }}
+      />
+    </div>
+  )
+}

@@ -2,8 +2,8 @@ import {
   ChartColumnBig,
   FileEditIcon,
   ListTodoIcon,
+  PuzzleIcon,
   Settings,
-  ShoppingBagIcon,
   Timer,
 } from 'lucide-react'
 import { NavLink, useParams } from 'react-router-dom'
@@ -22,8 +22,8 @@ const mainItems = [
   { title: 'Apontamento', path: 'time-entries', icon: Timer },
   { title: 'Métricas', path: '', icon: ChartColumnBig },
   { title: 'Anotações', path: 'notes', icon: FileEditIcon },
+  { title: 'Plugins', path: 'addons', icon: PuzzleIcon },
   { title: 'Configuração', path: 'settings', icon: Settings },
-  { title: 'Extensöes', path: 'extensions', icon: ShoppingBagIcon },
 ]
 
 export function AppSidebarWorkspacesContent() {

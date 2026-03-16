@@ -1,5 +1,6 @@
 import {
   Activities,
+  AddonsPage,
   Backlog,
   Error,
   Metrics,
@@ -48,6 +49,7 @@ export const router = createHashRouter([
             ],
           },
           { path: 'settings', element: <WorkspaceSettings /> },
+          { path: 'addons', element: <AddonsPage /> },
           {
             path: 'widgets',
             children: [{ path: 'timer', element: <TimerWidget /> }],

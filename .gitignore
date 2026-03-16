@@ -1,5 +1,5 @@
 node_modules
-addons
+src\apps\desktop\addons
 .temp
 temp
 dist
