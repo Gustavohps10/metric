@@ -1,7 +1,15 @@
 import { ISessionUser } from '@/contracts/workflow/ISessionUser'
 
 export interface ISessionManager {
-  getCurrentUser(): ISessionUser | undefined
-  clearSession(): void
-  setCurrentUser(user: ISessionUser): void
+  getCurrentUser(
+    workspaceId: string,
+    connectionInstanceId: string,
+  ): ISessionUser | undefined
+  setCurrentUser(
+    workspaceId: string,
+    connectionInstanceId: string,
+    user: ISessionUser,
+  ): void
+  clearSession(workspaceId: string, connectionInstanceId: string): void
+  clearAllSessions(): void
 }

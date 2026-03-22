@@ -1,9 +1,9 @@
-import { AddonManifest, FileData, IAddonsClient } from '@timelapse/application'
+import { AddonManifest, FileData, IAddonsAPI } from '@timelapse/application'
 import { IRequest } from '@timelapse/cross-cutting/transport'
 
 import { IpcInvoker } from '@/main/adapters/IpcInvoker'
 
-export const addonsInvoker: IAddonsClient = {
+export const addonsInvoker: IAddonsAPI = {
   getInstalledById: (payload: IRequest<{ addonId: string }>) =>
     IpcInvoker.invoke('ADDONS_GETINSTALLED_BY_ID', payload),
 

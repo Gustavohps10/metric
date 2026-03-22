@@ -14,19 +14,20 @@ import { IpcMainInvokeEvent } from 'electron'
 
 export interface ConnectDataSourceRequest {
   workspaceId: string
-  dataSourceId: string
+  pluginId: string
+  connectionInstanceId: string
   credentials: Record<string, unknown>
   configuration: Record<string, unknown>
 }
 
 export interface DisconnectDataSourceRequest {
   workspaceId: string
-  dataSourceId: string
+  connectionInstanceId: string
 }
 
 export interface GetConnectionMemberRequest {
   workspaceId: string
-  dataSourceId: string
+  connectionInstanceId: string
 }
 
 export class ConnectionHandler {
@@ -40,7 +41,14 @@ export class ConnectionHandler {
     _event: IpcMainInvokeEvent,
     { body }: IRequest<ConnectDataSourceRequest>,
   ): Promise<ViewModel<AuthenticationViewModel>> {
-    const result = await this.connectDataSourceService.execute(body)
+    const result = await this.connectDataSourceService.execute({
+      workspaceId: body.workspaceId,
+      pluginId: body.pluginId,
+      connectionInstanceId: body.connectionInstanceId,
+      credentials: body.credentials,
+      configuration: body.configuration,
+    })
+
     if (result.isFailure()) {
       return {
         isSuccess: false,
@@ -48,14 +56,23 @@ export class ConnectionHandler {
         error: result.failure.messageKey,
       }
     }
-    return { isSuccess: true, statusCode: 200, data: result.success }
+
+    return {
+      isSuccess: true,
+      statusCode: 200,
+      data: result.success,
+    }
   }
 
   public async disconnectDataSource(
     _event: IpcMainInvokeEvent,
     { body }: IRequest<DisconnectDataSourceRequest>,
-  ): Promise<ViewModel> {
-    const result = await this.disconnectDataSourceService.execute(body)
+  ): Promise<ViewModel<void>> {
+    const result = await this.disconnectDataSourceService.execute({
+      workspaceId: body.workspaceId,
+      connectionInstanceId: body.connectionInstanceId,
+    })
+
     if (result.isFailure()) {
       return {
         isSuccess: false,
@@ -63,6 +80,7 @@ export class ConnectionHandler {
         error: result.failure.messageKey,
       }
     }
+
     return {
       isSuccess: true,
       statusCode: 200,
@@ -73,24 +91,25 @@ export class ConnectionHandler {
     _event: IpcMainInvokeEvent,
     { body }: IRequest<GetConnectionMemberRequest>,
   ): Promise<ViewModel<MemberViewModel | null>> {
-    const key = getMemberStorageKey(body.workspaceId, body.dataSourceId)
-    console.log('[ConnectionHandler] getConnectionMember key:', key)
+    // Usamos o connectionInstanceId para garantir a chave única por conta
+    const key = getMemberStorageKey(body.workspaceId, body.connectionInstanceId)
+
     let raw = await this.credentialsStorage.getToken('timelapse', key)
+
     if (!raw) {
-      const legacyKey = `workspace-session-${body.workspaceId}-${body.dataSourceId}-member`
-      console.log('[ConnectionHandler] key vazia, tentando legada:', legacyKey)
+      // Fallback para chaves antigas se necessário, mas mantendo o foco na instância
+      const legacyKey = `workspace-session-${body.workspaceId}-${body.connectionInstanceId}-member`
       raw = await this.credentialsStorage.getToken('timelapse', legacyKey)
     }
+
     if (!raw) {
-      console.log('[ConnectionHandler] nenhum member encontrado')
       return { isSuccess: true, statusCode: 200, data: null }
     }
+
     try {
       const member = JSON.parse(raw) as MemberViewModel
-      console.log('[ConnectionHandler] member lido:', member?.id)
       return { isSuccess: true, statusCode: 200, data: member }
     } catch (e) {
-      console.error('[ConnectionHandler] JSON.parse member falhou:', e)
       return { isSuccess: true, statusCode: 200, data: null }
     }
   }

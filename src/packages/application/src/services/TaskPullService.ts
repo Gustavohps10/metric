@@ -19,12 +19,16 @@ export class TaskPullService implements ITaskPullUseCase {
     input: PullTasksInput,
   ): Promise<Either<AppError, TaskDTO[]>> {
     try {
-      const sessionUser = this.sessionManager.getCurrentUser()
+      const sessionUser = this.sessionManager.getCurrentUser(
+        input.workspaceId,
+        input.connectionInstanceId,
+      )
       const memberId = sessionUser?.id ?? input.memberId
 
       const adapter = await this.dataSourceResolver.getDataSource(
         input.workspaceId,
-        input.dataSourceId,
+        input.pluginId,
+        input.connectionInstanceId,
       )
 
       const tasks = await adapter.taskQuery.pull(
@@ -35,7 +39,6 @@ export class TaskPullService implements ITaskPullUseCase {
 
       return Either.success(tasks)
     } catch (ex) {
-      console.error('Error pulling tasks:', ex)
       return Either.failure(InternalServerError.danger('ERRO_INESPERADO'))
     }
   }

@@ -1,6 +1,6 @@
 export { ThemeProvider } from '@/components/theme-provider'
 export { SidebarProvider } from '@/components/ui/sidebar'
 export { TooltipProvider } from '@/components/ui/tooltip'
-export { AuthProvider } from '@/contexts/AuthContext'
 export { ClientProvider } from '@/contexts/ClientContext'
+export { DataSourceConnectionsProvider } from '@/contexts/DataSourceConnectionsContext'
 export { EnvironmentProvider } from '@/contexts/EnvironmentContext'

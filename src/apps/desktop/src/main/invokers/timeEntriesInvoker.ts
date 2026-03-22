@@ -1,7 +1,4 @@
-import {
-  ITimeEntriesClient,
-  PushTimeEntriesInput,
-} from '@timelapse/application'
+import { ITimeEntriesAPI, PushTimeEntriesInput } from '@timelapse/application'
 import { IRequest } from '@timelapse/cross-cutting/transport'
 import {
   PaginatedViewModel,
@@ -12,7 +9,7 @@ import {
 import { IpcInvoker } from '@/main/adapters/IpcInvoker'
 import { ListTimeEntriesRequest, PullTimeEntriesRequest } from '@/main/handlers'
 
-export const timeEntriesInvoker: ITimeEntriesClient = {
+export const timeEntriesInvoker: ITimeEntriesAPI = {
   findByMemberId: (
     payload: IRequest<ListTimeEntriesRequest>,
   ): Promise<PaginatedViewModel<TimeEntryViewModel[]>> =>

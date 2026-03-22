@@ -42,7 +42,7 @@ export interface IWorkspacesAPI {
 
   listAll(): Promise<PaginatedViewModel<WorkspaceViewModel[]>>
 
-  getDataSourceFields(input: IRequest<{ dataSourceId: string }>): Promise<{
+  getDataSourceFields(input: IRequest<{ pluginId: string }>): Promise<{
     credentials: FieldGroup[]
     configuration: FieldGroup[]
   }>
@@ -50,21 +50,23 @@ export interface IWorkspacesAPI {
   linkDataSource(
     input: IRequest<{
       workspaceId: string
-      dataSource: string
+      dataSourceId: string
+      connectionInstanceId: string
     }>,
   ): Promise<ViewModel<WorkspaceViewModel>>
 
   unlinkDataSource(
     input: IRequest<{
       workspaceId: string
-      dataSourceId?: string
+      connectionInstanceId?: string
     }>,
   ): Promise<ViewModel<WorkspaceViewModel>>
 
   connectDataSource(
     input: IRequest<{
       workspaceId: string
-      dataSourceId: string
+      pluginId: string
+      connectionInstanceId: string
       configuration: Record<string, unknown>
       credentials: Record<string, unknown>
     }>,
@@ -73,14 +75,14 @@ export interface IWorkspacesAPI {
   disconnectDataSource(
     input: IRequest<{
       workspaceId: string
-      dataSourceId: string
+      connectionInstanceId: string
     }>,
   ): Promise<ViewModel<WorkspaceViewModel>>
 
   getConnectionMember(
     input: IRequest<{
       workspaceId: string
-      dataSourceId: string
+      connectionInstanceId: string
     }>,
   ): Promise<ViewModel<MemberViewModel | null>>
 }
@@ -89,16 +91,26 @@ export interface ISessionAPI {
   getCurrentUser(
     input: IRequest<{
       workspaceId: string
+      pluginId?: string
+      connectionInstanceId?: string
     }>,
   ): Promise<ViewModel<MemberViewModel>>
 }
 
 export interface ITaskAPI {
-  listTasks: () => Promise<PaginatedViewModel<TaskViewModel[]>>
+  listTasks: (
+    input: IRequest<{
+      workspaceId: string
+      pluginId: string
+      connectionInstanceId: string
+    }>,
+  ) => Promise<PaginatedViewModel<TaskViewModel[]>>
+
   pull: (
     payload: IRequest<{
       workspaceId: string
-      dataSourceId: string
+      pluginId: string
+      connectionInstanceId: string
       memberId: string
       checkpoint: { updatedAt: Date; id: string }
       batch: number
@@ -110,7 +122,8 @@ export interface IMetadataAPI {
   pull: (
     payload: IRequest<{
       workspaceId: string
-      dataSourceId: string
+      pluginId: string
+      connectionInstanceId: string
       memberId: string
       checkpoint: { updatedAt: Date; id: string }
       batch: number
@@ -122,7 +135,8 @@ export interface ITimeEntriesAPI {
   findByMemberId: (
     payload: IRequest<{
       workspaceId: string
-      dataSourceId: string
+      pluginId: string
+      connectionInstanceId: string
       memberId: string
       startDate: Date
       endDate: Date
@@ -132,7 +146,8 @@ export interface ITimeEntriesAPI {
   pull: (
     payload: IRequest<{
       workspaceId: string
-      dataSourceId: string
+      pluginId: string
+      connectionInstanceId: string
       memberId: string
       checkpoint: { updatedAt: Date; id: string }
       batch: number
@@ -212,21 +227,15 @@ export interface AddonInstaller {
 
 export interface IAddonsAPI {
   listAvailable(): Promise<AddonManifest[]>
-
   listInstalled(): Promise<AddonManifest[]>
-
   getInstalledById(
     payload: IRequest<{ addonId: string }>,
   ): Promise<ViewModel<AddonManifest>>
-
   updateLocal?(addon: AddonManifest): Promise<void>
-
   import(payload: IRequest<{ addon: FileData }>): Promise<ViewModel>
-
   getInstaller(
     payload: IRequest<{ installerUrl: string }>,
   ): Promise<AddonInstaller>
-
   install(
     payload: IRequest<
       { downloadUrl: string } & { onProgress?: (progress: number) => void }

@@ -4,7 +4,8 @@ import { TaskDTO } from '@/dtos'
 
 export type PullTasksInput = {
   workspaceId: string
-  dataSourceId: string
+  pluginId: string
+  connectionInstanceId: string
   memberId: string
   checkpoint: { updatedAt: Date; id: string }
   batch: number

@@ -4,6 +4,7 @@ import { MemberDTO } from '@/dtos'
 
 export interface GetCurrentUserInput {
   workspaceId: string
+  connectionInstanceId: string
 }
 
 export interface IGetCurrentUserUseCase {

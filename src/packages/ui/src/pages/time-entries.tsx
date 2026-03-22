@@ -103,7 +103,7 @@ import { SyncMetadataItem } from '@/db/schemas/metadata-sync-schema'
 import { SyncTaskRxDBDTO } from '@/db/schemas/tasks-sync-schema'
 import { SyncTimeEntryRxDBDTO } from '@/db/schemas/time-entries-sync-schema'
 import { useWorkspace } from '@/hooks'
-import { useAuth } from '@/hooks'
+import { useDataSourceConnections } from '@/hooks'
 import { useActiveTimer } from '@/hooks/use-active-timer'
 import { cn } from '@/lib'
 import { useSyncStore } from '@/stores/syncStore'
@@ -255,11 +255,16 @@ MemoizedCommentInput.displayName = 'MemoizedCommentInput'
 export function TimeEntries() {
   const db = useSyncStore((state) => state?.db)
   const { workspace } = useWorkspace()
-  const { user } = useAuth()
-  const dataSourceId =
-    workspace?.dataSource && workspace.dataSource !== 'local'
-      ? workspace.dataSource
-      : 'local'
+  const { membersByConnection } = useDataSourceConnections()
+
+  const memberIdsByConnection = useMemo(() => {
+    const next: Record<string, string> = {}
+    for (const [connId, state] of Object.entries(membersByConnection ?? {})) {
+      if (state.member?.id) next[connId] = String(state.member.id)
+    }
+    return next
+  }, [membersByConnection])
+
   const queryClient = useQueryClient()
   const [searchParams, setSearchParams] = useSearchParams()
   const [taskLookupOpen, setTaskLookupOpen] = useState(false)
@@ -389,10 +394,25 @@ export function TimeEntries() {
       queryClient.invalidateQueries({ queryKey: ['time-entries-range'] })
       return
     }
+
     if (!selectedTask || !selectedActivity) {
       toast.error('Selecione uma tarefa e atividade')
       return
     }
+
+    /**
+     * IMPORTANTE: connectionInstanceId e dataSourceId agora vêm da tarefa selecionada.
+     * O memberId é resolvido via connectionInstanceId no mapa de sessões.
+     */
+    const connId = selectedTask.connectionInstanceId
+    const dsId = selectedTask.dataSourceId
+    const memberId = memberIdsByConnection[connId]
+
+    if (!memberId) {
+      toast.error('Você não está autenticado nesta conexão')
+      return
+    }
+
     if (timeEntryType === 'manual') {
       const baseDate = new Date()
       const dStart = parse('09:00', 'HH:mm', baseDate)
@@ -402,13 +422,15 @@ export function TimeEntries() {
       )
 
       const id = crypto.randomUUID()
+
       await db?.timeEntries.insert({
-        _id: `${dataSourceId}::local-${id}`,
+        _id: `${dsId}::${connId}-${id}`,
         id,
-        dataSourceId,
+        dataSourceId: dsId,
+        connectionInstanceId: connId,
         task: { id: selectedTask.id },
         activity: { id: selectedActivity },
-        user: { id: user?.id.toString() || 'local' },
+        user: { id: memberId },
         startDate: dStart.toISOString(),
         endDate: dEnd.toISOString(),
         timeSpent: decimalResult,
@@ -425,10 +447,11 @@ export function TimeEntries() {
       await createNewTimeEntry(db!, {
         taskId: selectedTask.id,
         activityId: selectedActivity,
-        dataSourceId: selectedTask.dataSourceId ?? dataSourceId,
+        dataSourceId: dsId,
+        connectionInstanceId: connId,
         type: timeEntryType,
         comments,
-        userId: user?.id.toString(),
+        userId: memberId,
       })
       toast.success('Timer iniciado')
     }
@@ -478,15 +501,19 @@ export function TimeEntries() {
         return
       }
 
-      const dsId =
-        (row.task as { dataSourceId?: string })?.dataSourceId ?? dataSourceId
+      const connId =
+        (row.task as any)?.connectionInstanceId || row.connectionInstanceId
+      const dsId = (row.task as any)?.dataSourceId || row.dataSourceId
+      const memberId = memberIdsByConnection[connId]
+
       await db.timeEntries.insert({
-        _id: `${dsId}::local-${id}`,
+        _id: `${dsId}::${connId}-${id}`,
         id,
         dataSourceId: dsId,
+        connectionInstanceId: connId,
         task: { id: edited.task?.id || row.task?.id },
         activity: { id: edited.activity?.id || row.activity?.id },
-        user: { id: row.user?.id || user?.id.toString() || 'local' },
+        user: { id: row.user?.id || memberId },
         startDate: edited.startDate || row.startDate,
         endDate: edited.endDate || row.endDate,
         timeSpent: edited.timeSpent ?? row.timeSpent,
@@ -885,7 +912,6 @@ export function TimeEntries() {
     duplicatingRowId,
     tempData,
     queryClient,
-    user,
     setTempData,
     setRowBeingEdited,
     setTaskLookupOpen,
@@ -899,7 +925,7 @@ export function TimeEntries() {
           setTaskLookupOpen(open)
           if (!open) setRowBeingEdited(null)
         }}
-        currentUserId={user?.id.toString()}
+        memberIdsByConnection={memberIdsByConnection}
         onSelect={(task) => {
           if (rowBeingEdited) {
             setTempData((p) => ({
@@ -907,13 +933,14 @@ export function TimeEntries() {
               [rowBeingEdited]: {
                 ...p[rowBeingEdited],
                 task: { id: task.id },
+                connectionInstanceId: task.connectionInstanceId,
+                dataSourceId: task.dataSourceId,
               },
             }))
             setRowBeingEdited(null)
           } else {
             setSelectedTask(task)
           }
-
           setTaskLookupOpen(false)
         }}
       />
@@ -944,13 +971,12 @@ export function TimeEntries() {
                       setSelectedTask(null)
                       return
                     }
-
                     setSelectedTask((prev) =>
                       prev ? { ...prev, id } : ({ id } as SyncTaskRxDBDTO),
                     )
                   }}
                   onOpenLookup={() => {
-                    setRowBeingEdited(null) // importante
+                    setRowBeingEdited(null)
                     setTaskLookupOpen(true)
                   }}
                   placeholder="Tarefa"

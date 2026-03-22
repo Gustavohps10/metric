@@ -30,53 +30,62 @@ export class ConnectDataSourceService implements IConnectDataSourceUseCase {
   >(
     input: ConnectDataSourceInput<Credentials, Configuration>,
   ): Promise<Either<AppError, AuthenticationDTO>> {
-    const workspace = await this.workspacesRepository.findById(
-      input.workspaceId,
-    )
-    if (!workspace) {
-      return Either.failure(NotFoundError.danger('Workspace não encontrado'))
-    }
-
-    const adapter = await this.dataSourceResolver.getDataSource(
-      input.workspaceId,
-      input.dataSourceId,
-      {
-        config: input.configuration,
-        credentials: input.credentials as Record<string, unknown>,
-      },
-    )
-
-    const authResult = await adapter.authenticationStrategy.authenticate({
-      configuration: input.configuration,
-      credentials: input.credentials,
-    })
-    if (authResult.isFailure()) {
-      return authResult.forwardFailure()
-    }
-
-    const { member, credentials } = authResult.success
-    const serializedCredentials = JSON.stringify(credentials)
-    const storageKey = `workspace-session-${input.workspaceId}-${input.dataSourceId}`
-
     try {
+      const workspace = await this.workspacesRepository.findById(
+        input.workspaceId,
+      )
+
+      if (!workspace) {
+        return Either.failure(NotFoundError.danger('WORKSPACE_NAO_ENCONTRADO'))
+      }
+
+      const adapter = await this.dataSourceResolver.getDataSource(
+        input.workspaceId,
+        input.pluginId,
+        input.connectionInstanceId,
+        {
+          config: input.configuration,
+          credentials: input.credentials as Record<string, unknown>,
+        },
+      )
+
+      const authResult = await adapter.authenticationStrategy.authenticate({
+        configuration: input.configuration,
+        credentials: input.credentials,
+      })
+
+      if (authResult.isFailure()) {
+        return authResult.forwardFailure()
+      }
+
+      const { member, credentials } = authResult.success
+      const serializedCredentials = JSON.stringify(credentials)
+
+      const storageKey = `workspace-session-${input.workspaceId}-${input.connectionInstanceId}`
+      const memberKey = getMemberStorageKey(
+        input.workspaceId,
+        input.connectionInstanceId,
+      )
+
       await this.credentialsStorage.saveToken(
         'timelapse',
         storageKey,
         serializedCredentials,
       )
+
       await this.credentialsStorage.saveToken(
         'timelapse',
-        getMemberStorageKey(input.workspaceId, input.dataSourceId),
+        memberKey,
         JSON.stringify(member),
       )
 
       const connectResult = workspace.connectDataSource(
+        input.connectionInstanceId,
         input.configuration as Record<string, unknown>,
-        input.dataSourceId,
       )
 
       if (connectResult.isFailure()) {
-        throw new Error(connectResult.failure.messageKey)
+        return connectResult.forwardFailure()
       }
 
       await this.workspacesRepository.update(workspace)
@@ -85,23 +94,23 @@ export class ConnectDataSourceService implements IConnectDataSourceUseCase {
         id: member.id.toString(),
         name: `${member.firstname} ${member.lastname}`,
         workspaceId: input.workspaceId,
+        connectionInstanceId: input.connectionInstanceId,
       })
 
       return Either.success<AuthenticationDTO>({ member, token })
-    } catch (error) {
-      await this.credentialsStorage.deleteToken(
-        'timelapse',
-        `workspace-session-${input.workspaceId}-${input.dataSourceId}`,
+    } catch (error: unknown) {
+      const storageKey = `workspace-session-${input.workspaceId}-${input.connectionInstanceId}`
+      const memberKey = getMemberStorageKey(
+        input.workspaceId,
+        input.connectionInstanceId,
       )
-      await this.credentialsStorage.deleteToken(
-        'timelapse',
-        getMemberStorageKey(input.workspaceId, input.dataSourceId),
+
+      await this.credentialsStorage.deleteToken('timelapse', storageKey)
+      await this.credentialsStorage.deleteToken('timelapse', memberKey)
+
+      return Either.failure(
+        InternalServerError.danger('ERRO_AO_CONECTAR_DATA_SOURCE'),
       )
-      const errorMessage =
-        error instanceof Error
-          ? error.message
-          : 'Erro inesperado ao conectar a fonte de dados.'
-      return Either.failure(InternalServerError.danger(errorMessage))
     }
   }
 }

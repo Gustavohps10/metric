@@ -1,5 +1,8 @@
 import {
+  IConnectDataSourceUseCase,
   ICreateWorkspaceUseCase,
+  IDisconnectDataSourceUseCase,
+  IGetCurrentUserUseCase,
   IGetWorkspaceUseCase,
   ILinkDataSourceUseCase,
   IListWorkspacesUseCase,
@@ -7,6 +10,9 @@ import {
 } from '@timelapse/application'
 import { IRequest } from '@timelapse/cross-cutting/transport'
 import {
+  AuthenticationViewModel,
+  MemberViewModel,
+  PaginatedViewModel,
   ViewModel,
   WorkspaceViewModel,
 } from '@timelapse/presentation/view-models'
@@ -22,12 +28,31 @@ export interface GetWorkspaceByIdRequest {
 
 export interface LinkDataSourceRequest {
   workspaceId: string
-  dataSource: string
+  dataSourceId: string
+  connectionInstanceId: string
 }
 
 export interface UnlinkDataSourceRequest {
   workspaceId: string
-  dataSourceId?: string
+  connectionInstanceId: string
+}
+
+export interface ConnectDataSourceRequest {
+  workspaceId: string
+  pluginId: string
+  connectionInstanceId: string
+  credentials: Record<string, unknown>
+  configuration: Record<string, unknown>
+}
+
+export interface DisconnectDataSourceRequest {
+  workspaceId: string
+  connectionInstanceId: string
+}
+
+export interface GetConnectionMemberRequest {
+  workspaceId: string
+  connectionInstanceId: string
 }
 
 export class WorkspacesHandler {
@@ -37,6 +62,9 @@ export class WorkspacesHandler {
     private readonly getWorkspaceService: IGetWorkspaceUseCase,
     private readonly linkDataSourceService: ILinkDataSourceUseCase,
     private readonly unlinkDataSourceService: IUnlinkDataSourceUseCase,
+    private readonly connectDataSourceService: IConnectDataSourceUseCase,
+    private readonly disconnectDataSourceService: IDisconnectDataSourceUseCase,
+    private readonly getCurrentUserService: IGetCurrentUserUseCase,
   ) {}
 
   public async create(
@@ -53,27 +81,25 @@ export class WorkspacesHandler {
       }
     }
 
-    const newWorkspace = result.success
-    const conns = newWorkspace.dataSourceConnections
+    const ws = result.success
     return {
       isSuccess: true,
       statusCode: 201,
       data: {
-        id: newWorkspace.id,
-        name: newWorkspace.name,
-        dataSource: newWorkspace.dataSource,
-        dataSourceConfiguration: newWorkspace.dataSourceConfiguration,
-        dataSourceConnections:
-          conns?.length > 0
-            ? conns.map((c) => ({ id: c.id, config: c.config }))
-            : undefined,
-        createdAt: newWorkspace.createdAt,
-        updatedAt: newWorkspace.updatedAt,
+        id: ws.id,
+        name: ws.name,
+        dataSourceConnections: ws.dataSourceConnections.map((c) => ({
+          id: c.id,
+          dataSourceId: c.dataSourceId,
+          config: c.config,
+        })),
+        createdAt: ws.createdAt,
+        updatedAt: ws.updatedAt,
       },
     }
   }
 
-  public async listAll() {
+  public async listAll(): Promise<PaginatedViewModel<WorkspaceViewModel[]>> {
     const result = await this.listWorkspacesService.execute()
 
     if (result.isFailure()) {
@@ -89,27 +115,20 @@ export class WorkspacesHandler {
     }
 
     const pagedDto = result.success
-    const workspaces = pagedDto.items ?? []
-    const viewModels: WorkspaceViewModel[] = workspaces.map((w) => {
-      const conns = w.dataSourceConnections
-      return {
-        id: w.id,
-        name: w.name,
-        dataSource: w.dataSource,
-        dataSourceConfiguration: w.dataSourceConfiguration,
-        dataSourceConnections:
-          conns?.length > 0
-            ? conns.map((c) => ({ id: c.id, config: c.config }))
-            : undefined,
-        createdAt: w.createdAt,
-        updatedAt: w.updatedAt,
-      }
-    })
-
     return {
       statusCode: 200,
       isSuccess: true,
-      data: viewModels,
+      data: pagedDto.items.map((w) => ({
+        id: w.id,
+        name: w.name,
+        dataSourceConnections: w.dataSourceConnections.map((c) => ({
+          id: c.id,
+          dataSourceId: c.dataSourceId,
+          config: c.config,
+        })),
+        createdAt: w.createdAt,
+        updatedAt: w.updatedAt,
+      })),
       totalItems: pagedDto.total,
       totalPages: Math.ceil(pagedDto.total / (pagedDto.pageSize || 1)),
       currentPage: pagedDto.page || 1,
@@ -130,22 +149,20 @@ export class WorkspacesHandler {
       }
     }
 
-    const workspace = result.success
-    const conns = workspace.dataSourceConnections
+    const ws = result.success
     return {
       isSuccess: true,
       statusCode: 200,
       data: {
-        id: workspace.id,
-        name: workspace.name,
-        dataSource: workspace.dataSource,
-        dataSourceConfiguration: workspace.dataSourceConfiguration,
-        dataSourceConnections:
-          conns?.length > 0
-            ? conns.map((c) => ({ id: c.id, config: c.config }))
-            : undefined,
-        createdAt: workspace.createdAt,
-        updatedAt: workspace.updatedAt,
+        id: ws.id,
+        name: ws.name,
+        dataSourceConnections: ws.dataSourceConnections.map((c) => ({
+          id: c.id,
+          dataSourceId: c.dataSourceId,
+          config: c.config,
+        })),
+        createdAt: ws.createdAt,
+        updatedAt: ws.updatedAt,
       },
     }
   }
@@ -155,6 +172,7 @@ export class WorkspacesHandler {
     { body }: IRequest<LinkDataSourceRequest>,
   ): Promise<ViewModel<WorkspaceViewModel>> {
     const result = await this.linkDataSourceService.execute(body)
+
     if (result.isFailure()) {
       return {
         isSuccess: false,
@@ -162,22 +180,21 @@ export class WorkspacesHandler {
         error: result.failure.messageKey,
       }
     }
-    const workspace = result.success
-    const conns = workspace.dataSourceConnections
+
+    const ws = result.success
     return {
       isSuccess: true,
       statusCode: 200,
       data: {
-        id: workspace.id,
-        name: workspace.name,
-        dataSource: workspace.dataSource,
-        dataSourceConfiguration: workspace.dataSourceConfiguration,
-        dataSourceConnections:
-          conns?.length > 0
-            ? conns.map((c) => ({ id: c.id, config: c.config }))
-            : undefined,
-        createdAt: workspace.createdAt,
-        updatedAt: workspace.updatedAt,
+        id: ws.id,
+        name: ws.name,
+        dataSourceConnections: ws.dataSourceConnections.map((c) => ({
+          id: c.id,
+          dataSourceId: c.dataSourceId,
+          config: c.config,
+        })),
+        createdAt: ws.createdAt,
+        updatedAt: ws.updatedAt,
       },
     }
   }
@@ -187,6 +204,7 @@ export class WorkspacesHandler {
     { body }: IRequest<UnlinkDataSourceRequest>,
   ): Promise<ViewModel<WorkspaceViewModel>> {
     const result = await this.unlinkDataSourceService.execute(body)
+
     if (result.isFailure()) {
       return {
         isSuccess: false,
@@ -194,23 +212,84 @@ export class WorkspacesHandler {
         error: result.failure.messageKey,
       }
     }
-    const workspace = result.success
-    const conns = workspace.dataSourceConnections
+
+    const ws = result.success
     return {
       isSuccess: true,
       statusCode: 200,
       data: {
-        id: workspace.id,
-        name: workspace.name,
-        dataSource: workspace.dataSource,
-        dataSourceConfiguration: workspace.dataSourceConfiguration,
-        dataSourceConnections:
-          conns?.length > 0
-            ? conns.map((c) => ({ id: c.id, config: c.config }))
-            : undefined,
-        createdAt: workspace.createdAt,
-        updatedAt: workspace.updatedAt,
+        id: ws.id,
+        name: ws.name,
+        dataSourceConnections: ws.dataSourceConnections.map((c) => ({
+          id: c.id,
+          dataSourceId: c.dataSourceId,
+          config: c.config,
+        })),
+        createdAt: ws.createdAt,
+        updatedAt: ws.updatedAt,
       },
+    }
+  }
+
+  public async connectDataSource(
+    _event: IpcMainInvokeEvent,
+    { body }: IRequest<ConnectDataSourceRequest>,
+  ): Promise<ViewModel<AuthenticationViewModel>> {
+    const result = await this.connectDataSourceService.execute(body)
+
+    if (result.isFailure()) {
+      return {
+        isSuccess: false,
+        statusCode: result.failure.statusCode || 401,
+        error: result.failure.messageKey,
+      }
+    }
+
+    return {
+      isSuccess: true,
+      statusCode: 200,
+      data: result.success,
+    }
+  }
+
+  public async disconnectDataSource(
+    _event: IpcMainInvokeEvent,
+    { body }: IRequest<DisconnectDataSourceRequest>,
+  ): Promise<ViewModel<void>> {
+    const result = await this.disconnectDataSourceService.execute(body)
+
+    if (result.isFailure()) {
+      return {
+        isSuccess: false,
+        statusCode: 500,
+        error: result.failure.messageKey,
+      }
+    }
+
+    return {
+      isSuccess: true,
+      statusCode: 200,
+    }
+  }
+
+  public async getConnectionMember(
+    _event: IpcMainInvokeEvent,
+    { body }: IRequest<GetConnectionMemberRequest>,
+  ): Promise<ViewModel<MemberViewModel | null>> {
+    const result = await this.getCurrentUserService.execute(body)
+
+    if (result.isFailure()) {
+      return {
+        isSuccess: false,
+        statusCode: result.failure.statusCode || 404,
+        error: result.failure.messageKey,
+      }
+    }
+
+    return {
+      isSuccess: true,
+      statusCode: 200,
+      data: result.success,
     }
   }
 }

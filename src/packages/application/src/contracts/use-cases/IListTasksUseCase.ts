@@ -4,7 +4,8 @@ import { PagedResultDTO, TaskDTO } from '@/dtos'
 
 export interface ListTasksInput {
   workspaceId: string
-  dataSourceId: string
+  pluginId: string
+  connectionInstanceId: string
 }
 
 export interface IListTasksUseCase {

@@ -12,7 +12,7 @@ import {
 import { AppSidebarDefaultHeader } from '@/components/app-sidebar/app-sidebar-default-header'
 import { Footer } from '@/components/footer'
 import { ScrollArea } from '@/components/ui/scroll-area'
-import { AuthProvider } from '@/contexts/AuthContext'
+import { DataSourceConnectionsProvider } from '@/contexts/DataSourceConnectionsContext'
 import { WorkspaceProvider } from '@/contexts/WorkspaceContext'
 import { SyncProvider } from '@/stores/syncStore'
 import { TimeEntryProvider } from '@/stores/timeEntryStore'
@@ -22,7 +22,7 @@ export function WorkspaceLayout() {
     <WorkspaceProvider>
       <SyncProvider>
         <TimeEntryProvider>
-          <AuthProvider>
+          <DataSourceConnectionsProvider>
             <>
               <AppSidebar>
                 <AppSidebarHeader>
@@ -48,7 +48,7 @@ export function WorkspaceLayout() {
                 </ScrollArea>
               </main>
             </>
-          </AuthProvider>
+          </DataSourceConnectionsProvider>
         </TimeEntryProvider>
       </SyncProvider>
     </WorkspaceProvider>

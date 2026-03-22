@@ -1,4 +1,4 @@
-import { ITaskClient, PullTasksInput, TaskDTO } from '@timelapse/application'
+import { ITaskAPI, PullTasksInput, TaskDTO } from '@timelapse/application'
 import { IRequest } from '@timelapse/cross-cutting/transport'
 import {
   PaginatedViewModel,
@@ -8,7 +8,7 @@ import {
 
 import { IpcInvoker } from '@/main/adapters/IpcInvoker'
 
-export const tasksInvoker: ITaskClient = {
+export const tasksInvoker: ITaskAPI = {
   listTasks: (): Promise<PaginatedViewModel<TaskViewModel[]>> =>
     IpcInvoker.invoke<IRequest<any>, PaginatedViewModel<TaskViewModel[]>>(
       'TASKS_LIST',

@@ -1,4 +1,5 @@
 import {
+  IGetWorkspaceUseCase,
   IListTimeEntriesUseCase,
   ITimeEntriesPullUseCase,
   ITimeEntriesPushUseCase,
@@ -10,10 +11,11 @@ import {
   SyncDocumentViewModel,
   TimeEntryViewModel,
 } from '@timelapse/presentation/view-models'
+import { IpcMainInvokeEvent } from 'electron'
 
 export interface ListTimeEntriesRequest {
   workspaceId: string
-  dataSourceId: string
+  connectionInstanceId: string
   memberId: string
   startDate: Date
   endDate: Date
@@ -21,7 +23,7 @@ export interface ListTimeEntriesRequest {
 
 export interface PullTimeEntriesRequest {
   workspaceId: string
-  dataSourceId: string
+  connectionInstanceId: string
   memberId: string
   checkpoint: { updatedAt: Date; id: string }
   batch: number
@@ -32,13 +34,53 @@ export class TimeEntriesHandler {
     private readonly listTimeEntriesService: IListTimeEntriesUseCase,
     private readonly timeEntriesPullService: ITimeEntriesPullUseCase,
     private readonly timeEntriesPushService: ITimeEntriesPushUseCase,
+    private readonly getWorkspaceService: IGetWorkspaceUseCase,
   ) {}
 
   public async listTimeEntries(
-    _event: Electron.IpcMainInvokeEvent,
+    _event: IpcMainInvokeEvent,
     { body }: IRequest<ListTimeEntriesRequest>,
   ): Promise<PaginatedViewModel<TimeEntryViewModel[]>> {
-    const result = await this.listTimeEntriesService.execute(body)
+    const workspaceResult = await this.getWorkspaceService.execute({
+      workspaceId: body.workspaceId,
+    })
+
+    if (workspaceResult.isFailure()) {
+      return {
+        statusCode: 404,
+        isSuccess: false,
+        error: 'WORKSPACE_NAO_ENCONTRADO',
+        data: [],
+        totalItems: 0,
+        totalPages: 0,
+        currentPage: 1,
+      }
+    }
+
+    const connection = workspaceResult.success.dataSourceConnections.find(
+      (c) => c.id === body.connectionInstanceId,
+    )
+
+    if (!connection) {
+      return {
+        statusCode: 404,
+        isSuccess: false,
+        error: 'CONEXAO_NAO_ENCONTRADA',
+        data: [],
+        totalItems: 0,
+        totalPages: 0,
+        currentPage: 1,
+      }
+    }
+
+    const result = await this.listTimeEntriesService.execute({
+      workspaceId: body.workspaceId,
+      pluginId: connection.dataSourceId,
+      connectionInstanceId: body.connectionInstanceId,
+      memberId: body.memberId,
+      startDate: body.startDate,
+      endDate: body.endDate,
+    })
 
     if (result.isFailure()) {
       return {
@@ -65,12 +107,29 @@ export class TimeEntriesHandler {
   }
 
   public async pull(
-    _event: Electron.IpcMainInvokeEvent,
+    _event: IpcMainInvokeEvent,
     { body }: IRequest<PullTimeEntriesRequest>,
   ): Promise<TimeEntryViewModel[]> {
+    const workspaceResult = await this.getWorkspaceService.execute({
+      workspaceId: body.workspaceId,
+    })
+
+    if (workspaceResult.isFailure()) {
+      return []
+    }
+
+    const connection = workspaceResult.success.dataSourceConnections.find(
+      (c) => c.id === body.connectionInstanceId,
+    )
+
+    if (!connection) {
+      return []
+    }
+
     const result = await this.timeEntriesPullService.execute({
       workspaceId: body.workspaceId,
-      dataSourceId: body.dataSourceId,
+      pluginId: connection.dataSourceId,
+      connectionInstanceId: body.connectionInstanceId,
       memberId: body.memberId,
       checkpoint: body.checkpoint,
       batch: body.batch,
@@ -80,8 +139,7 @@ export class TimeEntriesHandler {
       return []
     }
 
-    const dtos = result.success
-    const viewModels: TimeEntryViewModel[] = dtos.map((dto) => ({
+    return result.success.map((dto) => ({
       id: dto.id,
       task: dto.task,
       user: dto.user,
@@ -93,12 +151,10 @@ export class TimeEntriesHandler {
       createdAt: dto.createdAt,
       updatedAt: dto.updatedAt,
     }))
-
-    return viewModels
   }
 
   public async push(
-    _event: Electron.IpcMainInvokeEvent,
+    _event: IpcMainInvokeEvent,
     { body }: IRequest<PushTimeEntriesInput>,
   ): Promise<SyncDocumentViewModel<TimeEntryViewModel>[]> {
     const result = await this.timeEntriesPushService.execute(body)
@@ -107,13 +163,8 @@ export class TimeEntriesHandler {
       return []
     }
 
-    const dtos = result.success
-    const viewModels: SyncDocumentViewModel<TimeEntryViewModel>[] = dtos.map(
-      (dto) => ({
-        ...dto,
-      }),
-    )
-
-    return viewModels
+    return result.success.map((dto) => ({
+      ...dto,
+    }))
   }
 }

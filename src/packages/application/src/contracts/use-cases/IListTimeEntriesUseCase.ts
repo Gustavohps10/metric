@@ -4,7 +4,8 @@ import { PagedResultDTO, TimeEntryDTO } from '@/dtos'
 
 export interface ListTimeEntriesInput {
   workspaceId: string
-  dataSourceId: string
+  pluginId: string
+  connectionInstanceId: string
   memberId: string
   startDate: Date
   endDate: Date

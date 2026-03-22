@@ -9,7 +9,7 @@ import {
   GetWorkspaceInput,
   IGetWorkspaceUseCase,
 } from '@/contracts/use-cases/IGetWorkspaceUseCase'
-import { WorkspaceDTO } from '@/dtos'
+import { toWorkspaceConnectionDTO, WorkspaceDTO } from '@/dtos'
 
 export class GetWorkspaceService implements IGetWorkspaceUseCase {
   constructor(private readonly workspacesRepository: IWorkspacesRepository) {}
@@ -22,19 +22,15 @@ export class GetWorkspaceService implements IGetWorkspaceUseCase {
     )
 
     if (!workspace) {
-      return Either.failure(NotFoundError.danger('Workspace não encontrado.'))
+      return Either.failure(NotFoundError.danger('WORKSPACE_NAO_ENCONTRADO'))
     }
 
-    const connections = workspace.dataSourceConnections
     const workspaceDTO: WorkspaceDTO = {
       id: workspace.id,
       name: workspace.name,
-      dataSource: workspace.dataSource,
-      dataSourceConfiguration: workspace.dataSourceConfiguration,
-      dataSourceConnections:
-        connections?.length > 0
-          ? connections.map((c) => ({ id: c.id, config: c.config }))
-          : undefined,
+      dataSourceConnections: workspace.dataSourceConnections.map(
+        toWorkspaceConnectionDTO,
+      ),
       createdAt: workspace.createdAt,
       updatedAt: workspace.updatedAt,
     }

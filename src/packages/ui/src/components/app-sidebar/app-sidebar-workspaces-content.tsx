@@ -22,7 +22,7 @@ const mainItems = [
   { title: 'Apontamento', path: 'time-entries', icon: Timer },
   { title: 'Métricas', path: '', icon: ChartColumnBig },
   { title: 'Anotações', path: 'notes', icon: FileEditIcon },
-  { title: 'Plugins', path: 'addons', icon: PuzzleIcon },
+  { title: 'Addons', path: 'addons', icon: PuzzleIcon },
   { title: 'Configuração', path: 'settings', icon: Settings },
 ]
 

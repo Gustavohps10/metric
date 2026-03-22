@@ -2,6 +2,7 @@
 
 import { useInfiniteQuery, useQuery } from '@tanstack/react-query'
 import { useVirtualizer } from '@tanstack/react-virtual'
+import { WorkspaceConnectionDTO } from '@timelapse/application'
 import {
   AlertCircle,
   Circle,
@@ -43,6 +44,7 @@ import {
 } from '@/components/ui/select'
 import { SyncMetadataRxDBDTO } from '@/db/schemas/metadata-sync-schema'
 import { SyncTaskRxDBDTO } from '@/db/schemas/tasks-sync-schema'
+import { useWorkspace } from '@/hooks'
 import { cn } from '@/lib/utils'
 import { useSyncStore } from '@/stores/syncStore'
 
@@ -52,6 +54,11 @@ interface TaskLookupModalProps {
   open?: boolean
   onOpenChange?: (open: boolean) => void
   currentUserId?: string | null
+  /**
+   * memberId por `connectionInstanceId` (ex: 'redmine-empresa-a'),
+   * para filtrar "minhas tarefas" corretamente em múltiplas contas.
+   */
+  memberIdsByConnection?: Record<string, string | null | undefined>
 }
 
 const PAGE_SIZE = 50
@@ -78,8 +85,10 @@ export function TaskLookup({
   open,
   onOpenChange,
   currentUserId = 'me',
+  memberIdsByConnection,
 }: TaskLookupModalProps) {
   const db = useSyncStore((s) => s.db)
+  const { workspace } = useWorkspace()
   const [searchTerm, setSearchTerm] = useState('')
   const [debouncedSearch] = useDebounce(searchTerm, 300)
 
@@ -87,6 +96,11 @@ export function TaskLookup({
   const [priorityFilter, setPriorityFilter] = useState<string>('all')
   const [onlyMyTasks, setOnlyMyTasks] = useState(true)
   const [sortOrder, setSortOrder] = useState<'desc' | 'asc'>('desc')
+
+  // Lista de IDs de instâncias (connections) selecionadas
+  const [selectedConnectionIds, setSelectedConnectionIds] = useState<string[]>(
+    [],
+  )
 
   const [selectedIndex, setSelectedIndex] = useState(0)
   const [internalOpen, setInternalOpen] = useState(false)
@@ -115,6 +129,24 @@ export function TaskLookup({
     return { statuses, priorities }
   }, [metadata])
 
+  const availableConnections = useMemo(() => {
+    const connections = workspace?.dataSourceConnections ?? []
+    return connections.map((c: WorkspaceConnectionDTO) => ({
+      id: c.id,
+      label: String(c.config?.name || c.dataSourceId),
+    }))
+  }, [workspace])
+
+  const effectiveConnectionIds = useMemo(() => {
+    if (selectedConnectionIds.length === 0)
+      return availableConnections.map((s) => s.id)
+    return selectedConnectionIds
+  }, [selectedConnectionIds, availableConnections])
+
+  const connectionLabelById = useMemo(() => {
+    return new Map(availableConnections.map((s) => [s.id, s.label]))
+  }, [availableConnections])
+
   const { data, fetchNextPage, hasNextPage, isFetchingNextPage, isLoading } =
     useInfiniteQuery({
       queryKey: [
@@ -124,25 +156,59 @@ export function TaskLookup({
         priorityFilter,
         onlyMyTasks,
         sortOrder,
+        selectedConnectionIds.join(','),
       ],
       initialPageParam: 0,
       queryFn: async ({ pageParam = 0 }) => {
         if (!db) return []
-        const selector: any = {}
+
+        const andConditions: any[] = []
 
         if (debouncedSearch) {
-          selector.$or = [
-            { title: { $regex: `.*${debouncedSearch}.*`, $options: 'i' } },
-            { id: { $regex: `.*${debouncedSearch}.*`, $options: 'i' } },
-          ]
+          andConditions.push({
+            $or: [
+              { title: { $regex: `.*${debouncedSearch}.*`, $options: 'i' } },
+              { id: { $regex: `.*${debouncedSearch}.*`, $options: 'i' } },
+            ],
+          })
         }
 
-        if (statusFilter !== 'all') selector['status.id'] = statusFilter
-        if (priorityFilter !== 'all') selector['priority.id'] = priorityFilter
+        if (statusFilter !== 'all')
+          andConditions.push({ 'status.id': statusFilter })
+        if (priorityFilter !== 'all')
+          andConditions.push({ 'priority.id': priorityFilter })
 
-        if (onlyMyTasks) {
-          selector.participants = { $elemMatch: { id: currentUserId } }
+        if (effectiveConnectionIds.length > 0) {
+          if (onlyMyTasks) {
+            // Filtra "Minhas Tarefas" respeitando o ID de usuário de cada conexão ativa
+            const myTasksOr = effectiveConnectionIds
+              .map((connId) => {
+                const memberId =
+                  memberIdsByConnection?.[connId] ?? currentUserId
+                if (!memberId) return null
+                return {
+                  connectionInstanceId: connId,
+                  participants: { $elemMatch: { id: String(memberId) } },
+                }
+              })
+              .filter(Boolean)
+
+            if (myTasksOr.length > 0) {
+              andConditions.push({ $or: myTasksOr })
+            } else {
+              andConditions.push({
+                connectionInstanceId: { $in: effectiveConnectionIds },
+              })
+            }
+          } else {
+            andConditions.push({
+              connectionInstanceId: { $in: effectiveConnectionIds },
+            })
+          }
         }
+
+        const selector: any =
+          andConditions.length > 0 ? { $and: andConditions } : {}
 
         const docs = await db.tasks
           .find({
@@ -248,12 +314,14 @@ export function TaskLookup({
               </DialogTitle>
               {(statusFilter !== 'all' ||
                 priorityFilter !== 'all' ||
-                !onlyMyTasks) && (
+                !onlyMyTasks ||
+                selectedConnectionIds.length > 0) && (
                 <button
                   onClick={() => {
                     setStatusFilter('all')
                     setPriorityFilter('all')
                     setOnlyMyTasks(true)
+                    setSelectedConnectionIds([])
                   }}
                   className="text-muted-foreground hover:text-foreground flex items-center gap-1 text-[10px] font-bold uppercase transition-colors"
                 >
@@ -337,6 +405,44 @@ export function TaskLookup({
                 </SelectContent>
               </Select>
 
+              {availableConnections.length > 0 && (
+                <div className="flex flex-wrap items-center gap-3">
+                  <span className="text-[9px] font-bold uppercase opacity-70">
+                    Fontes
+                  </span>
+                  {availableConnections.map((s) => {
+                    const checked =
+                      selectedConnectionIds.length === 0 ||
+                      selectedConnectionIds.includes(s.id)
+                    return (
+                      <label
+                        key={s.id}
+                        className="flex cursor-pointer items-center gap-2"
+                      >
+                        <Checkbox
+                          checked={checked}
+                          onCheckedChange={(v) => {
+                            if (v) {
+                              setSelectedConnectionIds((prev) => [
+                                ...prev,
+                                s.id,
+                              ])
+                            } else {
+                              setSelectedConnectionIds((prev) =>
+                                prev.filter((id) => id !== s.id),
+                              )
+                            }
+                          }}
+                        />
+                        <span className="text-[9px] font-bold uppercase opacity-80">
+                          {s.label}
+                        </span>
+                      </label>
+                    )
+                  })}
+                </div>
+              )}
+
               <Select
                 value={sortOrder}
                 onValueChange={(v: any) => setSortOrder(v)}
@@ -373,7 +479,7 @@ export function TaskLookup({
                   htmlFor="my-tasks"
                   className="cursor-pointer text-[9px] font-bold uppercase opacity-70 select-none"
                 >
-                  Tarefas com minha participação direta
+                  Tarefas que participo
                 </label>
               </div>
             </div>
@@ -410,7 +516,6 @@ export function TaskLookup({
                   return (
                     <div
                       key={virtualRow.key}
-                      data-index={virtualRow.index}
                       onClick={() => !isLoaderRow && task && handleSelect(task)}
                       onMouseEnter={() =>
                         !isLoaderRow && setSelectedIndex(virtualRow.index)
@@ -444,16 +549,10 @@ export function TaskLookup({
 
                           <div className="min-w-0 flex-1">
                             <div className="mb-0.5 flex items-center gap-2">
-                              <span
-                                title={task.id}
-                                className="bg-muted text-muted-foreground rounded px-1.5 py-0.5 font-mono text-[11px] font-bold"
-                              >
+                              <span className="bg-muted text-muted-foreground rounded px-1.5 py-0.5 font-mono text-[11px] font-bold">
                                 {task.id}
                               </span>
-                              <h4
-                                title={task.title}
-                                className="text-foreground truncate text-[12px] font-bold tracking-tight"
-                              >
+                              <h4 className="text-foreground truncate text-[12px] font-bold tracking-tight">
                                 {task.title}
                               </h4>
                             </div>
@@ -469,9 +568,26 @@ export function TaskLookup({
                                 />
                                 {task.status?.name}
                               </span>
-                              {task.participants?.some(
-                                (p) => p.id === currentUserId,
-                              ) && (
+                              {task.connectionInstanceId ? (
+                                <>
+                                  <span className="opacity-40">•</span>
+                                  <Badge
+                                    variant="outline"
+                                    className="h-4 px-1 text-[10px] font-bold"
+                                  >
+                                    {connectionLabelById.get(
+                                      task.connectionInstanceId,
+                                    ) ?? task.connectionInstanceId}
+                                  </Badge>
+                                </>
+                              ) : null}
+                              {task.participants?.some((p) => {
+                                const myId =
+                                  memberIdsByConnection?.[
+                                    task.connectionInstanceId
+                                  ] ?? currentUserId
+                                return p.id === String(myId ?? '')
+                              }) && (
                                 <>
                                   <span className="opacity-40">•</span>
                                   <Badge

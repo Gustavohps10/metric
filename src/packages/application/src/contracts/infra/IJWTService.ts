@@ -1,11 +1,5 @@
-export interface Payload {
-  id: string
-  name: string
-  workspaceId: string
-}
-
 export interface IJWTService {
-  generateToken(payload: Payload): string
+  generateToken<T extends Record<string, string>>(payload: T): string
   tokenIsValid(token: string): boolean
-  decodeToken(token: string): Payload | undefined
+  decodeToken<T extends Record<string, string>>(token: string): T | undefined
 }

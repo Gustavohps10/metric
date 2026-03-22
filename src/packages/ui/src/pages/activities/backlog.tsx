@@ -1,12 +1,12 @@
 'use client'
 
 import { useQueryStates } from 'nuqs'
-import { Suspense } from 'react'
+import { Suspense, useMemo } from 'react'
 
 import { DataTableSkeleton } from '@/components/data-table/data-table-skeleton'
 import { Shell } from '@/components/shell'
 import { AppDatabase } from '@/db/schemas/sync-types'
-import { useAuth } from '@/hooks'
+import { useDataSourceConnections } from '@/hooks'
 import { useSyncStore } from '@/stores/syncStore'
 
 import { TasksTable } from './components/tasks-table'
@@ -22,22 +22,22 @@ import { getValidFilters, tasksSearchParamsParsers } from './lib/validations'
 
 interface ClientTasksTableWrapperProps {
   db: AppDatabase
-  userId: string
+  memberIds: string[]
 }
 
-function ClientTasksTableWrapper({ db, userId }: ClientTasksTableWrapperProps) {
+function ClientTasksTableWrapper({
+  db,
+  memberIds,
+}: ClientTasksTableWrapperProps) {
   const [search] = useQueryStates(tasksSearchParamsParsers)
 
   const validFilters = getValidFilters(search.filters)
 
-  console.log('Valid filters:', validFilters)
-  console.log('Search params:', search)
-
   const promises = Promise.all([
-    getTasks(db, userId, search),
-    getTaskStatusCounts(db, userId),
-    getTaskPriorityCounts(db, userId),
-    getEstimatedHoursRange(db, userId),
+    getTasks(db, memberIds, search),
+    getTaskStatusCounts(db, memberIds),
+    getTaskPriorityCounts(db, memberIds),
+    getEstimatedHoursRange(db, memberIds),
     getAllstatus(db),
     getAllPriorities(db),
   ])
@@ -47,10 +47,17 @@ function ClientTasksTableWrapper({ db, userId }: ClientTasksTableWrapperProps) {
 
 export function Backlog() {
   const db = useSyncStore((state) => state.db)
-  const { user } = useAuth()
-  const userId = user?.id ? String(user.id) : undefined
 
-  if (!db || !userId) {
+  const { membersByConnection } = useDataSourceConnections()
+
+  const memberIds = useMemo(() => {
+    return Object.values(membersByConnection ?? {})
+      .map((state) => state.member?.id)
+      .filter((id): id is number => id !== null && id !== undefined)
+      .map((id) => String(id))
+  }, [membersByConnection])
+
+  if (!db) {
     return (
       <div className="flex h-full items-center justify-center p-6">
         <p className="text-muted-foreground mt-10">Carregando dados...</p>
@@ -79,7 +86,7 @@ export function Backlog() {
             />
           }
         >
-          <ClientTasksTableWrapper db={db} userId={userId} />
+          <ClientTasksTableWrapper db={db} memberIds={memberIds} />
         </Suspense>
       </Shell>
     </div>

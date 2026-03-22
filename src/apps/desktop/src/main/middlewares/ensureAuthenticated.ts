@@ -20,6 +20,7 @@ export function createAuthMiddleware(serviceProvider: IServiceProvider) {
     next: NextFunction<TRes>,
   ): Promise<Either<ViewModel, TRes> | ViewModel> {
     const authHeader = request.headers?.authorization
+
     if (!authHeader) {
       return {
         isSuccess: false,
@@ -29,6 +30,7 @@ export function createAuthMiddleware(serviceProvider: IServiceProvider) {
     }
 
     const [, token] = authHeader.split(' ')
+
     if (!token || !jwtService.tokenIsValid(token)) {
       return {
         isSuccess: false,
@@ -46,10 +48,19 @@ export function createAuthMiddleware(serviceProvider: IServiceProvider) {
       }
     }
 
-    const { id, name } = payload
-    sessionManager.setCurrentUser({
-      id,
-      name,
+    const { workspaceId, connectionInstanceId } = request.body as any
+
+    if (!workspaceId || !connectionInstanceId) {
+      return {
+        isSuccess: false,
+        statusCode: 400,
+        error: 'AUTH_MISSING_CONTEXT_IDS',
+      }
+    }
+
+    sessionManager.setCurrentUser(workspaceId, connectionInstanceId, {
+      id: payload.id,
+      name: payload.name,
       role: 'admin',
     })
 

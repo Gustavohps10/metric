@@ -1,6 +1,7 @@
 import {
   AppError,
   Either,
+  InternalServerError,
   NotFoundError,
 } from '@timelapse/cross-cutting/helpers'
 
@@ -21,24 +22,35 @@ export class DisconnectDataSourceService implements IDisconnectDataSourceUseCase
   public async execute(
     input: DisconnectDataSourceInput,
   ): Promise<Either<AppError, void>> {
-    const workspace = await this.workspacesRepository.findById(
-      input.workspaceId,
-    )
-    if (!workspace) {
-      return Either.failure(NotFoundError.danger('Workspace não encontrado'))
+    try {
+      const workspace = await this.workspacesRepository.findById(
+        input.workspaceId,
+      )
+
+      if (!workspace) {
+        return Either.failure(NotFoundError.danger('WORKSPACE_NAO_ENCONTRADO'))
+      }
+
+      const storageKey = `workspace-session-${input.workspaceId}-${input.connectionInstanceId}`
+      const memberKey = getMemberStorageKey(
+        input.workspaceId,
+        input.connectionInstanceId,
+      )
+
+      await this.credentialsStorage.deleteToken('timelapse', storageKey)
+      await this.credentialsStorage.deleteToken('timelapse', memberKey)
+
+      const result = workspace.disconnectDataSource(input.connectionInstanceId)
+
+      if (result.isFailure()) {
+        return result.forwardFailure()
+      }
+
+      await this.workspacesRepository.update(workspace)
+
+      return Either.success(undefined)
+    } catch (error: unknown) {
+      return Either.failure(InternalServerError.danger('ERRO_AO_DESCONECTAR'))
     }
-
-    const storageKey = `workspace-session-${input.workspaceId}-${input.dataSourceId}`
-    await this.credentialsStorage.deleteToken('timelapse', storageKey)
-    await this.credentialsStorage.deleteToken(
-      'timelapse',
-      getMemberStorageKey(input.workspaceId, input.dataSourceId),
-    )
-
-    const result = workspace.disconnectDataSource(input.dataSourceId)
-    if (result.isFailure()) return result.forwardFailure()
-
-    await this.workspacesRepository.update(workspace)
-    return Either.success(undefined)
   }
 }

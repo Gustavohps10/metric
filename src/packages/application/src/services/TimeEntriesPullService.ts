@@ -23,7 +23,10 @@ export class TimeEntriesPullService implements ITimeEntriesPullUseCase {
     input: PullTimeEntriesInput,
   ): Promise<Either<AppError, TimeEntryDTO[]>> {
     try {
-      const sessionUser = this.sessionManager.getCurrentUser()
+      const sessionUser = this.sessionManager.getCurrentUser(
+        input.workspaceId,
+        input.connectionInstanceId,
+      )
       const memberId =
         (input.memberId && String(input.memberId).trim()) || sessionUser?.id
 
@@ -35,7 +38,8 @@ export class TimeEntriesPullService implements ITimeEntriesPullUseCase {
 
       const adapter = await this.dataSourceResolver.getDataSource(
         input.workspaceId,
-        input.dataSourceId,
+        input.pluginId,
+        input.connectionInstanceId,
       )
 
       const timeEntries = await adapter.timeEntryQuery.pull(

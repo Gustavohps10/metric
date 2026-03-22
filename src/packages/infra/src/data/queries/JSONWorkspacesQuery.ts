@@ -10,9 +10,11 @@ import path from 'path'
 type PlainWorkspace = {
   id: string
   name: string
-  dataSource: string
-  dataSourceConfiguration?: Record<string, unknown>
-  dataSourceConnections?: { id: string; config?: Record<string, unknown> }[]
+  dataSourceConnections: {
+    id: string
+    dataSourceId: string
+    config?: Record<string, unknown>
+  }[]
   createdAt: string
   updatedAt: string
 }
@@ -28,12 +30,15 @@ export class JSONWorkspacesQuery implements IQueryBase<WorkspaceDTO> {
     try {
       const data = await fs.readFile(this.filePath, 'utf-8')
       const plain: PlainWorkspace[] = JSON.parse(data)
+
       return plain.map((p) => ({
         id: p.id,
         name: p.name,
-        dataSource: p.dataSource,
-        dataSourceConfiguration: p.dataSourceConfiguration,
-        dataSourceConnections: p.dataSourceConnections,
+        dataSourceConnections: (p.dataSourceConnections ?? []).map((c) => ({
+          id: c.id,
+          dataSourceId: c.dataSourceId,
+          config: c.config,
+        })),
         createdAt: new Date(p.createdAt),
         updatedAt: new Date(p.updatedAt),
       }))
@@ -71,7 +76,7 @@ export class JSONWorkspacesQuery implements IQueryBase<WorkspaceDTO> {
     const all = await this._readWorkspaces()
     const filtered = all.filter((ws) =>
       (Object.keys(condition) as Array<keyof WorkspaceDTO>).every(
-        (key) => ws[key] === condition[key],
+        (key) => JSON.stringify(ws[key]) === JSON.stringify(condition[key]),
       ),
     )
 
@@ -88,7 +93,7 @@ export class JSONWorkspacesQuery implements IQueryBase<WorkspaceDTO> {
     if (!criteria) return all.length
     return all.filter((ws) =>
       (Object.keys(criteria) as Array<keyof WorkspaceDTO>).every(
-        (key) => ws[key] === criteria[key],
+        (key) => JSON.stringify(ws[key]) === JSON.stringify(criteria[key]),
       ),
     ).length
   }
@@ -97,7 +102,7 @@ export class JSONWorkspacesQuery implements IQueryBase<WorkspaceDTO> {
     const all = await this._readWorkspaces()
     return all.some((ws) =>
       (Object.keys(criteria) as Array<keyof WorkspaceDTO>).every(
-        (key) => ws[key] === criteria[key],
+        (key) => JSON.stringify(ws[key]) === JSON.stringify(criteria[key]),
       ),
     )
   }

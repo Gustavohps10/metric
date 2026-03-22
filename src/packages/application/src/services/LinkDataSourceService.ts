@@ -10,7 +10,7 @@ import {
   ILinkDataSourceUseCase,
   LinkDataSourceInput,
 } from '@/contracts/use-cases/ILinkDataSourceUseCase'
-import { WorkspaceDTO } from '@/dtos'
+import { toWorkspaceConnectionDTO, WorkspaceDTO } from '@/dtos'
 
 export class LinkDataSourceService implements ILinkDataSourceUseCase {
   constructor(private readonly workspacesRepository: IWorkspacesRepository) {}
@@ -23,23 +23,25 @@ export class LinkDataSourceService implements ILinkDataSourceUseCase {
         input.workspaceId,
       )
 
-      if (workspace == null)
+      if (!workspace) {
         return Either.failure(NotFoundError.danger('WORKSPACE_NAO_ENCONTRADO'))
+      }
 
-      workspace.linkDataSource(input.dataSource)
+      const linkResult = workspace.linkDataSource(
+        input.connectionInstanceId,
+        input.dataSourceId,
+      )
+
+      if (linkResult.isFailure()) return linkResult.forwardFailure()
 
       await this.workspacesRepository.update(workspace)
 
-      const conns = workspace.dataSourceConnections
       const workspaceDTO: WorkspaceDTO = {
         id: workspace.id,
         name: workspace.name,
-        dataSource: workspace.dataSource,
-        dataSourceConfiguration: workspace.dataSourceConfiguration,
-        dataSourceConnections:
-          conns?.length > 0
-            ? conns.map((c) => ({ id: c.id, config: c.config }))
-            : undefined,
+        dataSourceConnections: workspace.dataSourceConnections.map(
+          toWorkspaceConnectionDTO,
+        ),
         createdAt: workspace.createdAt,
         updatedAt: workspace.updatedAt,
       }

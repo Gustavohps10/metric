@@ -2,7 +2,7 @@ import { AppError, Either } from '@timelapse/cross-cutting/helpers'
 
 export interface DisconnectDataSourceInput {
   workspaceId: string
-  dataSourceId: string
+  connectionInstanceId: string
 }
 
 export interface IDisconnectDataSourceUseCase {

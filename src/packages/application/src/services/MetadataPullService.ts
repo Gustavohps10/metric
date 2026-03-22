@@ -20,7 +20,8 @@ export class MetadataPullService implements IMetadataPullUseCase {
     try {
       const adapter = await this.dataSourceResolver.getDataSource(
         input.workspaceId,
-        input.dataSourceId,
+        input.pluginId,
+        input.connectionInstanceId,
       )
 
       const metadata = await adapter.metadataQuery.getMetadata(
@@ -28,6 +29,7 @@ export class MetadataPullService implements IMetadataPullUseCase {
         input.checkpoint,
         input.batch,
       )
+
       return Either.success(metadata)
     } catch (error) {
       return Either.failure(

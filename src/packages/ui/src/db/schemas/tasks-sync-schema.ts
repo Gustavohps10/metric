@@ -19,6 +19,7 @@ export interface SyncTaskRxDBDTO {
   _id: string
   _deleted: boolean
   dataSourceId: string
+  connectionInstanceId: string
   id: string
   title: string
   description?: string
@@ -63,6 +64,7 @@ export const tasksSyncSchema: RxJsonSchema<SyncTaskRxDBDTO> = {
     _id: { type: 'string', maxLength: 200 },
     _deleted: { type: 'boolean' },
     dataSourceId: { type: 'string', maxLength: 100 },
+    connectionInstanceId: { type: 'string', maxLength: 100 },
     id: { type: 'string', maxLength: 100 },
     title: { type: 'string', maxLength: 250 },
     description: { type: 'string' },

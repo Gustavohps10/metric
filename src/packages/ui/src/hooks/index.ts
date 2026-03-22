@@ -1,5 +1,5 @@
-export * from './use-auth'
 export * from './use-client'
+export * from './use-data-source-connections'
 export * from './use-drag-to-scroll'
 export * from './use-environment'
 export * from './use-mobile'

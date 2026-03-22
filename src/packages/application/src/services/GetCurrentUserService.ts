@@ -26,28 +26,47 @@ export class GetCurrentUserService implements IGetCurrentUserUseCase {
     input: GetCurrentUserInput,
   ): Promise<Either<AppError, MemberDTO>> {
     try {
-      const sessionUser = this.sessionManager.getCurrentUser()
-      if (!sessionUser)
+      const sessionUser = this.sessionManager.getCurrentUser(
+        input.workspaceId,
+        input.connectionInstanceId,
+      )
+
+      if (!sessionUser) {
         return Either.failure(UnauthorizedError.danger('USUARIO_NAO_LOGADO'))
+      }
 
       const workspace = await this.workspacesRepository.findById(
         input.workspaceId,
       )
-      if (!workspace || workspace.dataSource === 'local') {
-        return Either.failure(NotFoundError.danger('Workspace não configurado'))
+
+      if (!workspace) {
+        return Either.failure(NotFoundError.danger('WORKSPACE_NAO_ENCONTRADO'))
+      }
+
+      const connection = workspace.dataSourceConnections.find(
+        (c) => c.id === input.connectionInstanceId,
+      )
+
+      if (!connection) {
+        return Either.failure(
+          NotFoundError.danger('CONEXAO_NAO_ENCONTRADA_OU_INVALIDA'),
+        )
       }
 
       const adapter = await this.dataSourceResolver.getDataSource(
         input.workspaceId,
-        workspace.dataSource,
+        connection.dataSourceId,
+        connection.id,
       )
 
       const user = await adapter.memberQuery.findById(sessionUser.id)
-      if (!user)
+
+      if (!user) {
         return Either.failure(NotFoundError.danger('USUARIO_NAO_ENCONTRADO'))
+      }
 
       return Either.success(user)
-    } catch (erro: unknown) {
+    } catch (error: unknown) {
       return Either.failure(InternalServerError.danger('ERRO_AO_OBTER_USUARIO'))
     }
   }

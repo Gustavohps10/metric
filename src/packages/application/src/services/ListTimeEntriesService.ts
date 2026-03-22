@@ -22,7 +22,8 @@ export class ListTimeEntriesService implements IListTimeEntriesUseCase {
     try {
       const adapter = await this.dataSourceResolver.getDataSource(
         input.workspaceId,
-        input.dataSourceId,
+        input.pluginId,
+        input.connectionInstanceId,
       )
 
       const timeEntries = await adapter.timeEntryQuery.findByMemberId(

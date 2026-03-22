@@ -1,15 +1,14 @@
-import { IJWTService, Payload } from '@timelapse/application'
+import { IJWTService } from '@timelapse/application'
 import jwt from 'jsonwebtoken'
 
 export class JwtService implements IJWTService {
   private readonly secret: string
 
   constructor() {
-    // Alterar futuramente
     this.secret = process.env.JWT_SECRET || 'default_secret_TROCAR_FUTURAMENTE'
   }
 
-  public generateToken(payload: Payload): string {
+  public generateToken<T extends Record<string, unknown>>(payload: T): string {
     return jwt.sign(payload, this.secret, { expiresIn: '1h' })
   }
 
@@ -22,7 +21,14 @@ export class JwtService implements IJWTService {
     }
   }
 
-  public decodeToken(token: string): Payload | undefined {
-    return jwt.decode(token) as Payload | undefined
+  public decodeToken<T extends Record<string, unknown>>(
+    token: string,
+  ): T | undefined {
+    try {
+      const decoded = jwt.decode(token)
+      return decoded as T | undefined
+    } catch {
+      return undefined
+    }
   }
 }

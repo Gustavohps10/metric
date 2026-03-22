@@ -12,7 +12,7 @@ import {
   UnlinkDataSourceInput,
 } from '@/contracts'
 import { getMemberStorageKey } from '@/credentials-storage-keys'
-import { WorkspaceDTO } from '@/dtos'
+import { toWorkspaceConnectionDTO, WorkspaceDTO } from '@/dtos'
 
 export class UnlinkDataSourceService implements IUnlinkDataSourceUseCase {
   constructor(
@@ -27,20 +27,24 @@ export class UnlinkDataSourceService implements IUnlinkDataSourceUseCase {
       const workspace = await this.workspacesRepository.findById(
         input.workspaceId,
       )
+
       if (!workspace) {
-        return Either.failure(NotFoundError.danger('Workspace não encontrado'))
+        return Either.failure(NotFoundError.danger('WORKSPACE_NAO_ENCONTRADO'))
       }
 
-      if (input.dataSourceId) {
-        const storageKey = `workspace-session-${input.workspaceId}-${input.dataSourceId}`
-        await this.credentialsStorage.deleteToken('timelapse', storageKey)
-        await this.credentialsStorage.deleteToken(
-          'timelapse',
-          getMemberStorageKey(input.workspaceId, input.dataSourceId),
+      if (input.connectionInstanceId) {
+        await this.clearConnectionCredentials(
+          input.workspaceId,
+          input.connectionInstanceId,
         )
+      } else {
+        const clearPromises = workspace.dataSourceConnections.map((conn) =>
+          this.clearConnectionCredentials(workspace.id, conn.id),
+        )
+        await Promise.all(clearPromises)
       }
 
-      const result = workspace.unlinkDataSource(input.dataSourceId)
+      const result = workspace.unlinkDataSource(input.connectionInstanceId)
       if (result.isFailure()) return result.forwardFailure()
 
       await this.workspacesRepository.update(workspace)
@@ -48,8 +52,9 @@ export class UnlinkDataSourceService implements IUnlinkDataSourceUseCase {
       const workspaceDTO: WorkspaceDTO = {
         id: workspace.id,
         name: workspace.name,
-        dataSource: workspace.dataSource,
-        dataSourceConfiguration: workspace.dataSourceConfiguration,
+        dataSourceConnections: workspace.dataSourceConnections.map(
+          toWorkspaceConnectionDTO,
+        ),
         createdAt: workspace.createdAt,
         updatedAt: workspace.updatedAt,
       }
@@ -58,5 +63,17 @@ export class UnlinkDataSourceService implements IUnlinkDataSourceUseCase {
     } catch (error) {
       return Either.failure(InternalServerError.danger('ERRO_INESPERADO'))
     }
+  }
+
+  private async clearConnectionCredentials(
+    workspaceId: string,
+    connectionInstanceId: string,
+  ): Promise<void> {
+    const sessionKey = `workspace-session-${workspaceId}-${connectionInstanceId}`
+    await this.credentialsStorage.deleteToken('timelapse', sessionKey)
+    await this.credentialsStorage.deleteToken(
+      'timelapse',
+      getMemberStorageKey(workspaceId, connectionInstanceId),
+    )
   }
 }

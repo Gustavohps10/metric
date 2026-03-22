@@ -7,16 +7,23 @@ export interface DataSourceContext {
   credentials?: Record<string, unknown>
 }
 
+export interface ResolvedConnection {
+  id: string
+  dataSourceId: string
+  config?: Record<string, unknown>
+}
+
 export interface IDataSourceResolver {
   getDataSource(
     workspaceId: string,
-    dataSourceId: string,
+    pluginId: string,
+    connectionInstanceId: string,
     contextOverride?: DataSourceContext,
   ): Promise<IDataSourceAdapter>
 
-  getDataSourcesForWorkspace(workspaceId: string): Promise<{ id: string }[]>
+  getDataSourcesForWorkspace(workspaceId: string): Promise<ResolvedConnection[]>
 
-  getConfigFields(dataSourceId: string): Promise<{
+  getConfigFields(pluginId: string): Promise<{
     credentials: FieldGroup[]
     configuration: FieldGroup[]
   }>

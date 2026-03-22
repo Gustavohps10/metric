@@ -23,17 +23,24 @@ export interface GetTasksSchema {
   estimatedHours: number[]
 }
 
-function getUserTaskSelector(userId: string): MangoQuery<SyncTaskRxDBDTO> {
-  return {
-    selector: {
-      _deleted: { $ne: true },
-      $or: [
-        { 'author.id': { $eq: userId } },
-        { 'assignedTo.id': { $eq: userId } },
-        { participants: { $elemMatch: { id: userId } } },
-      ],
-    },
+function getMemberTaskSelector(
+  memberIds: string[],
+): MangoQuery<SyncTaskRxDBDTO> {
+  const selector: MangoQuery<SyncTaskRxDBDTO>['selector'] = {
+    _deleted: { $ne: true },
   }
+
+  if (memberIds.length > 0) {
+    selector.$or = [
+      { 'author.id': { $in: memberIds } },
+      { 'assignedTo.id': { $in: memberIds } },
+      ...memberIds.map((id) => ({
+        participants: { $elemMatch: { id: { $eq: id } } },
+      })),
+    ]
+  }
+
+  return { selector }
 }
 
 /**
@@ -41,9 +48,9 @@ function getUserTaskSelector(userId: string): MangoQuery<SyncTaskRxDBDTO> {
  */
 async function getAllUserTasks(
   db: AppDatabase,
-  userId: string,
+  memberIds: string[],
 ): Promise<SyncTaskRxDBDTO[]> {
-  const { selector } = getUserTaskSelector(userId)
+  const { selector } = getMemberTaskSelector(memberIds)
   const allDocs = await db.tasks.find({ selector }).exec()
 
   // Converte DeepReadonlyObject[] para SyncTaskRxDBDTO[]
@@ -69,13 +76,12 @@ async function getMetadata(
 
 export async function getTasks(
   db: AppDatabase,
-  userId: string,
+  memberIds: string[],
   input: GetTasksSchema,
 ) {
   try {
     const offset = (input.page - 1) * input.perPage
-
-    const { selector: userSelector } = getUserTaskSelector(userId)
+    const { selector: userSelector } = getMemberTaskSelector(memberIds)
 
     const selector: MangoQuery<SyncTaskRxDBDTO>['selector'] = {
       ...userSelector,
@@ -136,9 +142,12 @@ export async function getTasks(
   }
 }
 
-export async function getTaskStatusCounts(db: AppDatabase, userId: string) {
+export async function getTaskStatusCounts(
+  db: AppDatabase,
+  memberIds: string[],
+) {
   const [tasks, metadata] = await Promise.all([
-    getAllUserTasks(db, userId),
+    getAllUserTasks(db, memberIds),
     getMetadata(db),
   ])
 
@@ -155,9 +164,12 @@ export async function getTaskStatusCounts(db: AppDatabase, userId: string) {
   return counts
 }
 
-export async function getTaskPriorityCounts(db: AppDatabase, userId: string) {
+export async function getTaskPriorityCounts(
+  db: AppDatabase,
+  memberIds: string[],
+) {
   const [tasks, metadata] = await Promise.all([
-    getAllUserTasks(db, userId),
+    getAllUserTasks(db, memberIds),
     getMetadata(db),
   ])
 
@@ -174,8 +186,11 @@ export async function getTaskPriorityCounts(db: AppDatabase, userId: string) {
   return counts
 }
 
-export async function getEstimatedHoursRange(db: AppDatabase, userId: string) {
-  const tasks = await getAllUserTasks(db, userId)
+export async function getEstimatedHoursRange(
+  db: AppDatabase,
+  memberIds: string[],
+) {
+  const tasks = await getAllUserTasks(db, memberIds)
   if (tasks.length === 0) return { min: 0, max: 0 }
 
   let min = 0

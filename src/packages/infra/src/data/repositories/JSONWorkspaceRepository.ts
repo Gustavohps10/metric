@@ -6,9 +6,11 @@ import path from 'path'
 type PlainWorkspace = {
   id: string
   name: string
-  dataSource: string
-  dataSourceConfiguration?: Record<string, unknown>
-  dataSourceConnections?: { id: string; config?: Record<string, unknown> }[]
+  dataSourceConnections: {
+    id: string
+    dataSourceId: string
+    config?: Record<string, unknown>
+  }[]
   createdAt: string
   updatedAt: string
 }
@@ -25,39 +27,33 @@ export class JSONWorkspacesRepository implements IWorkspacesRepository {
       const data = await fs.readFile(this.filePath, 'utf-8')
       const plain: PlainWorkspace[] = JSON.parse(data)
 
-      const entities = plain.map((p): Workspace => {
-        return Workspace.hydrate({
+      return plain.map((p) =>
+        Workspace.hydrate({
           id: p.id,
           name: p.name,
-          dataSource: p.dataSource,
-          dataSourceConfiguration: p.dataSourceConfiguration,
           dataSourceConnections: p.dataSourceConnections ?? [],
           createdAt: new Date(p.createdAt),
           updatedAt: new Date(p.updatedAt),
-        })
-      })
-      return entities
-    } catch {
+        }),
+      )
+    } catch (err) {
+      console.log(err)
       return []
     }
   }
 
   private async _writeWorkspaces(workspaces: Workspace[]): Promise<void> {
-    const plain: PlainWorkspace[] = workspaces.map((ws) => {
-      const connections = ws.dataSourceConnections
-      return {
-        id: ws.id,
-        name: ws.name,
-        dataSource: ws.dataSource,
-        dataSourceConfiguration: ws.dataSourceConfiguration,
-        dataSourceConnections:
-          connections?.length > 0
-            ? connections.map((c) => ({ id: c.id, config: c.config }))
-            : undefined,
-        createdAt: ws.createdAt.toISOString(),
-        updatedAt: ws.updatedAt.toISOString(),
-      }
-    })
+    const plain: PlainWorkspace[] = workspaces.map((ws) => ({
+      id: ws.id,
+      name: ws.name,
+      dataSourceConnections: ws.dataSourceConnections.map((c) => ({
+        id: c.id,
+        dataSourceId: c.dataSourceId,
+        config: c.config,
+      })),
+      createdAt: ws.createdAt.toISOString(),
+      updatedAt: ws.updatedAt.toISOString(),
+    }))
 
     await fs.writeFile(this.filePath, JSON.stringify(plain, null, 2))
   }
@@ -69,7 +65,6 @@ export class JSONWorkspacesRepository implements IWorkspacesRepository {
 
   public async create(entity: Workspace): Promise<void> {
     const items = await this._readWorkspaces()
-    console.log(this.filePath)
     items.push(entity)
     await this._writeWorkspaces(items)
   }
@@ -77,8 +72,10 @@ export class JSONWorkspacesRepository implements IWorkspacesRepository {
   public async update(entity: Workspace): Promise<void> {
     const items = await this._readWorkspaces()
     const index = items.findIndex((ws) => ws.id === entity.id)
-    items[index] = entity
-    await this._writeWorkspaces(items)
+    if (index !== -1) {
+      items[index] = entity
+      await this._writeWorkspaces(items)
+    }
   }
 
   public async delete(id: string): Promise<void> {

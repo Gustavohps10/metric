@@ -192,11 +192,11 @@ app.whenReady().then(async () => {
 
   if (is.dev) {
     try {
-      const name = await installExtension(REACT_DEVELOPER_TOOLS, {
+      await installExtension(REACT_DEVELOPER_TOOLS, {
         loadExtensionOptions: { allowFileAccess: true },
         // forceDownload: true,
       })
-      console.log(`✅ Extensão instalada com sucesso: ${name}`)
+      console.log(`✅ Extensão REACT DEV TOOLS instalada com sucesso`)
     } catch (err) {
       console.error('❌ Erro ao instalar a extensão React DevTools:', err)
     }

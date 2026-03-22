@@ -16,6 +16,7 @@ export interface CreateTimeEntryData {
   activityId: string
   dataSourceId: string
   type: 'increasing' | 'decreasing' | 'manual'
+  connectionInstanceId: string
   comments?: string
   userId?: string
 }
@@ -66,6 +67,7 @@ export const createTimeEntryStore = (): StoreApi<TimeEntryStore> => {
         _id: `${data.dataSourceId}::local-${id}`,
         id,
         _deleted: false,
+        connectionInstanceId: data.connectionInstanceId,
         dataSourceId: data.dataSourceId,
         task: { id: data.taskId },
         activity: { id: data.activityId },

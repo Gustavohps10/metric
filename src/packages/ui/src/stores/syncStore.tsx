@@ -1,6 +1,7 @@
 'use client'
 
 import { IApplicationAPI } from '@timelapse/application'
+import type { IHeaders } from '@timelapse/cross-cutting/transport'
 import {
   createContext,
   ReactNode,
@@ -83,8 +84,43 @@ export type SyncStore = SyncState & {
   destroy: () => Promise<void>
 }
 
-function compositeId(dataSourceId: string, externalId: string): string {
-  return `${dataSourceId}::${externalId}`
+/** Chave composta para isolar dados de instâncias diferentes no IndexedDB */
+function compositeId(connectionInstanceId: string, externalId: string): string {
+  return `${connectionInstanceId}::${externalId}`
+}
+
+/** JWT por instância, garantindo credenciais corretas para cada conta */
+async function resolveBearerHeaders(
+  client: IApplicationAPI,
+  workspaceId: string,
+  connectionInstanceId: string,
+): Promise<IHeaders | undefined> {
+  let token: string | null = null
+  try {
+    const res = await client.modules.tokenStorage.getToken({
+      body: {
+        service: 'timelapse',
+        account: `jwt-${workspaceId}-${connectionInstanceId}`,
+      },
+    })
+    token = res.isSuccess ? (res.data ?? null) : null
+  } catch {
+    token = null
+  }
+
+  if (!token) return undefined
+  return { authorization: `Bearer ${token}` }
+}
+
+function normalizeTimeEntriesPullPayload(response: any): any[] {
+  if (Array.isArray(response)) return response
+  if (response?.data && Array.isArray(response.data)) return response.data
+  return []
+}
+
+function dateToISO(val: any): string | undefined {
+  if (!val) return undefined
+  return val instanceof Date ? val.toISOString() : String(val)
 }
 
 class MetadataStrategy implements IReplicationStrategy<
@@ -94,18 +130,28 @@ class MetadataStrategy implements IReplicationStrategy<
   constructor(
     private client: IApplicationAPI,
     private workspaceId: string,
-    private dataSourceId: string,
+    private connectionInstanceId: string,
+    private pluginId: string,
   ) {}
 
   async pull(checkpoint: ReplicationCheckpoint | undefined, batchSize: number) {
-    if (checkpoint && checkpoint.id === `metadata_${this.dataSourceId}`) {
+    if (
+      checkpoint &&
+      checkpoint.id === `metadata_${this.connectionInstanceId}`
+    ) {
       return { documents: [], checkpoint }
     }
 
+    const headers = await resolveBearerHeaders(
+      this.client,
+      this.workspaceId,
+      this.connectionInstanceId,
+    )
     const response = await this.client.services.metadata.pull({
       body: {
         workspaceId: this.workspaceId,
-        dataSourceId: this.dataSourceId,
+        pluginId: this.pluginId,
+        connectionInstanceId: this.connectionInstanceId,
         memberId: '',
         batch: batchSize,
         checkpoint: {
@@ -113,35 +159,36 @@ class MetadataStrategy implements IReplicationStrategy<
           updatedAt: new Date(checkpoint?.updatedAt || 0),
         },
       },
+      ...(headers ? { headers } : {}),
     })
 
-    if (!response.data)
+    if (!response.data) {
       return {
         documents: [],
         checkpoint: checkpoint || { updatedAt: '', id: '' },
       }
+    }
 
-    const document: SyncMetadataRxDBDTO = JSON.parse(
-      JSON.stringify({
-        _id: compositeId(this.dataSourceId, 'metadata'),
-        _deleted: false,
-        dataSourceId: this.dataSourceId,
-        id: 'metadata',
-        participantRoles: response.data.participantRoles || [],
-        estimationTypes: response.data.estimationTypes || [],
-        trackStatuses: response.data.trackStatuses || [],
-        taskStatuses: response.data.taskStatuses || [],
-        taskPriorities: response.data.taskPriorities || [],
-        activities: response.data.activities || [],
-        syncedAt: '1970-01-01T00:00:00.000Z',
-      }),
-    )
+    const document: SyncMetadataRxDBDTO = {
+      _id: compositeId(this.connectionInstanceId, 'metadata'),
+      _deleted: false,
+      dataSourceId: this.pluginId,
+      connectionInstanceId: this.connectionInstanceId,
+      id: 'metadata',
+      participantRoles: response.data.participantRoles || [],
+      estimationTypes: response.data.estimationTypes || [],
+      trackStatuses: response.data.trackStatuses || [],
+      taskStatuses: response.data.taskStatuses || [],
+      taskPriorities: response.data.taskPriorities || [],
+      activities: response.data.activities || [],
+      syncedAt: new Date().toISOString(),
+    }
 
     return {
       documents: [document],
       checkpoint: {
-        updatedAt: '1970-01-01T00:00:00.000Z',
-        id: `metadata_${this.dataSourceId}`,
+        updatedAt: new Date().toISOString(),
+        id: `metadata_${this.connectionInstanceId}`,
       },
     }
   }
@@ -157,14 +204,21 @@ class TasksStrategy implements IReplicationStrategy<
   constructor(
     private client: IApplicationAPI,
     private workspaceId: string,
-    private dataSourceId: string,
+    private connectionInstanceId: string,
+    private pluginId: string,
   ) {}
 
   async pull(checkpoint: ReplicationCheckpoint | undefined, batchSize: number) {
+    const headers = await resolveBearerHeaders(
+      this.client,
+      this.workspaceId,
+      this.connectionInstanceId,
+    )
     const response = await this.client.services.tasks.pull({
       body: {
         workspaceId: this.workspaceId,
-        dataSourceId: this.dataSourceId,
+        pluginId: this.pluginId,
+        connectionInstanceId: this.connectionInstanceId,
         memberId: '',
         batch: batchSize,
         checkpoint: {
@@ -172,57 +226,35 @@ class TasksStrategy implements IReplicationStrategy<
           updatedAt: new Date(checkpoint?.updatedAt || 0),
         },
       },
+      ...(headers ? { headers } : {}),
     })
 
     const data = response.data || []
     if (data.length === 0) return { documents: [], checkpoint: checkpoint! }
 
     const lastItem = data[data.length - 1]
-    const documents: SyncTaskRxDBDTO[] = JSON.parse(
-      JSON.stringify(
-        data.map((item) => ({
-          ...item,
-          _id: compositeId(this.dataSourceId, String(item.id)),
-          dataSourceId: this.dataSourceId,
-          _deleted: false,
-          createdAt:
-            item.createdAt instanceof Date
-              ? item.createdAt.toISOString()
-              : item.createdAt,
-          updatedAt:
-            item.updatedAt instanceof Date
-              ? item.updatedAt.toISOString()
-              : item.updatedAt,
-          startDate: item.startDate
-            ? item.startDate instanceof Date
-              ? item.startDate.toISOString()
-              : item.startDate
-            : undefined,
-          dueDate: item.dueDate
-            ? item.dueDate instanceof Date
-              ? item.dueDate.toISOString()
-              : item.dueDate
-            : undefined,
-          timeEntryIds: [],
-          statusChanges: item.statusChanges?.map((change: any) => ({
-            ...change,
-            changedAt:
-              change.changedAt instanceof Date
-                ? change.changedAt.toISOString()
-                : change.changedAt,
-          })),
-        })),
-      ),
-    )
+    const documents: SyncTaskRxDBDTO[] = data.map((item: any) => ({
+      ...item,
+      _id: compositeId(this.connectionInstanceId, String(item.id)),
+      dataSourceId: this.pluginId,
+      connectionInstanceId: this.connectionInstanceId,
+      _deleted: false,
+      createdAt: dateToISO(item.createdAt)!,
+      updatedAt: dateToISO(item.updatedAt)!,
+      startDate: dateToISO(item.startDate),
+      dueDate: dateToISO(item.dueDate),
+      timeEntryIds: item.timeEntryIds || [],
+      statusChanges: item.statusChanges?.map((c: any) => ({
+        ...c,
+        changedAt: dateToISO(c.changedAt),
+      })),
+    }))
 
     return {
       documents,
       checkpoint: {
-        updatedAt:
-          lastItem.updatedAt instanceof Date
-            ? lastItem.updatedAt.toISOString()
-            : lastItem.updatedAt,
-        id: lastItem.id!,
+        updatedAt: dateToISO(lastItem.updatedAt)!,
+        id: String(lastItem.id),
       },
     }
   }
@@ -238,116 +270,70 @@ class TimeEntriesStrategy implements IReplicationStrategy<
   constructor(
     private client: IApplicationAPI,
     private workspaceId: string,
-    private dataSourceId: string,
+    private connectionInstanceId: string,
+    private pluginId: string,
   ) {}
 
   async pull(checkpoint: ReplicationCheckpoint | undefined, batchSize: number) {
-    const repId = `timeEntries_${this.dataSourceId}`
-    try {
-      const workspaces = this.client.services.workspaces as unknown as {
-        getConnectionMember(req: {
-          body: { workspaceId: string; dataSourceId: string }
-        }): Promise<{ data: { id: number } | null }>
-      }
-      const memberRes = await workspaces.getConnectionMember({
+    const headers = await resolveBearerHeaders(
+      this.client,
+      this.workspaceId,
+      this.connectionInstanceId,
+    )
+
+    // Precisamos do memberId específico desta instância para filtrar o pull
+    const memberRes = await this.client.services.workspaces.getConnectionMember(
+      {
         body: {
           workspaceId: this.workspaceId,
-          dataSourceId: this.dataSourceId,
+          connectionInstanceId: this.connectionInstanceId,
         },
-      })
-      const memberId =
-        memberRes?.data?.id != null ? String(memberRes.data.id) : ''
+        ...(headers ? { headers } : {}),
+      },
+    )
 
-      console.log(
-        `[SYNC][${repId}] getConnectionMember:`,
-        memberRes?.data ? `memberId=${memberId}` : 'null',
-      )
+    const memberId =
+      memberRes?.data?.id != null ? String(memberRes.data.id) : ''
+    if (!memberId) return { documents: [], checkpoint: checkpoint! }
 
-      if (!memberId) {
-        console.warn(`[SYNC][${repId}] sem memberId, pulando pull`)
-        return { documents: [], checkpoint: checkpoint! }
-      }
+    const response = await this.client.services.timeEntries.pull({
+      body: {
+        workspaceId: this.workspaceId,
+        pluginId: this.pluginId,
+        connectionInstanceId: this.connectionInstanceId,
+        memberId,
+        batch: batchSize,
+        checkpoint: {
+          id: checkpoint?.id || '',
+          updatedAt: new Date(checkpoint?.updatedAt || 0),
+        },
+      },
+      ...(headers ? { headers } : {}),
+    })
 
-      try {
-        const response = await this.client.services.timeEntries.pull({
-          body: {
-            workspaceId: this.workspaceId,
-            dataSourceId: this.dataSourceId,
-            memberId,
-            batch: batchSize,
-            checkpoint: {
-              id: checkpoint?.id || '',
-              updatedAt: new Date(checkpoint?.updatedAt || 0),
-            },
-          },
-        })
+    const data = normalizeTimeEntriesPullPayload(response)
+    if (data.length === 0) return { documents: [], checkpoint: checkpoint! }
 
-        const data = response || []
-        console.log(
-          `[SYNC][${repId}] pull retornou ${data.length} time entries`,
-        )
-        if (data.length === 0) return { documents: [], checkpoint: checkpoint! }
+    const lastItem = data[data.length - 1]
+    const documents: SyncTimeEntryRxDBDTO[] = data.map((item: any) => ({
+      ...item,
+      _id: compositeId(this.connectionInstanceId, String(item.id)),
+      dataSourceId: this.pluginId,
+      connectionInstanceId: this.connectionInstanceId,
+      _deleted: false,
+      startDate: dateToISO(item.startDate),
+      endDate: dateToISO(item.endDate),
+      createdAt: dateToISO(item.createdAt),
+      updatedAt: dateToISO(item.updatedAt),
+      syncedAt: new Date().toISOString(),
+    }))
 
-        const lastItem = data[data.length - 1]
-        const documents: SyncTimeEntryRxDBDTO[] = JSON.parse(
-          JSON.stringify(
-            data.map((item) => ({
-              ...item,
-              _id: compositeId(this.dataSourceId, String(item.id!)),
-              dataSourceId: this.dataSourceId,
-              _deleted: false,
-              id: item.id!,
-              task: { id: item.task.id },
-              activity: {
-                id: item.activity.id,
-                name: item.activity.name,
-              },
-              user: { id: item.user.id, name: item.user.name },
-              timeSpent: item.timeSpent,
-              comments: item.comments,
-              startDate: item.startDate
-                ? item.startDate instanceof Date
-                  ? item.startDate.toISOString()
-                  : item.startDate
-                : undefined,
-              endDate: item.endDate
-                ? item.endDate instanceof Date
-                  ? item.endDate.toISOString()
-                  : item.endDate
-                : undefined,
-              createdAt:
-                item.createdAt instanceof Date
-                  ? item.createdAt.toISOString()
-                  : item.createdAt,
-              updatedAt:
-                item.updatedAt instanceof Date
-                  ? item.updatedAt.toISOString()
-                  : item.updatedAt,
-              syncedAt: new Date().toISOString(),
-            })),
-          ),
-        )
-
-        return {
-          documents,
-          checkpoint: {
-            updatedAt:
-              lastItem.updatedAt instanceof Date
-                ? lastItem.updatedAt.toISOString()
-                : lastItem.updatedAt,
-            id: lastItem.id!,
-          },
-        }
-      } catch (err) {
-        console.error(`[SYNC][${repId}] erro no pull:`, err)
-        return { documents: [], checkpoint: checkpoint! }
-      }
-    } catch (err) {
-      console.error(
-        `[SYNC][${repId}] erro (getConnectionMember ou outro):`,
-        err,
-      )
-      return { documents: [], checkpoint: checkpoint! }
+    return {
+      documents,
+      checkpoint: {
+        updatedAt: dateToISO(lastItem.updatedAt)!,
+        id: String(lastItem.id),
+      },
     }
   }
   async push() {
@@ -386,19 +372,14 @@ class ReplicationModule {
         handler: async (cp, batch) => {
           this.options.onStatusChange({ isPulling: true, error: null })
           try {
-            const result = await this.strategy.pull(cp, batch)
-            return result
+            return await this.strategy.pull(cp, batch)
           } catch (err) {
-            console.error(
-              `[SYNC][${this.options.identifier}] erro no handler pull:`,
-              err,
-            )
             throw err
           }
         },
       },
       push: {
-        batchSize: this.options.batchSize || 20,
+        batchSize: 20,
         handler: (rows) => {
           this.options.onStatusChange({ isPushing: true, error: null })
           return this.strategy.push(rows)
@@ -406,11 +387,8 @@ class ReplicationModule {
       },
     })
 
-    // --- MONITORAMENTO EM TEMPO REAL ---
     this.subs.push(
-      // Monitora se a replicação está ocupada (trabalhando na rede)
       this.instance.active$.subscribe((isActive) => {
-        // Se não está mais ativa, garante que pulling/pushing sejam falsos
         if (!isActive) {
           this.options.onStatusChange({
             isActive,
@@ -422,10 +400,7 @@ class ReplicationModule {
           this.options.onStatusChange({ isActive })
         }
       }),
-
-      // Captura erros de rede ou de permissão
       this.instance.error$.subscribe((error) => {
-        console.error(`[SYNC ERROR] ${this.options.identifier}:`, error)
         this.options.onStatusChange({
           error,
           isPulling: false,
@@ -450,7 +425,8 @@ class ReplicationModule {
 }
 
 export interface DataSourceRef {
-  id: string
+  id: string // connectionInstanceId
+  dataSourceId: string // pluginId
 }
 
 export const createSyncStore = (
@@ -475,16 +451,6 @@ export const createSyncStore = (
 
     init: async () => {
       if (get().isInitialized) return
-      console.log('[SYNC] init:', {
-        workspaceId,
-        dataSourcesCount: dataSources.length,
-        dataSourceIds: dataSources.map((d) => d.id),
-      })
-      if (dataSources.length === 0) {
-        console.log('[SYNC] sem dataSources, inicialização vazia')
-        set({ isInitialized: true })
-        return
-      }
 
       try {
         const { RxDBDevModePlugin } = await import('rxdb/plugins/dev-mode')
@@ -493,17 +459,13 @@ export const createSyncStore = (
         addRxPlugin(RxDBDevModePlugin)
         addRxPlugin(RxDBQueryBuilderPlugin)
 
-        console.log('[SYNC] criando RxDB...')
         const db = await createRxDatabase<AppCollections>({
           name: `db-${workspaceId}`,
-          storage: wrappedValidateAjvStorage({
-            storage: getRxStorageDexie(),
-          }),
+          storage: wrappedValidateAjvStorage({ storage: getRxStorageDexie() }),
           ignoreDuplicate: true,
           multiInstance: false,
           eventReduce: true,
         })
-        console.log('[SYNC] RxDB criado, adicionando collections...')
 
         await db.addCollections({
           metadata: { schema: metadataSyncSchema },
@@ -521,65 +483,72 @@ export const createSyncStore = (
           id: '',
         }
 
-        const collectionConfigs = [
-          {
-            name: 'metadata',
-            strategyFactory: (dsId: string) =>
-              new MetadataStrategy(client, workspaceId, dsId),
-            interval: 0,
-            batch: 1,
-          },
-          {
-            name: 'tasks',
-            strategyFactory: (dsId: string) =>
-              new TasksStrategy(client, workspaceId, dsId),
-            interval: 300,
-            batch: 30,
-          },
-          {
-            name: 'timeEntries',
-            strategyFactory: (dsId: string) =>
-              new TimeEntriesStrategy(client, workspaceId, dsId),
-            interval: 60,
-            batch: 30,
-          },
-        ] as const
-
-        console.log('[SYNC] iniciando replicações...')
-        for (const dataSource of dataSources) {
-          const dsId = dataSource.id
-          for (const config of collectionConfigs) {
-            const statusKey = `${config.name}_${dsId}`
-            console.log('[SYNC] start rep:', statusKey)
-            const module = new ReplicationModule(
-              db[config.name as keyof AppCollections] as RxCollection,
-              config.strategyFactory(dsId) as IReplicationStrategy<
-                unknown,
-                unknown
-              >,
+        if (dataSources.length > 0) {
+          for (const ds of dataSources) {
+            const configs = [
               {
-                identifier: `rep_${config.name}_${workspaceId}_${dsId}`,
-                resyncSeconds: config.interval,
-                batchSize: config.batch,
-                initialCheckpoint,
-                onStatusChange: (status) =>
-                  set((state) => ({
-                    statuses: {
-                      ...state.statuses,
-                      [statusKey]: {
-                        ...state.statuses[statusKey],
-                        ...(status as ReplicationStatus),
-                      },
-                    },
-                  })),
+                name: 'metadata',
+                strategy: new MetadataStrategy(
+                  client,
+                  workspaceId,
+                  ds.id,
+                  ds.dataSourceId,
+                ),
+                interval: 0,
+                batch: 1,
               },
-            )
-            await module.start()
-            engineModules.push(module)
+              {
+                name: 'tasks',
+                strategy: new TasksStrategy(
+                  client,
+                  workspaceId,
+                  ds.id,
+                  ds.dataSourceId,
+                ),
+                interval: 300,
+                batch: 30,
+              },
+              {
+                name: 'timeEntries',
+                strategy: new TimeEntriesStrategy(
+                  client,
+                  workspaceId,
+                  ds.id,
+                  ds.dataSourceId,
+                ),
+                interval: 60,
+                batch: 30,
+              },
+            ]
+
+            for (const config of configs) {
+              const statusKey = `${config.name}_${ds.id}`
+              const module = new ReplicationModule(
+                db[config.name as keyof AppCollections] as RxCollection,
+                config.strategy as IReplicationStrategy<unknown, unknown>,
+                {
+                  identifier: `rep_${config.name}_${workspaceId}_${ds.id}`,
+                  resyncSeconds: config.interval,
+                  batchSize: config.batch,
+                  initialCheckpoint,
+                  onStatusChange: (status) =>
+                    set((state) => ({
+                      statuses: {
+                        ...state.statuses,
+                        [statusKey]: {
+                          ...state.statuses[statusKey],
+                          ...(status as ReplicationStatus),
+                        },
+                      },
+                    })),
+                },
+              )
+              await module.start()
+              engineModules.push(module)
+            }
           }
         }
 
-        console.log('[SYNC] init concluído')
         set({ db, isInitialized: true })
       } catch (err) {
         console.error('[SYNC] erro no init:', err)
@@ -589,10 +558,6 @@ export const createSyncStore = (
   }))
 }
 
-const SyncStoreContext = createContext<StoreApi<SyncStore> | undefined>(
-  undefined,
-)
-
 export const SyncProvider: React.FC<{ children: ReactNode }> = ({
   children,
 }) => {
@@ -600,37 +565,48 @@ export const SyncProvider: React.FC<{ children: ReactNode }> = ({
   const client = useClient()
   const storeRef = useRef<StoreApi<SyncStore> | null>(null)
   const workspaceIdRef = useRef<string | null>(null)
+  const dataSourceKeyRef = useRef<string | null>(null)
   const [, setRefresh] = useState(0)
 
-  const dataSources =
-    workspace?.dataSourceConnections?.length > 0
-      ? workspace.dataSourceConnections!.map((c) => ({ id: c.id }))
-      : workspace?.dataSource && workspace.dataSource !== 'local'
-        ? [{ id: workspace.dataSource }]
-        : []
+  // Agora mapeamos a conexão real com pluginId e instanceId
+  const dataSources: DataSourceRef[] =
+    workspace?.dataSourceConnections?.map((c) => ({
+      id: c.id,
+      dataSourceId: c.dataSourceId,
+    })) ?? []
+
+  const dataSourceIdsKey = dataSources
+    .map((d) => d.id)
+    .sort()
+    .join('|')
 
   useEffect(() => {
-    const prevId = workspaceIdRef.current
-    const nextId = workspace?.id ?? null
-    if (prevId !== nextId) {
-      if (prevId !== null && storeRef.current) {
-        storeRef.current
-          .getState()
-          .destroy()
-          .then(() => {
-            storeRef.current = null
-            workspaceIdRef.current = nextId
-            setRefresh((n) => n + 1)
-          })
-      } else {
-        workspaceIdRef.current = nextId
-      }
-    }
-  }, [workspace?.id])
+    const changed =
+      workspaceIdRef.current !== workspace?.id ||
+      dataSourceKeyRef.current !== dataSourceIdsKey
+    if (!changed) return
 
-  if (workspace && !storeRef.current) {
+    if (storeRef.current) {
+      storeRef.current
+        .getState()
+        .destroy()
+        .then(() => {
+          storeRef.current = null
+          workspaceIdRef.current = workspace?.id ?? null
+          dataSourceKeyRef.current = dataSourceIdsKey
+          setRefresh((n) => n + 1)
+        })
+    } else {
+      workspaceIdRef.current = workspace?.id ?? null
+      dataSourceKeyRef.current = dataSourceIdsKey
+    }
+  }, [workspace?.id, dataSourceIdsKey])
+
+  useEffect(() => {
+    if (!workspace?.id || storeRef.current) return
     storeRef.current = createSyncStore(workspace.id, dataSources, client)
-  }
+    void storeRef.current.getState().init()
+  }, [workspace?.id, dataSourceIdsKey, client, dataSources])
 
   if (!storeRef.current) return <>{children}</>
 
@@ -640,6 +616,10 @@ export const SyncProvider: React.FC<{ children: ReactNode }> = ({
     </SyncStoreContext.Provider>
   )
 }
+
+const SyncStoreContext = createContext<StoreApi<SyncStore> | undefined>(
+  undefined,
+)
 
 export const useSyncStore = <T,>(
   selector: (store: SyncStore) => T,

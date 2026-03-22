@@ -4,7 +4,8 @@ import { WorkspaceDTO } from '@/dtos'
 
 export type LinkDataSourceInput = {
   workspaceId: string
-  dataSource: string
+  connectionInstanceId: string
+  dataSourceId: string
 }
 
 export interface ILinkDataSourceUseCase {

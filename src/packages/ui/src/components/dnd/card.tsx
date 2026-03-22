@@ -56,7 +56,6 @@ import {
   TooltipContent,
   TooltipTrigger,
 } from '@/components/ui/tooltip'
-import { useAuth } from '@/hooks'
 
 // import type { SyncMetadataRxDBDTO } from '@/db/schemas/metadata-sync-schema' // Removido, metadata vem de TCard
 import {
@@ -107,7 +106,7 @@ const outerStyles: { [Key in TCardState['type']]?: string } = {
 function formatTime(seconds: number): string | React.ReactNode {
   if (seconds < 0) {
     return (
-      <span className="rounded bg-zinc-200 px-1 py-[1px] text-[10px] font-medium text-zinc-700 dark:bg-zinc-700 dark:text-zinc-300">
+      <span className="rounded bg-zinc-200 px-1 py-px text-[10px] font-medium text-zinc-700 dark:bg-zinc-700 dark:text-zinc-300">
         N/R
       </span>
     )
@@ -167,7 +166,7 @@ const iconMap: { [key: string]: React.ElementType } = {
 export function CardShadow({ dragging }: { dragging: DOMRect }) {
   return (
     <div
-      className="flex-shrink-0 rounded bg-zinc-200 dark:bg-zinc-950"
+      className="shrink-0 rounded bg-zinc-200 dark:bg-zinc-950"
       style={{ height: dragging.height }}
     />
   )
@@ -193,7 +192,6 @@ export function CardDisplay({
   const { task, metadata } = card
 
   // --- Lógica de Hooks (do Modelo de Estilização) ---
-  const { user } = useAuth()
   const [timeEntryType, setTimeEntryType] = useState<
     'increasing' | 'decreasing'
   >('increasing')
@@ -217,8 +215,7 @@ export function CardDisplay({
   )
 
   const estimationBreakdown = useMemo(() => {
-    const uid = user?.id?.toString()
-    if (!uid || !task.estimatedTimes) return []
+    if (!task.estimatedTimes) return []
 
     return task.estimatedTimes.map((estimation) => {
       const allowedActivityIds = new Set(
@@ -228,9 +225,7 @@ export function CardDisplay({
       const spentHours = (task.timeEntries || [])
         .filter(
           (entry) =>
-            entry.user.id === uid &&
-            entry.activity?.id &&
-            allowedActivityIds.has(entry.activity.id),
+            entry.activity?.id && allowedActivityIds.has(entry.activity.id),
         )
         .reduce((acc, entry) => acc + (entry.timeSpent ?? 0), 0)
 
@@ -241,22 +236,20 @@ export function CardDisplay({
         spentSeconds: isTimeNotRegistered ? -1 : spentHours * 3600,
       }
     })
-  }, [task.estimatedTimes, task.timeEntries, user?.id, isTimeNotRegistered])
+  }, [task.estimatedTimes, task.timeEntries, isTimeNotRegistered])
 
   const totalUserTimeSpentInSeconds = useMemo(() => {
     if (isTimeNotRegistered) {
       return -1
     }
 
-    const uid = user?.id?.toString()
-    if (!uid) return 0
-
-    const totalHours = (task.timeEntries || [])
-      .filter((entry) => entry.user.id === uid)
-      .reduce((acc, entry) => acc + (entry.timeSpent ?? 0), 0)
+    const totalHours = (task.timeEntries || []).reduce(
+      (acc, entry) => acc + (entry.timeSpent ?? 0),
+      0,
+    )
 
     return totalHours * 3600
-  }, [task.timeEntries, user?.id, isTimeNotRegistered])
+  }, [task.timeEntries, isTimeNotRegistered])
 
   const activities = useMemo(() => metadata.activities || [], [metadata])
 
@@ -264,7 +257,7 @@ export function CardDisplay({
   return (
     <div
       ref={outerRef}
-      className={`flex flex-shrink-0 flex-col gap-2 ${
+      className={`flex shrink-0 flex-col gap-2 ${
         outerStyles[state.type] ?? ''
       }`}
     >
@@ -550,12 +543,8 @@ export function CardDisplay({
                   <TooltipTrigger asChild>
                     <Avatar className="h-7 w-7 shrink-0 border-2 border-white dark:border-zinc-800">
                       <AvatarImage
-                        src={
-                          task.assignedTo.id === user?.id?.toString()
-                            ? user?.avatarUrl
-                            : undefined
-                        }
-                        alt={`Foto de perfil (${user?.firstname})`}
+                        src={undefined}
+                        alt={`Foto de perfil (${task.assignedTo.name})`}
                       />
                       <AvatarFallback>
                         {task.assignedTo.name.charAt(0)}

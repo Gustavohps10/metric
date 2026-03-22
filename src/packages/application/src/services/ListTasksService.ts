@@ -21,9 +21,12 @@ export class ListTaskService implements IListTasksUseCase {
     try {
       const adapter = await this.dataSourceResolver.getDataSource(
         input.workspaceId,
-        input.dataSourceId,
+        input.pluginId,
+        input.connectionInstanceId,
       )
+
       const tasks = await adapter.taskQuery.findAll()
+
       return Either.success(tasks)
     } catch (error: unknown) {
       return Either.failure(InternalServerError.danger('ERRO_INESPERADO'))

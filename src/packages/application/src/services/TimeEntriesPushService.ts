@@ -30,27 +30,32 @@ export class TimeEntriesPushService implements ITimeEntriesPushUseCase {
     input: PushTimeEntriesInput,
   ): Promise<Either<AppError, SyncTimeEntryDTO[]>> {
     try {
-      const user = this.sessionManager.getCurrentUser()
-      if (!user)
+      const sessionUser = this.sessionManager.getCurrentUser(
+        input.workspaceId,
+        input.connectionInstanceId,
+      )
+      if (!sessionUser) {
         return Either.failure(
           UnauthorizedError.danger('USUARIO_NAO_ENCONTRADO'),
         )
+      }
 
       const workspace = await this.workspacesRepository.findById(
         input.workspaceId,
       )
-      if (!workspace || workspace.dataSource === 'local') {
+      if (!workspace) {
         return Either.failure(
-          UnauthorizedError.danger('Workspace não configurado'),
+          UnauthorizedError.danger('WORKSPACE_NAO_ENCONTRADO'),
         )
       }
 
       const adapter = await this.dataSourceResolver.getDataSource(
         input.workspaceId,
-        input.dataSourceId,
+        input.pluginId,
+        input.connectionInstanceId,
       )
-      const timeEntryRepository = adapter.timeEntryRepository
 
+      const timeEntryRepository = adapter.timeEntryRepository
       const results: SyncTimeEntryDTO[] = []
 
       for (const entry of input.entries) {
@@ -114,7 +119,7 @@ export class TimeEntriesPushService implements ITimeEntriesPushUseCase {
 
     const isConflict =
       assumedMasterState &&
-      existing.updatedAt.getTime() !== assumedMasterState.updatedAt?.getTime()
+      existing.updatedAt.valueOf() !== assumedMasterState.updatedAt?.valueOf()
 
     if (isConflict)
       return {
@@ -130,7 +135,10 @@ export class TimeEntriesPushService implements ITimeEntriesPushUseCase {
     )
 
     if (resultUpdateHours.isFailure()) {
-      return { ...entry, validationError: resultUpdateHours.failure }
+      return {
+        ...entry,
+        validationError: resultUpdateHours.forwardFailure().failure,
+      }
     }
 
     existing.updateComments(entry.comments)

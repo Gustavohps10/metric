@@ -15,18 +15,26 @@ import {
 import { enUS, ptBR } from 'date-fns/locale'
 import {
   AlarmClockOff,
+  AlertTriangle,
+  ArrowUpDown,
   BarChartHorizontal,
+  Brain,
   Briefcase,
   Calendar,
   CalendarClock,
   CheckSquare,
+  ChevronDown,
   Clock,
   Clock4,
+  Database,
   Flame,
   Grid,
   MessageSquareWarning,
+  Sparkles,
+  Target,
   Timer,
   TrendingUp,
+  Zap,
 } from 'lucide-react'
 import { useMemo, useState } from 'react'
 import { DateRange } from 'react-day-picker'
@@ -58,6 +66,7 @@ import {
   BreadcrumbPage,
   BreadcrumbSeparator,
 } from '@/components/ui/breadcrumb'
+import { Button } from '@/components/ui/button'
 import {
   Card,
   CardContent,
@@ -73,6 +82,11 @@ import {
 } from '@/components/ui/chart'
 import { Checkbox } from '@/components/ui/checkbox'
 import { Label } from '@/components/ui/label'
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from '@/components/ui/popover'
 import { Progress } from '@/components/ui/progress'
 import { Skeleton } from '@/components/ui/skeleton'
 import {
@@ -137,16 +151,24 @@ const getEntriesForRange = async (
   db: RxDatabase,
   from: Date,
   to: Date,
+  dataSourceIds?: string[],
 ): Promise<SyncTimeEntryRxDBDTO[]> => {
   if (!db?.timeEntries) return []
+
+  const selector: any = {
+    startDate: {
+      $gte: from.toISOString(),
+      $lte: to.toISOString(),
+    },
+  }
+
+  if (dataSourceIds && dataSourceIds.length > 0) {
+    selector.dataSourceId = { $in: dataSourceIds }
+  }
+
   return db.timeEntries
     .find({
-      selector: {
-        startDate: {
-          $gte: from.toISOString(),
-          $lte: to.toISOString(),
-        },
-      },
+      selector,
     })
     .exec()
 }
@@ -273,10 +295,442 @@ function HeatmapSkeleton() {
 }
 // #endregion
 
+// #region Additional Dashboard Sections (UI-only, mock data)
+
+const consistencyDataMock = [
+  { day: 1, value: 7.5 },
+  { day: 2, value: 8.2 },
+  { day: 3, value: 7.8 },
+  { day: 4, value: 8.5 },
+  { day: 5, value: 7.2 },
+  { day: 6, value: 8.0 },
+  { day: 7, value: 7.9 },
+  { day: 8, value: 8.3 },
+  { day: 9, value: 7.6 },
+  { day: 10, value: 8.1 },
+]
+
+function EffortIntelligenceSection() {
+  return (
+    <div className="grid gap-4 md:grid-cols-4">
+      <Card className="border-border/50 bg-card/50 backdrop-blur-sm">
+        <CardContent className="p-5">
+          <div className="text-muted-foreground mb-3 flex items-center gap-2 text-sm">
+            <Brain className="h-4 w-4" />
+            <span>Deep Work</span>
+          </div>
+          <div className="text-foreground text-2xl font-bold">32h 15m</div>
+          <div className="text-muted-foreground mt-1 text-xs">
+            45% do tempo total
+          </div>
+          <div className="bg-muted mt-3 h-1.5 w-full rounded-full">
+            <div
+              className="bg-chart-1 h-full rounded-full"
+              style={{ width: '45%' }}
+            />
+          </div>
+        </CardContent>
+      </Card>
+
+      <Card className="border-border/50 bg-card/50 backdrop-blur-sm">
+        <CardContent className="p-5">
+          <div className="text-muted-foreground mb-3 flex items-center gap-2 text-sm">
+            <Zap className="h-4 w-4" />
+            <span>Troca de Contexto</span>
+          </div>
+          <div className="text-foreground text-2xl font-bold">47</div>
+          <div className="text-muted-foreground mt-1 text-xs">
+            trocas no período
+          </div>
+          <div className="mt-2 text-xs">
+            <span className="text-destructive">+12%</span>
+            <span className="text-muted-foreground"> vs. semana anterior</span>
+          </div>
+        </CardContent>
+      </Card>
+
+      <Card className="border-border/50 bg-card/50 backdrop-blur-sm">
+        <CardContent className="p-5">
+          <div className="flex items-center justify-between">
+            <div>
+              <div className="text-muted-foreground mb-3 flex items-center gap-2 text-sm">
+                <Target className="h-4 w-4" />
+                <span>Focus Score</span>
+              </div>
+              <div className="text-foreground text-2xl font-bold">72</div>
+              <div className="text-muted-foreground mt-1 text-xs">de 100</div>
+            </div>
+            {/* mock radial gauge using a simple circle */}
+            <div className="border-border/60 flex h-16 w-16 items-center justify-center rounded-full border">
+              <span className="text-chart-2 text-sm font-semibold">72%</span>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+
+      <Card className="border-border/50 bg-card/50 backdrop-blur-sm">
+        <CardContent className="p-5">
+          <div className="text-muted-foreground mb-3 flex items-center gap-2 text-sm">
+            <TrendingUp className="h-4 w-4" />
+            <span>Consistência</span>
+          </div>
+          <div className="h-12">
+            <ResponsiveContainer width="100%" height="100%">
+              <LineChart data={consistencyDataMock}>
+                <Line
+                  type="monotone"
+                  dataKey="value"
+                  stroke="var(--chart-2)"
+                  strokeWidth={2}
+                  dot={false}
+                />
+              </LineChart>
+            </ResponsiveContainer>
+          </div>
+          <div className="text-muted-foreground mt-2 text-xs">
+            Estabilidade diária <span className="text-emerald-400">alta</span>
+          </div>
+        </CardContent>
+      </Card>
+    </div>
+  )
+}
+
+const focusDataMock = [
+  { date: '01/03', deepWork: 6.2, fragmented: 1.3 },
+  { date: '02/03', deepWork: 5.8, fragmented: 2.2 },
+  { date: '03/03', deepWork: 6.5, fragmented: 1.3 },
+  { date: '04/03', deepWork: 5.2, fragmented: 3.0 },
+  { date: '05/03', deepWork: 7.0, fragmented: 1.5 },
+  { date: '08/03', deepWork: 3.0, fragmented: 1.5 },
+  { date: '09/03', deepWork: 2.0, fragmented: 1.2 },
+  { date: '10/03', deepWork: 5.5, fragmented: 2.5 },
+  { date: '11/03', deepWork: 5.8, fragmented: 2.0 },
+  { date: '12/03', deepWork: 6.2, fragmented: 2.0 },
+]
+
+const focusChartConfig = {
+  deepWork: {
+    label: 'Deep Work',
+    color: 'var(--chart-1)',
+  },
+  fragmented: {
+    label: 'Fragmentado',
+    color: 'var(--chart-4)',
+  },
+} satisfies ChartConfig
+
+function FocusAnalysisSection() {
+  return (
+    <Card className="border-border/50 bg-card/50 backdrop-blur-sm">
+      <CardHeader className="pb-2">
+        <CardTitle className="text-lg">Análise de Foco</CardTitle>
+        <CardDescription>
+          Deep Work vs. Trabalho Fragmentado por dia
+        </CardDescription>
+      </CardHeader>
+      <CardContent>
+        <ChartContainer config={focusChartConfig} className="h-[240px] w-full">
+          <ResponsiveContainer width="100%" height="100%">
+            <BarChart
+              data={focusDataMock}
+              margin={{ top: 10, right: 10, left: 0, bottom: 0 }}
+            >
+              <XAxis
+                dataKey="date"
+                axisLine={false}
+                tickLine={false}
+                tick={{ fill: 'var(--muted-foreground)', fontSize: 10 }}
+                tickMargin={8}
+              />
+              <YAxis
+                axisLine={false}
+                tickLine={false}
+                tick={{ fill: 'var(--muted-foreground)', fontSize: 10 }}
+                tickMargin={8}
+                tickFormatter={(value) => `${value}h`}
+              />
+              <ChartTooltip
+                content={
+                  <ChartTooltipContent
+                    labelFormatter={(value) => `Data: ${value}`}
+                  />
+                }
+              />
+              <Bar
+                dataKey="deepWork"
+                stackId="a"
+                fill="var(--chart-1)"
+                radius={[0, 0, 0, 0]}
+              />
+              <Bar
+                dataKey="fragmented"
+                stackId="a"
+                fill="var(--chart-4)"
+                radius={[4, 4, 0, 0]}
+              />
+            </BarChart>
+          </ResponsiveContainer>
+        </ChartContainer>
+
+        <div className="mt-4 flex items-center justify-center gap-6">
+          <div className="flex items-center gap-2 text-sm">
+            <div className="bg-chart-1 h-3 w-3 rounded-sm" />
+            <span className="text-muted-foreground">Deep Work</span>
+          </div>
+          <div className="flex items-center gap-2 text-sm">
+            <div className="bg-chart-4 h-3 w-3 rounded-sm" />
+            <span className="text-muted-foreground">Fragmentado</span>
+          </div>
+        </div>
+      </CardContent>
+    </Card>
+  )
+}
+
+const sessionDataMock = [
+  { range: '0-15min', count: 8 },
+  { range: '15-30min', count: 12 },
+  { range: '30-60min', count: 18 },
+  { range: '1-2h', count: 24 },
+  { range: '2h+', count: 6 },
+]
+
+const sessionChartConfig = {
+  count: {
+    label: 'Sessões',
+    color: 'var(--chart-2)',
+  },
+} satisfies ChartConfig
+
+function SessionDistributionSection() {
+  return (
+    <Card className="border-border/50 bg-card/50 backdrop-blur-sm">
+      <CardHeader className="pb-2">
+        <CardTitle className="text-lg">Distribuição de Sessões</CardTitle>
+        <CardDescription>Duração das sessões de trabalho</CardDescription>
+      </CardHeader>
+      <CardContent>
+        <ChartContainer
+          config={sessionChartConfig}
+          className="h-[200px] w-full"
+        >
+          <ResponsiveContainer width="100%" height="100%">
+            <BarChart
+              data={sessionDataMock}
+              margin={{ top: 10, right: 10, left: 0, bottom: 0 }}
+            >
+              <XAxis
+                dataKey="range"
+                axisLine={false}
+                tickLine={false}
+                tick={{ fill: 'var(--muted-foreground)', fontSize: 10 }}
+                tickMargin={8}
+              />
+              <YAxis
+                axisLine={false}
+                tickLine={false}
+                tick={{ fill: 'var(--muted-foreground)', fontSize: 10 }}
+                tickMargin={8}
+              />
+              <ChartTooltip
+                content={
+                  <ChartTooltipContent
+                    labelFormatter={(value) => `Duração: ${value}`}
+                  />
+                }
+              />
+              <Bar
+                dataKey="count"
+                fill="var(--chart-2)"
+                radius={[4, 4, 0, 0]}
+              />
+            </BarChart>
+          </ResponsiveContainer>
+        </ChartContainer>
+
+        <div className="mt-4 grid grid-cols-5 gap-2 text-center">
+          {sessionDataMock.map((item, index) => (
+            <div key={index}>
+              <div className="text-foreground text-lg font-semibold">
+                {item.count}
+              </div>
+              <div className="text-muted-foreground text-xs">{item.range}</div>
+            </div>
+          ))}
+        </div>
+      </CardContent>
+    </Card>
+  )
+}
+
+const taskDataMock = [
+  {
+    name: 'Implementação API REST',
+    totalHours: 18.5,
+    sessions: 12,
+    avgSession: '1h 32m',
+    deepWorkPercent: 72,
+  },
+  {
+    name: 'Correção de bugs críticos',
+    totalHours: 12.3,
+    sessions: 18,
+    avgSession: '41m',
+    deepWorkPercent: 45,
+  },
+  {
+    name: 'Code review PR #245',
+    totalHours: 8.2,
+    sessions: 6,
+    avgSession: '1h 22m',
+    deepWorkPercent: 85,
+  },
+  {
+    name: 'Reunião de planejamento',
+    totalHours: 6.0,
+    sessions: 8,
+    avgSession: '45m',
+    deepWorkPercent: 20,
+  },
+  {
+    name: 'Documentação técnica',
+    totalHours: 5.5,
+    sessions: 4,
+    avgSession: '1h 23m',
+    deepWorkPercent: 90,
+  },
+]
+
+function TaskPerformanceSection() {
+  return (
+    <Card className="border-border/50 bg-card/50 backdrop-blur-sm">
+      <CardHeader className="pb-2">
+        <CardTitle className="text-lg">Performance por Tarefa</CardTitle>
+        <CardDescription>
+          Análise detalhada das principais tarefas do período
+        </CardDescription>
+      </CardHeader>
+      <CardContent>
+        <Table>
+          <TableHeader>
+            <TableRow className="border-border/50 hover:bg-transparent">
+              <TableHead className="text-muted-foreground">
+                <Button variant="ghost" size="sm" className="-ml-2 h-8 px-2">
+                  Nome da Tarefa
+                  <ArrowUpDown className="ml-2 h-3 w-3" />
+                </Button>
+              </TableHead>
+              <TableHead className="text-muted-foreground text-right">
+                <Button variant="ghost" size="sm" className="h-8 px-2">
+                  Horas
+                  <ArrowUpDown className="ml-2 h-3 w-3" />
+                </Button>
+              </TableHead>
+              <TableHead className="text-muted-foreground text-right">
+                Sessões
+              </TableHead>
+              <TableHead className="text-muted-foreground text-right">
+                Média/Sessão
+              </TableHead>
+              <TableHead className="text-muted-foreground text-right">
+                Deep Work %
+              </TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {taskDataMock.map((task, index) => (
+              <TableRow key={index} className="border-border/50">
+                <TableCell className="font-medium">{task.name}</TableCell>
+                <TableCell className="text-right">{task.totalHours}h</TableCell>
+                <TableCell className="text-right">{task.sessions}</TableCell>
+                <TableCell className="text-right">{task.avgSession}</TableCell>
+                <TableCell className="text-right">
+                  <div className="flex items-center justify-end gap-2">
+                    <div className="bg-muted h-2 w-16 rounded-full">
+                      <div
+                        className="bg-chart-1 h-full rounded-full"
+                        style={{ width: `${task.deepWorkPercent}%` }}
+                      />
+                    </div>
+                    <span className="text-sm">{task.deepWorkPercent}%</span>
+                  </div>
+                </TableCell>
+              </TableRow>
+            ))}
+          </TableBody>
+        </Table>
+      </CardContent>
+    </Card>
+  )
+}
+
+const automatedInsightsMock = [
+  {
+    icon: TrendingUp,
+    text: 'Você teve 32% mais deep work esta semana.',
+    type: 'positive',
+  },
+  {
+    icon: AlertTriangle,
+    text: 'Troca de contexto aumentou na quarta-feira.',
+    type: 'warning',
+  },
+  {
+    icon: Sparkles,
+    text: 'Seu dia mais produtivo foi terça-feira.',
+    type: 'neutral',
+  },
+  {
+    icon: Zap,
+    text: 'Sessões de 1-2h têm melhor focus score.',
+    type: 'positive',
+  },
+]
+
+function AutomatedInsightsSection() {
+  return (
+    <Card className="border-border/50 bg-card/50 backdrop-blur-sm">
+      <CardHeader className="pb-3">
+        <CardTitle className="flex items-center gap-2 text-lg">
+          <Sparkles className="text-chart-3 h-5 w-5" />
+          Insights Automatizados
+        </CardTitle>
+      </CardHeader>
+      <CardContent>
+        <div className="space-y-3">
+          {automatedInsightsMock.map((insight, index) => {
+            const Icon = insight.icon
+            return (
+              <div
+                key={index}
+                className="border-border/50 bg-secondary/30 flex items-start gap-3 rounded-lg border p-3"
+              >
+                <Icon
+                  className={`mt-0.5 h-4 w-4 ${
+                    insight.type === 'positive'
+                      ? 'text-emerald-400'
+                      : insight.type === 'warning'
+                        ? 'text-amber-400'
+                        : 'text-muted-foreground'
+                  }`}
+                />
+                <p className="text-foreground text-sm">{insight.text}</p>
+              </div>
+            )
+          })}
+        </div>
+      </CardContent>
+    </Card>
+  )
+}
+
+// #endregion
+
 // #region Data Fetching (Dividido por Query)
 // (Todas as suas funções de data fetching permanecem inalteradas)
 // Query 1: Status Atual (Hoje, Semana, Mês)
-async function fetchSummaryData(db: any) {
+async function fetchSummaryData(db: any, dataSourceIds?: string[]) {
   if (!db?.timeEntries) return { today: 0, week: 0, month: 0 }
 
   const today = new Date()
@@ -286,9 +740,15 @@ async function fetchSummaryData(db: any) {
   const todayStr = format(today, 'yyyy-MM-dd')
 
   // Otimizado: Busca apenas o mês atual, que é o escopo máximo necessário
-  const entries = await db.timeEntries
-    .find({ selector: { startDate: { $gte: monthStart.toISOString() } } })
-    .exec()
+  const selector: any = {
+    startDate: { $gte: monthStart.toISOString() },
+  }
+
+  if (dataSourceIds && dataSourceIds.length > 0) {
+    selector.dataSourceId = { $in: dataSourceIds }
+  }
+
+  const entries = await db.timeEntries.find({ selector }).exec()
 
   return entries.reduce(
     (acc: { today: number; week: number; month: number }, entry: any) => {
@@ -307,13 +767,17 @@ async function fetchSummaryData(db: any) {
 }
 
 // Query 2: Cards de Análise de Período
-async function fetchPeriodSummaryData(db: any, dateRange: DateRange) {
+async function fetchPeriodSummaryData(
+  db: any,
+  dateRange: DateRange,
+  dataSourceIds?: string[],
+) {
   if (!db?.timeEntries || !dateRange.from)
     return { totalHours: 0, overtimeHours: 0, workedDays: 0, totalEntries: 0 }
 
   const from = dateRange.from
   const to = endOfDay(dateRange.to ?? dateRange.from)
-  const entries = await getEntriesForRange(db, from, to)
+  const entries = await getEntriesForRange(db, from, to, dataSourceIds)
 
   const dailyHours: Record<string, number> = {}
   let totalOvertime = 0
@@ -360,7 +824,11 @@ async function fetchPeriodSummaryData(db: any, dateRange: DateRange) {
 }
 
 // Query 3: Timeline e Gráfico de Horas Extras
-async function fetchTimelineData(db: any, dateRange: DateRange) {
+async function fetchTimelineData(
+  db: any,
+  dateRange: DateRange,
+  dataSourceIds?: string[],
+) {
   if (!db?.timeEntries || !dateRange.from)
     return {
       timelineData: [],
@@ -369,7 +837,7 @@ async function fetchTimelineData(db: any, dateRange: DateRange) {
 
   const from = dateRange.from
   const to = endOfDay(dateRange.to ?? dateRange.from)
-  const entries = await getEntriesForRange(db, from, to)
+  const entries = await getEntriesForRange(db, from, to, dataSourceIds)
   const dailyHours: Record<string, number> = {}
 
   for (const entry of entries) {
@@ -409,12 +877,16 @@ async function fetchTimelineData(db: any, dateRange: DateRange) {
 }
 
 // Query 4: Média de Horas por Dia
-async function fetchAvgHoursData(db: any, dateRange: DateRange) {
+async function fetchAvgHoursData(
+  db: any,
+  dateRange: DateRange,
+  dataSourceIds?: string[],
+) {
   if (!db?.timeEntries || !dateRange.from) return []
 
   const from = dateRange.from
   const to = endOfDay(dateRange.to ?? dateRange.from)
-  const entries = await getEntriesForRange(db, from, to)
+  const entries = await getEntriesForRange(db, from, to, dataSourceIds)
 
   const dailyHours: Record<string, number> = {}
   const hoursByDayOfWeek: Record<number, number[]> = {
@@ -456,12 +928,16 @@ async function fetchAvgHoursData(db: any, dateRange: DateRange) {
 }
 
 // Query 5: Heatmap
-async function fetchHeatmapData(db: any, dateRange: DateRange) {
+async function fetchHeatmapData(
+  db: any,
+  dateRange: DateRange,
+  dataSourceIds?: string[],
+) {
   if (!db?.timeEntries || !dateRange.from) return {}
 
   const from = dateRange.from
   const to = endOfDay(dateRange.to ?? dateRange.from)
-  const entries = await getEntriesForRange(db, from, to)
+  const entries = await getEntriesForRange(db, from, to, dataSourceIds)
   const heatmapData: Record<string, Record<string, number>> = {}
 
   for (const entry of entries) {
@@ -497,12 +973,16 @@ async function fetchHeatmapData(db: any, dateRange: DateRange) {
 }
 
 // Query 6: Atividades (Pie)
-async function fetchActivityData(db: any, dateRange: DateRange) {
+async function fetchActivityData(
+  db: any,
+  dateRange: DateRange,
+  dataSourceIds?: string[],
+) {
   if (!db?.timeEntries || !dateRange.from) return []
 
   const from = dateRange.from
   const to = endOfDay(dateRange.to ?? dateRange.from)
-  const entries = await getEntriesForRange(db, from, to)
+  const entries = await getEntriesForRange(db, from, to, dataSourceIds)
   const activityHours: Record<string, number> = {}
 
   for (const entry of entries) {
@@ -533,7 +1013,11 @@ async function fetchActivityData(db: any, dateRange: DateRange) {
 }
 
 // Query 7: Qualidade e Hábitos
-async function fetchQualityData(db: any, dateRange: DateRange) {
+async function fetchQualityData(
+  db: any,
+  dateRange: DateRange,
+  dataSourceIds?: string[],
+) {
   if (!db?.timeEntries || !dateRange.from)
     return {
       punctualityData: [],
@@ -542,7 +1026,7 @@ async function fetchQualityData(db: any, dateRange: DateRange) {
 
   const from = dateRange.from
   const to = endOfDay(dateRange.to ?? dateRange.from)
-  const entries = await getEntriesForRange(db, from, to)
+  const entries = await getEntriesForRange(db, from, to, dataSourceIds)
 
   let noCommentCount = 0,
     punctualCount = 0,
@@ -620,7 +1104,35 @@ export function Metrics() {
     }),
     [date],
   )
-  const queryKeyBase = [workspace?.id, dateRange.from, dateRange.to]
+  const availableDataSources = useMemo(() => {
+    const connections = (workspace as any)?.dataSourceConnections || []
+    return Array.isArray(connections)
+      ? connections.map((c: any) => ({
+          id: c.id,
+          label: c.name || c.provider || c.id,
+        }))
+      : []
+  }, [workspace])
+
+  const [selectedSources, setSelectedSources] = useState<string[]>(['all'])
+
+  const effectiveSourceIds = useMemo(() => {
+    if (
+      selectedSources.includes('all') ||
+      selectedSources.length === 0 ||
+      availableDataSources.length === 0
+    ) {
+      return availableDataSources.map((s) => s.id)
+    }
+    return selectedSources
+  }, [selectedSources, availableDataSources])
+
+  const queryKeyBase = [
+    workspace?.id,
+    dateRange.from,
+    dateRange.to,
+    (effectiveSourceIds || []).join(','),
+  ]
   const queryOptions = {
     enabled: !!db && !!workspace?.id && !!date?.from,
   }
@@ -628,44 +1140,48 @@ export function Metrics() {
   // #region Queries (Divididas)
   // (Suas queries permanecem inalteradas)
   const summaryQuery = useQuery({
-    queryKey: ['metricsSummary', workspace?.id],
-    queryFn: () => fetchSummaryData(db),
+    queryKey: [
+      'metricsSummary',
+      workspace?.id,
+      (effectiveSourceIds || []).join(','),
+    ],
+    queryFn: () => fetchSummaryData(db, effectiveSourceIds),
     enabled: !!db && !!workspace?.id,
   })
 
   const periodSummaryQuery = useQuery({
     queryKey: ['metricsPeriodSummary', ...queryKeyBase],
-    queryFn: () => fetchPeriodSummaryData(db, dateRange),
+    queryFn: () => fetchPeriodSummaryData(db, dateRange, effectiveSourceIds),
     ...queryOptions,
   })
 
   const timelineQuery = useQuery({
     queryKey: ['metricsTimeline', ...queryKeyBase],
-    queryFn: () => fetchTimelineData(db, dateRange),
+    queryFn: () => fetchTimelineData(db, dateRange, effectiveSourceIds),
     ...queryOptions,
   })
 
   const avgHoursQuery = useQuery({
     queryKey: ['metricsAvgHours', ...queryKeyBase],
-    queryFn: () => fetchAvgHoursData(db, dateRange),
+    queryFn: () => fetchAvgHoursData(db, dateRange, effectiveSourceIds),
     ...queryOptions,
   })
 
   const heatmapQuery = useQuery({
     queryKey: ['metricsHeatmap', ...queryKeyBase],
-    queryFn: () => fetchHeatmapData(db, dateRange),
+    queryFn: () => fetchHeatmapData(db, dateRange, effectiveSourceIds),
     ...queryOptions,
   })
 
   const activityQuery = useQuery({
     queryKey: ['metricsActivity', ...queryKeyBase],
-    queryFn: () => fetchActivityData(db, dateRange),
+    queryFn: () => fetchActivityData(db, dateRange, effectiveSourceIds),
     ...queryOptions,
   })
 
   const qualityQuery = useQuery({
     queryKey: ['metricsQuality', ...queryKeyBase],
-    queryFn: () => fetchQualityData(db, dateRange),
+    queryFn: () => fetchQualityData(db, dateRange, effectiveSourceIds),
     ...queryOptions,
   })
   // #endregion
@@ -691,7 +1207,7 @@ export function Metrics() {
     }
   }, [timelineQuery.data?.timelineData, acceptableHours])
 
-  const activityChartConfig = useMemo(
+  const _activityChartConfig = useMemo(
     () =>
       (activityQuery.data || []).reduce((acc, { activity, fill }) => {
         acc[activity] = { label: activity, color: fill }
@@ -851,18 +1367,97 @@ export function Metrics() {
 
   return (
     <>
-      <h1 className="text-2xl font-semibold tracking-tight">Métricas</h1>
-      <Breadcrumb>
-        <BreadcrumbList>
-          <BreadcrumbItem>
-            <BreadcrumbLink href="/">Workspace</BreadcrumbLink>
-          </BreadcrumbItem>
-          <BreadcrumbSeparator />
-          <BreadcrumbItem>
-            <BreadcrumbPage>Métricas</BreadcrumbPage>
-          </BreadcrumbItem>
-        </BreadcrumbList>
-      </Breadcrumb>
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+        <div>
+          <Breadcrumb>
+            <BreadcrumbList>
+              <BreadcrumbItem>
+                <BreadcrumbLink href="/">Workspace</BreadcrumbLink>
+              </BreadcrumbItem>
+              <BreadcrumbSeparator />
+              <BreadcrumbItem>
+                <BreadcrumbPage>Métricas Pessoais</BreadcrumbPage>
+              </BreadcrumbItem>
+            </BreadcrumbList>
+          </Breadcrumb>
+          <h1 className="mt-1 text-2xl font-semibold tracking-tight">
+            Métricas Pessoais
+          </h1>
+          <p className="text-muted-foreground mt-1 text-sm">
+            Insights sobre esforço, foco e consistência no trabalho.
+          </p>
+        </div>
+
+        {availableDataSources.length > 0 && (
+          <div className="flex items-center gap-3">
+            <Popover>
+              <PopoverTrigger asChild>
+                <Button
+                  variant="outline"
+                  className="border-border/50 bg-secondary/50 hover:bg-secondary h-9"
+                >
+                  <Database className="mr-2 h-4 w-4" />
+                  {(() => {
+                    if (
+                      selectedSources.includes('all') ||
+                      selectedSources.length === 0
+                    ) {
+                      return 'Todas as Fontes'
+                    }
+                    if (selectedSources.length === 1) {
+                      const source = availableDataSources.find(
+                        (s) => s.id === selectedSources[0],
+                      )
+                      return source?.label || '1 fonte'
+                    }
+                    return `${selectedSources.length} fontes`
+                  })()}
+                  <ChevronDown className="ml-2 h-4 w-4" />
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent className="w-56 p-2" align="end">
+                <div className="space-y-1">
+                  <div
+                    className="hover:bg-accent flex cursor-pointer items-center gap-2 rounded-md px-2 py-1.5"
+                    onClick={() => setSelectedSources(['all'])}
+                  >
+                    <Checkbox
+                      checked={selectedSources.includes('all')}
+                      className="h-4 w-4"
+                    />
+                    <span className="text-sm">Todas as Fontes</span>
+                  </div>
+                  {availableDataSources.map((source) => (
+                    <div
+                      key={source.id}
+                      className="hover:bg-accent flex cursor-pointer items-center gap-2 rounded-md px-2 py-1.5"
+                      onClick={() =>
+                        setSelectedSources((prev) => {
+                          if (prev.includes('all')) {
+                            return [source.id]
+                          }
+                          return prev.includes(source.id)
+                            ? prev.filter((id) => id !== source.id)
+                            : [...prev, source.id]
+                        })
+                      }
+                    >
+                      <Checkbox
+                        checked={
+                          selectedSources.includes('all') ||
+                          selectedSources.includes(source.id)
+                        }
+                        className="h-4 w-4"
+                      />
+                      <span className="text-sm">{source.label}</span>
+                    </div>
+                  ))}
+                </div>
+              </PopoverContent>
+            </Popover>
+          </div>
+        )}
+      </div>
       <hr className="mt-2" />
 
       {/* // ===============================================
@@ -884,7 +1479,6 @@ export function Metrics() {
             {summaryQuery.isLoading
               ? [1, 2, 3].map((i) => <SummaryCardSkeleton key={i} />)
               : summaryCards.map((item, i) => {
-                  const abaixoDaMeta = item.horas < item.min // Variavel preservada
                   return (
                     <Card
                       key={i}
@@ -1008,6 +1602,19 @@ export function Metrics() {
                   </Card>
                 </div>
               ))}
+
+          {/* Seção extra: Inteligência de Esforço (mock UI, seguindo new-dashboard-example) */}
+          <div className="lg:col-span-6">
+            <div className="mt-2 space-y-2">
+              <h2 className="text-lg font-bold tracking-tight">
+                Inteligência de Esforço
+              </h2>
+              <p className="text-muted-foreground text-sm">
+                Insights sobre foco e qualidade do trabalho.
+              </p>
+              <EffortIntelligenceSection />
+            </div>
+          </div>
 
           {/* --- LINHA 3: TIMELINE (4) + DISTRIBUIÇÃO (2) --- */}
           {/* (Invertido conforme pedido) */}
@@ -1420,7 +2027,21 @@ export function Metrics() {
             )}
           </div>
 
-          {/* --- LINHA 5: HEATMAP (4) + QUALIDADE (2) --- */}
+          {/* LINHA 5: Análise de Foco (mock) + Distribuição de Sessões / Insights (mock) */}
+          <div className="lg:col-span-3">
+            <FocusAnalysisSection />
+          </div>
+          <div className="space-y-4 lg:col-span-3">
+            <SessionDistributionSection />
+            <AutomatedInsightsSection />
+          </div>
+
+          {/* --- LINHA 6: PERFORMANCE POR TAREFA (mock) --- */}
+          <div className="lg:col-span-6">
+            <TaskPerformanceSection />
+          </div>
+
+          {/* --- LINHA FINAL: HEATMAP (4) + QUALIDADE (2) (mantidos no fim) --- */}
           <div className="lg:col-span-4">
             {heatmapQuery.isLoading ? (
               <HeatmapSkeleton />

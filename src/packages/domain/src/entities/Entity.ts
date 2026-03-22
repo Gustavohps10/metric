@@ -8,8 +8,9 @@ export abstract class Entity {
   static hydrate<T extends Entity>(data: EntityProps<T>): T {
     const entity = Object.create(this.prototype) as T
 
-    ;(Object.keys(data) as Array<keyof EntityProps<T>>).forEach((key) => {
-      ;(entity as any)[key] = data[key]
+    Object.keys(data).forEach((key) => {
+      const privateKey = `_${key}`
+      ;(entity as any)[privateKey] = (data as any)[key]
     })
 
     return entity

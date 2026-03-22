@@ -1,4 +1,4 @@
-import { IMetadataClient } from '@timelapse/application'
+import { IMetadataAPI } from '@timelapse/application'
 import { PullMetadataInput } from '@timelapse/application/contracts/use-cases/IMetadataPullUseCase'
 import { IRequest } from '@timelapse/cross-cutting/transport'
 import {
@@ -8,7 +8,7 @@ import {
 
 import { IpcInvoker } from '@/main/adapters/IpcInvoker'
 
-export const metadataInvoker: IMetadataClient = {
+export const metadataInvoker: IMetadataAPI = {
   pull: (
     payload: IRequest<PullMetadataInput>,
   ): Promise<ViewModel<MetadataViewModel>> =>

@@ -20,7 +20,6 @@ import { Suspense, useCallback, useMemo, useState } from 'react'
 import { DeepReadonly, RxDocument } from 'rxdb'
 import { toast } from 'sonner'
 
-import { User } from '@/@types/session/User'
 import { Loader } from '@/components'
 import AutomationModal from '@/components/automation-modal'
 import { Board } from '@/components/dnd/board'
@@ -45,7 +44,7 @@ import { TaskKanbanColumnRxDBDTO } from '@/db/schemas/kanban-task-columns-schema
 import { SyncMetadataRxDBDTO } from '@/db/schemas/metadata-sync-schema'
 import { AppDatabase } from '@/db/schemas/sync-types'
 import { SyncTaskRxDBDTO } from '@/db/schemas/tasks-sync-schema'
-import { useAuth, useWorkspace } from '@/hooks'
+import { useWorkspace } from '@/hooks'
 import { useSyncStore } from '@/stores/syncStore'
 
 type TaskWithTimeEntries = SyncTaskRxDBDTO & { timeEntries: any[] }
@@ -235,11 +234,9 @@ function useOptimizedBoard({
 
 function KanbanBoard({
   db,
-  user,
   workspace,
 }: {
   db: AppDatabase
-  user: User
   workspace: WorkspaceViewModel
 }) {
   const queryClient = useQueryClient()
@@ -282,7 +279,7 @@ function KanbanBoard({
   })
 
   const { data: tasks } = useSuspenseQuery({
-    queryKey: ['tasks', user.id],
+    queryKey: ['tasks'],
     queryFn: async (): Promise<TaskWithTimeEntries[]> => {
       const taskDocs = await db.tasks.find().exec()
       const tasksWithTimeEntries = await Promise.all(
@@ -531,9 +528,8 @@ function KanbanBoard({
 function KanbanBoardContent() {
   const db = useSyncStore((s) => s.db)
   const { workspace } = useWorkspace()
-  const { user } = useAuth()
-  if (!db || !user || !workspace) return null
-  return <KanbanBoard db={db} user={user} workspace={workspace} />
+  if (!db || !workspace) return null
+  return <KanbanBoard db={db} workspace={workspace} />
 }
 
 function KanbanToolbar() {

@@ -7,8 +7,6 @@ import {
   MoreHorizontal,
   Plus,
   Power,
-  RefreshCw,
-  Settings,
   Trash2,
   Unlink,
 } from 'lucide-react'
@@ -94,6 +92,7 @@ interface ConnectionRowProps {
   onOpenSettings: (connection: AddonConnection) => void
   onSyncNow: (connection: AddonConnection) => void
   onDisconnect: (connection: AddonConnection) => void
+  onUninstall: (connection: AddonConnection) => void
 }
 
 function ConnectionRow({
@@ -101,13 +100,25 @@ function ConnectionRow({
   onOpenSettings,
   onSyncNow,
   onDisconnect,
+  onUninstall,
 }: ConnectionRowProps) {
+  const isConnected = connection.status === 'connected'
+
   return (
     <div className="bg-secondary/30 flex items-center justify-between rounded-md px-4 py-3">
       <div className="space-y-1">
-        <p className="text-foreground text-sm font-medium">
-          {connection.name || connection.id}
-        </p>
+        <div className="flex items-center gap-2">
+          <p className="text-foreground text-sm font-medium">
+            {connection.name || connection.id}
+          </p>
+          <Badge
+            variant="secondary"
+            className="px-1.5 py-0 font-mono text-[10px] opacity-70"
+          >
+            {connection.id}
+          </Badge>
+        </div>
+
         {connection.url && (
           <p className="text-muted-foreground font-mono text-xs">
             {connection.url}
@@ -121,41 +132,58 @@ function ConnectionRow({
             </span>
           )}
         </div>
-        {connection.userName && (
+        {isConnected && connection.userName && (
           <p className="text-muted-foreground text-xs">
-            Conectado como: {connection.userName}
-            {connection.userId != null && ` (ID: ${connection.userId})`}
+            Logado como:{' '}
+            <span className="text-foreground font-medium">
+              {connection.userName}
+            </span>
+            {connection.userId != null && ` (${connection.userId})`}
           </p>
         )}
       </div>
-      <div className="flex items-center gap-2">
+      <div className="flex items-center gap-1">
         <Button
           variant="ghost"
           size="sm"
           onClick={() => onOpenSettings(connection)}
-          className="text-muted-foreground hover:text-foreground"
+          className="text-muted-foreground hover:text-foreground h-8"
         >
-          <Settings className="mr-1 h-4 w-4" />
-          Configurações
+          <Power className="mr-2 h-4 w-4" />
+          Conectar
         </Button>
-        <Button
-          variant="ghost"
-          size="sm"
-          onClick={() => onSyncNow(connection)}
-          className="text-muted-foreground hover:text-foreground"
-        >
-          <RefreshCw className="mr-1 h-4 w-4" />
-          Sincronizar
-        </Button>
-        <Button
-          variant="ghost"
-          size="sm"
-          onClick={() => onDisconnect(connection)}
-          className="text-destructive hover:text-destructive hover:bg-destructive/10"
-        >
-          <Unlink className="mr-1 h-4 w-4" />
-          Desconectar
-        </Button>
+
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <Button variant="ghost" size="icon" className="h-8 w-8">
+              <MoreHorizontal className="h-4 w-4" />
+            </Button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="end">
+            {isConnected ? (
+              <DropdownMenuItem
+                onClick={() => onDisconnect(connection)}
+                className="text-destructive focus:text-destructive"
+              >
+                <Unlink className="mr-2 h-4 w-4" />
+                Desconectar sessão
+              </DropdownMenuItem>
+            ) : (
+              <DropdownMenuItem onClick={() => onOpenSettings(connection)}>
+                <Power className="mr-2 h-4 w-4" />
+                Conectar
+              </DropdownMenuItem>
+            )}
+            <Separator className="my-1" />
+            <DropdownMenuItem
+              onClick={() => onUninstall(connection)}
+              className="text-destructive focus:text-destructive"
+            >
+              <Trash2 className="mr-2 h-4 w-4" />
+              Remover conexão
+            </DropdownMenuItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
       </div>
     </div>
   )
@@ -171,7 +199,7 @@ interface AddonRowProps {
   onDisconnect: (addon: AddonItem, connection: AddonConnection) => void
   onUpdate: (addon: AddonItem) => void
   onDisable: (addon: AddonItem) => void
-  onUninstall: (addon: AddonItem) => void
+  onUninstall: (addon: AddonItem, connection: AddonConnection) => void
 }
 
 function AddonRow({
@@ -210,11 +238,11 @@ function AddonRow({
                 <span className="text-foreground font-medium">
                   {addon.name}
                 </span>
-                <Badge variant="outline" className="font-mono text-xs">
+                <Badge variant="outline" className="h-4 font-mono text-[10px]">
                   v{addon.version}
                 </Badge>
               </div>
-              <p className="text-muted-foreground text-sm">
+              <p className="text-muted-foreground line-clamp-1 text-sm">
                 {addon.description}
               </p>
               <p className="text-muted-foreground mt-0.5 text-xs">
@@ -228,7 +256,7 @@ function AddonRow({
             onClick={(e) => e.stopPropagation()}
           >
             {hasConnections && (
-              <span className="text-muted-foreground text-xs">
+              <span className="text-muted-foreground bg-secondary/50 rounded-full px-2 py-1 text-xs">
                 {addon.connections.length}{' '}
                 {addon.connections.length === 1 ? 'conexão' : 'conexões'}
               </span>
@@ -263,7 +291,7 @@ function AddonRow({
                 <DropdownMenuContent align="end">
                   <DropdownMenuItem onClick={() => onAddConnection(addon)}>
                     <Plus className="mr-2 h-4 w-4" />
-                    Adicionar conexão
+                    Nova instância
                   </DropdownMenuItem>
                   {addon.updateAvailable && (
                     <DropdownMenuItem onClick={() => onUpdate(addon)}>
@@ -275,13 +303,6 @@ function AddonRow({
                     <Power className="mr-2 h-4 w-4" />
                     Desativar plugin
                   </DropdownMenuItem>
-                  <DropdownMenuItem
-                    onClick={() => onUninstall(addon)}
-                    className="text-destructive focus:text-destructive"
-                  >
-                    <Trash2 className="mr-2 h-4 w-4" />
-                    Desinstalar plugin
-                  </DropdownMenuItem>
                 </DropdownMenuContent>
               </DropdownMenu>
             )}
@@ -291,11 +312,11 @@ function AddonRow({
 
       {isInstalled && (
         <AccordionContent className="pb-4">
-          <div className="space-y-3 pt-2">
-            {hasConnections && (
+          <div className="space-y-4 pt-2">
+            {hasConnections ? (
               <>
-                <div className="text-muted-foreground flex items-center gap-2 text-sm">
-                  <span className="font-medium">Conexões</span>
+                <div className="text-muted-foreground flex items-center gap-2 text-[10px] font-bold tracking-wider uppercase">
+                  <span>Instâncias Conectadas</span>
                   <Separator className="flex-1" />
                 </div>
                 <div className="space-y-2">
@@ -306,20 +327,30 @@ function AddonRow({
                       onOpenSettings={(conn) => onOpenSettings(addon, conn)}
                       onSyncNow={(conn) => onSyncNow(addon, conn)}
                       onDisconnect={(conn) => onDisconnect(addon, conn)}
+                      onUninstall={(conn) => onUninstall(addon, conn)}
                     />
                   ))}
                 </div>
               </>
+            ) : (
+              <div className="bg-secondary/20 border-border rounded-lg border-2 border-dashed py-8 text-center">
+                <p className="text-muted-foreground text-sm">
+                  Nenhuma conexão configurada para este plugin.
+                </p>
+              </div>
             )}
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={() => onAddConnection(addon)}
-              className="text-muted-foreground hover:text-foreground"
-            >
-              <Plus className="mr-1 h-4 w-4" />
-              Adicionar nova conexão
-            </Button>
+
+            <div className="flex justify-center">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => onAddConnection(addon)}
+                className="text-muted-foreground hover:text-foreground border-dashed"
+              >
+                <Plus className="mr-2 h-4 w-4" />
+                Configurar nova conexão {addon.name}
+              </Button>
+            </div>
           </div>
         </AccordionContent>
       )}
@@ -337,7 +368,7 @@ export interface AddonListProps {
   onDisconnect: (addon: AddonItem, connection: AddonConnection) => void
   onUpdate: (addon: AddonItem) => void
   onDisable: (addon: AddonItem) => void
-  onUninstall: (addon: AddonItem) => void
+  onUninstall: (addon: AddonItem, connection: AddonConnection) => void
 }
 
 export function AddonList({
@@ -358,7 +389,12 @@ export function AddonList({
         <div className="bg-secondary mb-4 flex h-12 w-12 items-center justify-center rounded-full">
           <Info className="text-muted-foreground h-6 w-6" />
         </div>
-        <p className="text-muted-foreground">Nenhum plugin encontrado</p>
+        <p className="text-muted-foreground font-medium">
+          Nenhum plugin encontrado
+        </p>
+        <p className="text-muted-foreground text-sm opacity-70">
+          Tente ajustar seus filtros ou busca.
+        </p>
       </div>
     )
   }

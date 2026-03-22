@@ -6,7 +6,7 @@ import { useParams } from 'react-router'
 import { useClient } from '@/hooks'
 
 export interface WorkspaceContextType {
-  workspace?: WorkspaceViewModel
+  workspace?: WorkspaceViewModel | null
   isLoading: boolean
 }
 
@@ -24,26 +24,26 @@ export const WorkspaceProvider: React.FC<WorkspaceProviderProps> = ({
   const client = useClient()
   const { workspaceId } = useParams<{ workspaceId: string }>()
 
-  const {
-    data: workspace,
-    isLoading,
-    error,
-  } = useQuery({
+  const { data: workspace, isLoading } = useQuery({
     queryKey: ['workspace', workspaceId],
     queryFn: async () => {
-      if (!workspaceId) return undefined
+      if (!workspaceId) return null
 
       const response = await client.services.workspaces.getById({
         body: { workspaceId },
       })
 
-      console.log('Resposta:', response)
-      return response.data ?? undefined
+      console.log('Resposta Context:', response)
+
+      if (!response.isSuccess || !response.data) {
+        return null
+      }
+
+      return response.data
     },
     enabled: !!workspaceId,
+    retry: false,
   })
-
-  console.log(workspace)
 
   return (
     <WorkspaceContext.Provider

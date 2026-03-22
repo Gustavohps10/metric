@@ -6,7 +6,8 @@ export type SyncTimeEntryDTO = SyncDocumentDTO<TimeEntryDTO>
 
 export type PushTimeEntriesInput = {
   workspaceId: string
-  dataSourceId: string
+  pluginId: string
+  connectionInstanceId: string
   entries: SyncTimeEntryDTO[]
 }
 

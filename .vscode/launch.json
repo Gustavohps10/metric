@@ -8,7 +8,7 @@
       "cwd": "${workspaceFolder}/src/apps/desktop",
       "runtimeExecutable": "${workspaceFolder}/src/apps/desktop/node_modules/.bin/electron-vite",
       "windows": {
-        "runtimeExecutable": "${workspaceFolder}/src/apps/desktop/node_modules/.bin/electron-vite.cmd"
+        "runtimeExecutable": "${workspaceFolder}/node_modules/.bin/electron-vite.cmd"
       },
       "runtimeArgs": ["--sourcemap"],
       "env": {

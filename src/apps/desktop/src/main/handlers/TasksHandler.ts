@@ -1,10 +1,10 @@
 import {
+  IGetWorkspaceUseCase,
   IListTasksUseCase,
   ITaskPullUseCase,
   PagedResultDTO,
-  PullTasksInput,
+  TaskDTO,
 } from '@timelapse/application'
-import { TaskDTO } from '@timelapse/application'
 import { AppError, Either } from '@timelapse/cross-cutting/helpers'
 import { IRequest } from '@timelapse/cross-cutting/transport'
 import {
@@ -12,27 +12,41 @@ import {
   TaskViewModel,
   ViewModel,
 } from '@timelapse/presentation/view-models'
+import { IpcMainInvokeEvent } from 'electron'
+
+export interface ListTasksRequest {
+  workspaceId: string
+  connectionInstanceId: string
+}
+
+export interface PullTasksRequest {
+  workspaceId: string
+  connectionInstanceId: string
+  memberId: string
+  checkpoint: { updatedAt: Date; id: string }
+  batch: number
+}
 
 export class TasksHandler {
   constructor(
     private readonly listTasksService: IListTasksUseCase,
     private readonly taskPullService: ITaskPullUseCase,
+    private readonly getWorkspaceService: IGetWorkspaceUseCase,
   ) {}
 
   public async listTasks(
-    _event: Electron.IpcMainInvokeEvent,
-    { body }: IRequest<{ workspaceId: string; dataSourceId: string }>,
+    _event: IpcMainInvokeEvent,
+    { body }: IRequest<ListTasksRequest>,
   ): Promise<PaginatedViewModel<TaskViewModel[]>> {
-    const result: Either<
-      AppError,
-      PagedResultDTO<TaskDTO>
-    > = await this.listTasksService.execute(body)
+    const workspaceResult = await this.getWorkspaceService.execute({
+      workspaceId: body.workspaceId,
+    })
 
-    if (result.isFailure()) {
+    if (workspaceResult.isFailure()) {
       return {
-        statusCode: 500,
+        statusCode: 404,
         isSuccess: false,
-        error: 'Erro ao listar tarefas',
+        error: 'WORKSPACE_NAO_ENCONTRADO',
         data: [],
         totalItems: 0,
         totalPages: 0,
@@ -40,40 +54,108 @@ export class TasksHandler {
       }
     }
 
-    const tasks: TaskDTO[] = result.success.items
+    const connection = workspaceResult.success.dataSourceConnections.find(
+      (c) => c.id === body.connectionInstanceId,
+    )
 
-    return {
-      statusCode: 200,
-      isSuccess: true,
-      data: tasks,
-      totalItems: tasks.length,
-      totalPages: Math.ceil(tasks.length / result.success.pageSize),
-      currentPage: result.success.page,
+    if (!connection) {
+      return {
+        statusCode: 404,
+        isSuccess: false,
+        error: 'CONEXAO_NAO_ENCONTRADA',
+        data: [],
+        totalItems: 0,
+        totalPages: 0,
+        currentPage: 1,
+      }
     }
-  }
 
-  public async pull(
-    _event: Electron.IpcMainInvokeEvent,
-    { body }: IRequest<PullTasksInput>,
-  ): Promise<ViewModel<TaskDTO[]>> {
-    const result: Either<AppError, TaskDTO[]> =
-      await this.taskPullService.execute(body)
+    const result: Either<
+      AppError,
+      PagedResultDTO<TaskDTO>
+    > = await this.listTasksService.execute({
+      workspaceId: body.workspaceId,
+      pluginId: connection.dataSourceId,
+      connectionInstanceId: body.connectionInstanceId,
+    })
 
     if (result.isFailure()) {
       return {
         statusCode: 500,
         isSuccess: false,
-        error: 'Erro ao listar tarefas',
+        error: result.failure.messageKey || 'Erro ao listar tarefas',
         data: [],
+        totalItems: 0,
+        totalPages: 0,
+        currentPage: 1,
       }
     }
-
-    const tasks: TaskDTO[] = result.success
 
     return {
       statusCode: 200,
       isSuccess: true,
-      data: tasks,
+      data: result.success.items,
+      totalItems: result.success.total,
+      totalPages: Math.ceil(
+        result.success.total / (result.success.pageSize || 1),
+      ),
+      currentPage: result.success.page || 1,
+    }
+  }
+
+  public async pull(
+    _event: IpcMainInvokeEvent,
+    { body }: IRequest<PullTasksRequest>,
+  ): Promise<ViewModel<TaskDTO[]>> {
+    const workspaceResult = await this.getWorkspaceService.execute({
+      workspaceId: body.workspaceId,
+    })
+
+    if (workspaceResult.isFailure()) {
+      return {
+        statusCode: 404,
+        isSuccess: false,
+        error: 'WORKSPACE_NAO_ENCONTRADO',
+        data: [],
+      }
+    }
+
+    const connection = workspaceResult.success.dataSourceConnections.find(
+      (c) => c.id === body.connectionInstanceId,
+    )
+
+    if (!connection) {
+      return {
+        statusCode: 404,
+        isSuccess: false,
+        error: 'CONEXAO_NAO_ENCONTRADA',
+        data: [],
+      }
+    }
+
+    const result: Either<AppError, TaskDTO[]> =
+      await this.taskPullService.execute({
+        memberId: body.memberId,
+        workspaceId: body.workspaceId,
+        pluginId: connection.dataSourceId,
+        connectionInstanceId: body.connectionInstanceId,
+        checkpoint: body.checkpoint,
+        batch: body.batch,
+      })
+
+    if (result.isFailure()) {
+      return {
+        statusCode: 500,
+        isSuccess: false,
+        error: result.failure.messageKey || 'Erro ao sincronizar tarefas',
+        data: [],
+      }
+    }
+
+    return {
+      statusCode: 200,
+      isSuccess: true,
+      data: result.success,
     }
   }
 }
