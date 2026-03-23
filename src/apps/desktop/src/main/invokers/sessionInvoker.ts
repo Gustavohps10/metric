@@ -4,7 +4,6 @@ import { MemberViewModel, ViewModel } from '@timelapse/presentation/view-models'
 
 import { IpcInvoker } from '@/main/adapters/IpcInvoker'
 
-/* eslint-disable prettier/prettier */
 export const sessionInvoker: ISessionAPI = {
   getCurrentUser: (
     input: IRequest<{

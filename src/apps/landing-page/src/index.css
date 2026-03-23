@@ -1,0 +1,45 @@
+@import 'tailwindcss';
+
+/* O Tailwind v4  - múltiplos sources em sequência para o mesmo motor */
+@source "../src";
+@source "../../../packages/ui/src";
+
+@plugin "tailwindcss-animate";
+@plugin "@tailwindcss/typography";
+@import '@timelapse/ui/globals.css';
+
+/* Firefox */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(100, 100, 100, 0.5) transparent;
+}
+
+/* Webkit (Chrome, Edge, Safari) */
+*::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+*::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+*::-webkit-scrollbar-thumb {
+  background-color: rgba(100, 100, 100, 0.5);
+  border-radius: 9999px; /* arredondado */
+  border: 2px solid transparent;
+  background-clip: content-box;
+}
+
+*::-webkit-scrollbar-thumb:hover {
+  background-color: rgba(100, 100, 100, 0.8);
+}
+
+/* Aplica apenas no container principal do app */
+html,
+body,
+#__next,
+#root,
+.app {
+  overflow-y: overlay; /* não deixa espaço vazio */
+}
