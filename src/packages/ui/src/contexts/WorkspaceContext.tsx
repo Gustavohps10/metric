@@ -45,6 +45,8 @@ export const WorkspaceProvider: React.FC<WorkspaceProviderProps> = ({
     retry: false,
   })
 
+  console.log('WORKSPACEDATA', workspaceId, isLoading)
+
   return (
     <WorkspaceContext.Provider
       value={{
