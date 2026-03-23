@@ -76,6 +76,7 @@
     "motion": "^12.23.24",
     "next-themes": "^0.4.6",
     "nuqs": "^2.7.2",
+    "radix-ui": "^1.4.3",
     "react-day-picker": "9.11.1",
     "react-hook-form": "^7.54.2",
     "react-icons": "^5.5.0",
