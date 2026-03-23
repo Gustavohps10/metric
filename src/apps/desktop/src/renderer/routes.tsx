@@ -40,6 +40,7 @@ export const router = createHashRouter([
           { index: true, element: <Metrics /> },
           { path: 'notes', element: <Notes /> },
           { path: 'time-entries', element: <TimeEntries /> },
+          { path: 'my-metrics', element: <Metrics /> },
           {
             path: 'activities',
             element: <ActivitiesLayout />,

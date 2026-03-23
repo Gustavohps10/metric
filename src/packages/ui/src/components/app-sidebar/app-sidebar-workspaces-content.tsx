@@ -1,13 +1,23 @@
+'use client'
+
 import {
+  Brain,
   ChartColumnBig,
+  CloudCog,
   FileEditIcon,
+  LayoutDashboard,
   ListTodoIcon,
+  MonitorCogIcon,
   PuzzleIcon,
-  Settings,
+  ReceiptIcon,
+  Scale,
+  Terminal,
   Timer,
+  User,
 } from 'lucide-react'
 import { NavLink, useParams } from 'react-router-dom'
 
+import { Badge } from '@/components/ui/badge'
 import {
   SidebarGroup,
   SidebarGroupContent,
@@ -17,49 +27,118 @@ import {
   SidebarMenuItem,
 } from '@/components/ui/sidebar'
 
-const mainItems = [
+interface NavItem {
+  title: string
+  path: string
+  icon: React.ElementType
+  isPro?: boolean
+}
+
+const workItems: NavItem[] = [
   { title: 'Atividades', path: 'activities', icon: ListTodoIcon },
   { title: 'Apontamento', path: 'time-entries', icon: Timer },
-  { title: 'Métricas', path: '', icon: ChartColumnBig },
   { title: 'Anotações', path: 'notes', icon: FileEditIcon },
+]
+
+const analysisItems: NavItem[] = [
+  { title: 'Métricas Pessoais', path: 'my-metrics', icon: ChartColumnBig },
+]
+
+const teamItems: NavItem[] = [
+  { title: 'Visão Geral', path: 'team', icon: LayoutDashboard, isPro: true },
+  { title: 'Membros', path: 'members', icon: User, isPro: true },
+  { title: 'Carga de Trabalho', path: 'workload', icon: Scale, isPro: true },
+  { title: 'Insights IA', path: 'insights', icon: Brain, isPro: true },
+]
+
+const extensionItems: NavItem[] = [
   { title: 'Addons', path: 'addons', icon: PuzzleIcon },
-  { title: 'Configuração', path: 'settings', icon: Settings },
+]
+
+// Reajustado: Sem repetição de ícones e com semântica de Workspace/Admin
+const workspaceItems: NavItem[] = [
+  { title: 'Perfil do Workspace', path: 'settings', icon: MonitorCogIcon },
+  { title: 'Moeda & Valores', path: 'billing', icon: ReceiptIcon },
+  { title: 'Motor de Sync', path: 'sync', icon: CloudCog },
+  { title: 'Logs de Eventos', path: 'logs', icon: Terminal },
 ]
 
 export function AppSidebarWorkspacesContent() {
   const { workspaceId } = useParams<{ workspaceId: string }>()
 
+  const renderNavItems = (items: NavItem[], end = false) => (
+    <SidebarMenu>
+      {items.map((item) => (
+        <SidebarMenuItem key={item.path}>
+          <SidebarMenuButton asChild>
+            <NavLink
+              to={`/workspaces/${workspaceId}/${item.path}`}
+              end={end}
+              className="z-40 flex items-center justify-between rounded-md transition-colors [&.active]:bg-zinc-100 dark:[&.active]:bg-zinc-800"
+            >
+              {({ isActive }) => (
+                <>
+                  <div className="flex items-center gap-2">
+                    <item.icon
+                      size={18}
+                      className={
+                        isActive ? 'text-primary' : 'text-foreground/70'
+                      }
+                    />
+                    <span>{item.title}</span>
+                  </div>
+
+                  {item.isPro && (
+                    <Badge
+                      variant="secondary"
+                      className="h-4 border-amber-500/20 bg-amber-500/10 px-1 text-[9px] font-bold tracking-widest text-amber-600 uppercase"
+                    >
+                      Pro
+                    </Badge>
+                  )}
+                </>
+              )}
+            </NavLink>
+          </SidebarMenuButton>
+        </SidebarMenuItem>
+      ))}
+    </SidebarMenu>
+  )
+
   return (
     <>
       <SidebarGroup>
-        <SidebarGroupLabel>Navegar</SidebarGroupLabel>
+        <SidebarGroupLabel>Trabalho</SidebarGroupLabel>
+        <SidebarGroupContent>{renderNavItems(workItems)}</SidebarGroupContent>
+      </SidebarGroup>
+
+      <SidebarGroup>
+        <SidebarGroupLabel>Análise Individual</SidebarGroupLabel>
         <SidebarGroupContent>
-          <SidebarMenu>
-            {mainItems.map((item) => (
-              <SidebarMenuItem key={item.path}>
-                <SidebarMenuButton asChild>
-                  <NavLink
-                    to={`/workspaces/${workspaceId}/${item.path}`}
-                    end={item.path === ''}
-                    className="z-40 flex items-center rounded-md transition-colors [&.active]:bg-zinc-100 dark:[&.active]:bg-zinc-800"
-                  >
-                    {({ isActive }) => (
-                      <>
-                        <item.icon
-                          className={
-                            isActive ? 'text-primary' : 'text-foreground'
-                          }
-                        />
-                        <span>{item.title}</span>
-                      </>
-                    )}
-                  </NavLink>
-                </SidebarMenuButton>
-              </SidebarMenuItem>
-            ))}
-          </SidebarMenu>
+          {renderNavItems(analysisItems, true)}
         </SidebarGroupContent>
       </SidebarGroup>
+
+      <SidebarGroup>
+        <SidebarGroupLabel>Gestão de Equipe</SidebarGroupLabel>
+        <SidebarGroupContent>{renderNavItems(teamItems)}</SidebarGroupContent>
+      </SidebarGroup>
+
+      <SidebarGroup>
+        <SidebarGroupLabel>Extensões</SidebarGroupLabel>
+        <SidebarGroupContent>
+          {renderNavItems(extensionItems)}
+        </SidebarGroupContent>
+      </SidebarGroup>
+
+      {/* Sessão de Configuração do Espaço (Workspace Admin) */}
+      <SidebarGroup>
+        <SidebarGroupLabel>Workspace</SidebarGroupLabel>
+        <SidebarGroupContent>
+          {renderNavItems(workspaceItems)}
+        </SidebarGroupContent>
+      </SidebarGroup>
+
       {/* <SidebarGroup>
               <SidebarGroupLabel>Recursos</SidebarGroupLabel>
               <SidebarGroupContent>
