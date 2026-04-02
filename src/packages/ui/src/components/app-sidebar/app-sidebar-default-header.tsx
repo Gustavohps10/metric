@@ -13,11 +13,8 @@ export function AppSidebarDefaultHeader() {
         />
         <div className="flex flex-col">
           <h1 className="scroll-m-20 text-sm font-bold tracking-tighter">
-            Timelapse
+            Metric
           </h1>
-          <h2 className="text-muted-foreground scroll-m-20 text-sm leading-none tracking-tight">
-            Manager
-          </h2>
         </div>
         <ModeToggle className="text-foreground ml-auto size-8 cursor-pointer rounded-lg p-1 hover:bg-[#e7e7e9] dark:hover:bg-[#2e2e31]" />
       </div>
