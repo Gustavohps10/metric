@@ -6,7 +6,8 @@
 
 @plugin "tailwindcss-animate";
 @plugin "@tailwindcss/typography";
-@import '@timelapse/ui/globals.css';
+@import '../../../packages/ui/src/styles/globals.css'; /* importa o arquivo de estilos globais */
+/* @import '@timelapse/ui/globals.css';  -- Next Js não funciona com este import*/
 
 /* Firefox */
 * {

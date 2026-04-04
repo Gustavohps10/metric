@@ -4,12 +4,43 @@
   "private": true,
   "description": "Biblioteca de componentes de UI compartilhados para o ecossistema Timelapse.",
   "type": "module",
+  "sideEffects": [
+    "**/*.css"
+  ],
   "exports": {
-    ".": {
-      "import": "./dist/index.js",
-      "types": "./dist/index.d.ts"
+    "./components": {
+      "import": "./dist/components/index.js",
+      "types": "./dist/components/index.d.ts"
     },
-    "./globals.css": "./dist/styles/globals.css"
+    "./assets": {
+      "import": "./dist/assets/index.js",
+      "types": "./dist/assets/index.d.ts"
+    },
+    "./hooks": {
+      "import": "./dist/hooks/index.js",
+      "types": "./dist/hooks/index.d.ts"
+    },
+    "./layouts": {
+      "import": "./dist/layouts/index.js",
+      "types": "./dist/layouts/index.d.ts"
+    },
+    "./lib": {
+      "import": "./dist/lib/index.js",
+      "types": "./dist/lib/index.d.ts"
+    },
+    "./pages": {
+      "import": "./dist/pages/index.js",
+      "types": "./dist/pages/index.d.ts"
+    },
+    "./providers": {
+      "import": "./dist/providers/index.js",
+      "types": "./dist/providers/index.d.ts"
+    },
+    "./globals.css": {
+      "import": "./dist/styles/globals.css",
+      "require": "./dist/styles/globals.css",
+      "default": "./dist/styles/globals.css"
+    }
   },
   "scripts": {
     "build": "tsup --format esm,cjs --dts --external react",
@@ -74,7 +105,6 @@
     "lucide-react": "^0.548.0",
     "marked": "^15.0.7",
     "motion": "^12.23.24",
-    "next-themes": "^0.4.6",
     "nuqs": "^2.7.2",
     "radix-ui": "^1.4.3",
     "react-day-picker": "9.11.1",

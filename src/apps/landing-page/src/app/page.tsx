@@ -14,7 +14,7 @@ import {
   NavigationMenuTrigger,
   navigationMenuTriggerStyle,
   Tabs,
-} from '@timelapse/ui'
+} from '@timelapse/ui/components'
 import Link from 'next/link'
 import * as React from 'react'
 

@@ -1,4 +1,10 @@
 import {
+  ActivitiesLayout,
+  AppLayout,
+  HomeLayout,
+  WorkspaceLayout,
+} from '@timelapse/ui/layouts'
+import {
   Activities,
   AddonsPage,
   Backlog,
@@ -9,13 +15,7 @@ import {
   TimeEntries,
   TimerWidget,
   WorkspaceSettings,
-} from '@timelapse/ui'
-import {
-  ActivitiesLayout,
-  AppLayout,
-  HomeLayout,
-  WorkspaceLayout,
-} from '@timelapse/ui'
+} from '@timelapse/ui/pages'
 import { createHashRouter, Navigate } from 'react-router-dom'
 
 export const router = createHashRouter([

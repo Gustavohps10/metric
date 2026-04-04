@@ -1,3 +1,5 @@
+'use client'
+
 import type { MaskitoOptions } from '@maskito/core'
 import { useMaskito } from '@maskito/react'
 import * as React from 'react'

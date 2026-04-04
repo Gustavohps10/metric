@@ -10,6 +10,7 @@ interface ClientProviderProps {
 }
 
 export function ClientProvider({ client, children }: ClientProviderProps) {
+  console.log('CLIENT', client)
   return (
     <ClientContext.Provider value={client}>{children}</ClientContext.Provider>
   )
