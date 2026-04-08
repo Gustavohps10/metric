@@ -1,4 +1,4 @@
-import { IApplicationAPI } from '@timelapse/application'
+import { IApplicationAPI } from '@timelapse/sdk'
 import { useContext } from 'react'
 
 import { ClientContext } from '@/contexts/ClientContext'

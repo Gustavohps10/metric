@@ -11,6 +11,7 @@ export * from './utils/MarkupConverter'
 export type {
   AuthenticationDTO,
   AuthenticationResult,
+  IApplicationAPI,
   IAuthenticationStrategy,
   IMemberQuery,
   IMetadataQuery,
