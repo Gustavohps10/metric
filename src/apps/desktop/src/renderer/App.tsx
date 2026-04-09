@@ -2,14 +2,14 @@
 import '@/renderer/index.css'
 
 import { QueryClientProvider } from '@tanstack/react-query'
+import { queryClient } from '@timelapse/ui/lib'
 import {
   ClientProvider,
   EnvironmentProvider,
-  queryClient,
   SidebarProvider,
   ThemeProvider,
   TooltipProvider,
-} from '@timelapse/ui'
+} from '@timelapse/ui/providers'
 import { NuqsAdapter } from 'nuqs/adapters/react-router/v6'
 import { useEffect, useState } from 'react'
 import { RouterProvider } from 'react-router-dom'

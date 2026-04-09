@@ -1,4 +1,6 @@
-import { cn } from 'src/lib/utils'
+'use client'
+
+import { cn } from '@/lib'
 
 function Kbd({ className, ...props }: React.ComponentProps<'kbd'>) {
   return (

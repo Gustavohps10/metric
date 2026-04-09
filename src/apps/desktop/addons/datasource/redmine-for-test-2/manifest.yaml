@@ -1,9 +1,0 @@
-AddonId: redmine-for-test-2
-Version: 1.0.0
-Name: Redmine for test 2
-Author: Timelapse
-ShortDescription: Redmine de teste (instância 2) para validar N datasources.
-Description: Use para testar múltiplas conexões no mesmo workspace (ADR-002).
-Tags:
-  - redmine
-  - test

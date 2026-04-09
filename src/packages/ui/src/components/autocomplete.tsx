@@ -1,3 +1,5 @@
+'use client'
+
 import { Command as CommandPrimitive } from 'cmdk'
 import { Check } from 'lucide-react'
 import { useMemo, useState } from 'react'

@@ -1,3 +1,5 @@
+'use client'
+
 import { useQuery } from '@tanstack/react-query'
 import { cva } from 'class-variance-authority'
 import { motion } from 'framer-motion'

@@ -1,4 +1,10 @@
 import {
+  ActivitiesLayout,
+  AppLayout,
+  HomeLayout,
+  WorkspaceLayout,
+} from '@timelapse/ui/layouts'
+import {
   Activities,
   AddonsPage,
   Backlog,
@@ -9,14 +15,8 @@ import {
   TimeEntries,
   TimerWidget,
   WorkspaceSettings,
-} from '@timelapse/ui'
-import {
-  ActivitiesLayout,
-  AppLayout,
-  HomeLayout,
-  WorkspaceLayout,
-} from '@timelapse/ui'
-import { createHashRouter } from 'react-router-dom'
+} from '@timelapse/ui/pages'
+import { createHashRouter, Navigate } from 'react-router-dom'
 
 export const router = createHashRouter([
   {
@@ -37,7 +37,7 @@ export const router = createHashRouter([
         path: 'workspaces/:workspaceId',
         element: <WorkspaceLayout />, // sidebar + conteúdo do workspace
         children: [
-          { index: true, element: <Metrics /> },
+          { index: true, element: <Navigate to="time-entries" replace /> },
           { path: 'notes', element: <Notes /> },
           { path: 'time-entries', element: <TimeEntries /> },
           { path: 'my-metrics', element: <Metrics /> },
