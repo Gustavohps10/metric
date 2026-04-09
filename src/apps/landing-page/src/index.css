@@ -6,7 +6,16 @@
 
 @plugin "tailwindcss-animate";
 @plugin "@tailwindcss/typography";
-@import '@timelapse/ui/globals.css';
+@import '../../../packages/ui/src/styles/globals.css';
+
+/* ═══════════════════════════════════════════════════
+   Metric Landing Page — Custom Styles & Animations
+   All color tokens now come from globals.css :root / .dark
+   ═══════════════════════════════════════════════════ */
+
+.landing * {
+  transition: background-color 0.3s ease, color 0.3s ease, border-color 0.3s ease;
+}
 
 /* Firefox */
 * {
@@ -26,7 +35,7 @@
 
 *::-webkit-scrollbar-thumb {
   background-color: rgba(100, 100, 100, 0.5);
-  border-radius: 9999px; /* arredondado */
+  border-radius: 9999px;
   border: 2px solid transparent;
   background-clip: content-box;
 }
@@ -35,11 +44,169 @@
   background-color: rgba(100, 100, 100, 0.8);
 }
 
-/* Aplica apenas no container principal do app */
 html,
 body,
 #__next,
 #root,
 .app {
-  overflow-y: overlay; /* não deixa espaço vazio */
+  overflow-y: overlay;
+}
+
+/* ── Keyframes ─────────────────────────────────── */
+
+@keyframes lp-fade-in-up {
+  from {
+    opacity: 0;
+    transform: translateY(24px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes lp-fade-in {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes lp-float {
+  0%, 100% { transform: translateY(0px); }
+  50% { transform: translateY(-12px); }
+}
+
+@keyframes lp-pulse-glow {
+  0%, 100% {
+    box-shadow: 0 0 20px oklch(0.6635 0.1517 255.9445 / 0.15), 0 0 60px oklch(0.6635 0.1517 255.9445 / 0.05);
+  }
+  50% {
+    box-shadow: 0 0 30px oklch(0.6635 0.1517 255.9445 / 0.3), 0 0 80px oklch(0.6635 0.1517 255.9445 / 0.1);
+  }
+}
+
+@keyframes lp-gradient-shift {
+  0% { background-position: 0% 50%; }
+  50% { background-position: 100% 50%; }
+  100% { background-position: 0% 50%; }
+}
+
+@keyframes lp-spin-slow {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+@keyframes lp-shimmer {
+  0% { background-position: -200% 0; }
+  100% { background-position: 200% 0; }
+}
+
+/* ── Animation utilities ──────────────────────── */
+
+.lp-animate-fade-in-up {
+  animation: lp-fade-in-up 0.7s ease-out forwards;
+  opacity: 0;
+}
+
+.lp-animate-fade-in {
+  animation: lp-fade-in 0.6s ease-out forwards;
+  opacity: 0;
+}
+
+.lp-animate-float {
+  animation: lp-float 6s ease-in-out infinite;
+}
+
+.lp-animate-pulse-glow {
+  animation: lp-pulse-glow 3s ease-in-out infinite;
+}
+
+.lp-animate-gradient {
+  background-size: 200% 200%;
+  animation: lp-gradient-shift 8s ease infinite;
+}
+
+.lp-animate-spin-slow {
+  animation: lp-spin-slow 20s linear infinite;
+}
+
+.lp-animate-shimmer {
+  background: linear-gradient(
+    90deg,
+    oklch(0.6635 0.1517 255.9445 / 0) 0%,
+    oklch(0.6635 0.1517 255.9445 / 0.08) 50%,
+    oklch(0.6635 0.1517 255.9445 / 0) 100%
+  );
+  background-size: 200% 100%;
+  animation: lp-shimmer 3s ease-in-out infinite;
+}
+
+/* Staggered delays */
+.lp-delay-100 { animation-delay: 100ms; }
+.lp-delay-200 { animation-delay: 200ms; }
+.lp-delay-300 { animation-delay: 300ms; }
+.lp-delay-400 { animation-delay: 400ms; }
+.lp-delay-500 { animation-delay: 500ms; }
+.lp-delay-600 { animation-delay: 600ms; }
+.lp-delay-700 { animation-delay: 700ms; }
+
+/* ── Landing card base ────────────────────────── */
+
+.lp-card {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  transition: all 0.35s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.lp-card:hover {
+  border-color: var(--ring);
+  background: var(--accent);
+  transform: translateY(-4px);
+  box-shadow: 0 8px 32px oklch(0.6635 0.1517 255.9445 / 0.12), 0 0 0 1px oklch(0.6635 0.1517 255.9445 / 0.15);
+}
+
+/* ── Glass effect ─────────────────────────────── */
+
+.lp-glass {
+  background: oklch(0.1773 0.0089 264.3183 / 0.7);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border: 1px solid var(--border);
+}
+
+/* ── Skeleton placeholder for images ──────────── */
+
+.lp-skeleton {
+  background: linear-gradient(
+    110deg,
+    var(--card) 30%,
+    var(--accent) 50%,
+    var(--card) 70%
+  );
+  background-size: 200% 100%;
+  animation: lp-shimmer 2s ease-in-out infinite;
+  border-radius: 12px;
+}
+
+/* ── Section divider glow ─────────────────────── */
+
+.lp-divider-glow {
+  height: 1px;
+  background: linear-gradient(
+    90deg,
+    transparent 0%,
+    oklch(0.6635 0.1517 255.9445 / 0.4) 50%,
+    transparent 100%
+  );
+}
+
+/* ── Grid dot pattern ─────────────────────────── */
+
+.lp-dot-pattern {
+  background-image: radial-gradient(
+    circle,
+    oklch(0.6635 0.1517 255.9445 / 0.15) 1px,
+    transparent 1px
+  );
+  background-size: 32px 32px;
 }
