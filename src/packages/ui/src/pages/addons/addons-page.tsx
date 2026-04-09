@@ -12,6 +12,8 @@ import { useMemo, useState } from 'react'
 import { useParams } from 'react-router-dom'
 import { toast } from 'sonner'
 
+import jiraLogo from '@/assets/temp-plugins-icons/jira.png'
+import youtrackLogo from '@/assets/temp-plugins-icons/youtrack.png'
 import { FileUploadButton } from '@/components'
 import { Input } from '@/components/ui/input'
 import { ScrollArea } from '@/components/ui/scroll-area'
@@ -31,6 +33,47 @@ import {
 } from './addon-dialogs'
 import { AddonList } from './addon-list'
 import type { AddonConnection, AddonItem } from './addon-types'
+
+const MOCK_ADDONS: AddonItem[] = [
+  {
+    id: 'jira-mock',
+    name: 'Jira Software',
+    description:
+      'Importe suas issues e gerencie o tempo diretamente no Metric.',
+    author: 'Metric Foundation',
+    version: '1.0.0',
+    logo: jiraLogo,
+    installed: true,
+    category: 'data-sources',
+    connections: [
+      {
+        id: 'c1',
+        name: 'Jira Produção',
+        url: 'empresa.atlassian.net',
+        status: 'connected',
+      },
+    ],
+  },
+  {
+    id: 'youtrack-mock',
+    name: 'YouTrack',
+    description:
+      'Sincronização ágil com JetBrains YouTrack para rastreamento de tarefas.',
+    author: 'Metric Foundation',
+    version: '1.2.4',
+    logo: youtrackLogo,
+    installed: true,
+    category: 'data-sources',
+    connections: [
+      {
+        id: 'c2',
+        name: 'YouTrack Local',
+        url: 'youtrack.internal.com',
+        status: 'disconnected',
+      },
+    ],
+  },
+]
 
 function getConnections(
   workspace: WorkspaceDTO | null,
@@ -149,7 +192,7 @@ export function AddonsPage() {
     })
     const list = Array.from(byId.values())
 
-    return list.map((m) => {
+    const realAddons = list.map((m) => {
       const connsForAddon = connections.filter((c) =>
         connectionMatchesAddon(c, m.id),
       )
@@ -170,6 +213,8 @@ export function AddonsPage() {
 
       return manifestToAddonItem(m, addonConnections, addonCategory(m))
     })
+
+    return [...realAddons, ...MOCK_ADDONS]
   }, [installedList, availableList, connections, membersByConnection])
 
   const categoryCounts = useMemo(
