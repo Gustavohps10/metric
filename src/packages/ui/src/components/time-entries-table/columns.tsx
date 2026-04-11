@@ -27,19 +27,19 @@ export const columns: ColumnDef<Row>[] = [
   {
     id: 'expand',
     header: '',
-    size: 40,
-    minSize: 40,
-    maxSize: 40,
+    size: 30,
+    minSize: 30,
+    maxSize: 30,
     cell: ({ row }) => {
       if (row.depth > 0) return null
       const count = row.original.subRows?.length ?? 0
       const hasSubRows = count > 1
 
       return (
-        <div className="flex items-center">
+        <div className="flex w-[30px] items-center">
           <button
             onClick={hasSubRows ? row.getToggleExpandedHandler() : undefined}
-            className="flex items-center gap-2 transition-opacity"
+            className="w-[30px] transition-opacity"
             style={{
               cursor: hasSubRows ? 'pointer' : 'default',
               opacity: hasSubRows ? 1 : 0.3,
@@ -74,8 +74,8 @@ export const columns: ColumnDef<Row>[] = [
         Ticket
       </div>
     ),
-    size: 110,
-    minSize: 100,
+    size: 90,
+    minSize: 80,
     cell: ({ row }) => {
       const taskId = row.original.task?.id
       const taskSubject = row.original.taskData?.title
@@ -101,7 +101,7 @@ export const columns: ColumnDef<Row>[] = [
   {
     id: 'syncStatus',
     header: 'Sinc',
-    size: 40,
+    size: 36,
     cell: ({ row }) => {
       const { syncedAt, conflicted, validationError } = row.original
       if (conflicted)
@@ -148,12 +148,15 @@ export const columns: ColumnDef<Row>[] = [
     id: 'createdAt',
     accessorKey: 'createdAt',
     header: 'Criado em',
-    size: 100,
+    size: 90,
     cell: ({ row }) => {
       const date = row.original.createdAt
       return (
-        <span className="text-muted-foreground font-mono text-[13px]">
-          {format(parseISO(date), 'dd/MM HH:mm')}
+        <span className="text-muted-foreground font-mono tracking-tight">
+          <span className="text-[11px]">{format(parseISO(date), 'dd/MM')}</span>
+          <span className="ml-[4px] text-[10px] opacity-80">
+            {format(parseISO(date), 'HH:mm')}
+          </span>
         </span>
       )
     },
@@ -162,19 +165,21 @@ export const columns: ColumnDef<Row>[] = [
     id: 'activity',
     accessorKey: 'activity.id',
     header: 'Atividade',
-    size: 160,
+    size: 140,
+    minSize: 100,
   },
   {
     id: 'comments',
     accessorKey: 'comments',
     header: 'Comentário',
-    size: 400,
-    minSize: 250,
+    size: 200,
+    minSize: 120,
   },
   {
     id: 'hours',
     accessorKey: 'timeSpent',
     header: 'Tempo',
-    size: 260,
+    size: 160, // era 260
+    minSize: 120,
   },
 ]

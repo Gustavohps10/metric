@@ -706,7 +706,7 @@ export function TimeEntries() {
               .map((id) => activities.find((a) => a.id === id))
               .filter((a): a is SyncMetadataItem => !!a)
             return (
-              <div className="relative flex h-8 w-full min-w-[180px] items-center">
+              <div className="relative flex h-8 w-full min-w-0 items-center">
                 <div className="relative h-6 w-full">
                   {groupActivities.slice(0, 3).map((act, i) => (
                     <div
@@ -725,7 +725,9 @@ export function TimeEntries() {
                     >
                       {iconMap[act.icon] &&
                         React.createElement(iconMap[act.icon], { size: 12 })}
-                      <span className="max-w-[100px] truncate">{act.name}</span>
+                      <span className="max-w-[80px] truncate md:max-w-[120px]">
+                        {act.name}
+                      </span>
                     </div>
                   ))}
                 </div>
@@ -960,8 +962,8 @@ export function TimeEntries() {
       <hr className="mt-2" />
 
       <Card className="bg-card/50 sticky top-0 z-10 rounded-none border-x-0 border-t-0 border-b shadow-sm backdrop-blur-sm">
-        <CardContent className="flex h-14 items-center gap-0 p-0">
-          <div className="group focus-within:bg-background flex h-full flex-1 items-center border-r px-4 transition-colors">
+        <CardContent className="flex h-auto min-h-14 flex-wrap items-center gap-0 p-0 md:flex-nowrap">
+          <div className="group focus-within:bg-background flex h-full min-w-full flex-1 items-center border-r px-4 transition-colors md:min-w-[300px]">
             <div className="relative flex w-full items-center gap-2">
               <div className="w-[180px]">
                 <LookupInput
@@ -1094,7 +1096,7 @@ export function TimeEntries() {
         </CardContent>
       </Card>
 
-      <div className="container py-8">
+      <div className="w-full px-4 py-8 md:container">
         <DatePickerWithRange date={range} setDate={handleRangeChange} />
         <div className="mt-8 space-y-10">
           {isLoading ? (
@@ -1173,17 +1175,19 @@ export function TimeEntries() {
                   </div>
                   {grouped.length > 0 ? (
                     <>
-                      <DataTable
-                        columns={tableColumns}
-                        data={grouped}
-                        expanded={expandedRows}
-                        onExpandedChange={setExpandedRows}
-                        getRowClassName={(row) =>
-                          row.isSuggestion
-                            ? 'bg-primary/5 border-dashed opacity-80 animate-pulse'
-                            : ''
-                        }
-                      />
+                      <div className="border-border w-full overflow-x-auto rounded-md border">
+                        <DataTable
+                          columns={tableColumns}
+                          data={grouped}
+                          expanded={expandedRows}
+                          onExpandedChange={setExpandedRows}
+                          getRowClassName={(row) =>
+                            row.isSuggestion
+                              ? 'bg-primary/5 border-dashed opacity-80 animate-pulse'
+                              : ''
+                          }
+                        />
+                      </div>
                       <div className="flex justify-end pr-4">
                         <div className="flex items-center gap-2 py-2">
                           <span className="text-muted-foreground text-[10px] font-bold tracking-wider uppercase">

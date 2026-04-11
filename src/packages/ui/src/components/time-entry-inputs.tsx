@@ -192,8 +192,10 @@ export const TimeEntryInputs = ({
   return (
     <div
       className={cn(
-        'bg-muted/20 flex items-center gap-1 rounded-md border p-0.5 transition-all',
-        disabled ? 'border-transparent' : 'border-border',
+        'inline-flex items-center gap-0.5 rounded border px-1 py-0.5 transition-all',
+        disabled
+          ? 'border-transparent bg-transparent'
+          : 'bg-muted/20 border-border hover:border-border/80',
         className,
       )}
     >
@@ -210,14 +212,17 @@ export const TimeEntryInputs = ({
         onKeyDown={(e) =>
           e.key === 'Enter' && (e.target as HTMLInputElement).blur()
         }
+        style={{ padding: 0, lineHeight: 1 }}
         className={cn(
-          'h-6 w-[58px] border-none bg-transparent p-0 text-center font-mono text-[10px] transition-colors focus-visible:ring-0',
-          errors.start && 'text-destructive font-bold',
+          'h-5 w-[46px] border-none bg-transparent text-center font-mono text-[11px] focus-visible:ring-0',
+          errors.start ? 'text-destructive font-bold' : 'text-muted-foreground',
         )}
         placeholder="00:00"
       />
 
-      <span className="text-[10px] opacity-30">-</span>
+      <span className="text-muted-foreground/30 text-[10px] leading-none">
+        ›
+      </span>
 
       <Input
         disabled={disabled}
@@ -230,14 +235,15 @@ export const TimeEntryInputs = ({
         onKeyDown={(e) =>
           e.key === 'Enter' && (e.target as HTMLInputElement).blur()
         }
+        style={{ padding: 0, lineHeight: 1 }}
         className={cn(
-          'h-6 w-[58px] border-none bg-transparent p-0 text-center font-mono text-[10px] transition-colors focus-visible:ring-0',
-          errors.end && 'text-destructive font-bold',
+          'h-5 w-[46px] border-none bg-transparent text-center font-mono text-[11px] focus-visible:ring-0',
+          errors.end ? 'text-destructive font-bold' : 'text-muted-foreground',
         )}
         placeholder="00:00"
       />
 
-      <div className="bg-border/60 mx-1 h-3 w-px" />
+      <div className="bg-border/40 mx-1 h-3 w-px shrink-0" />
 
       <Input
         disabled={disabled}
@@ -252,9 +258,11 @@ export const TimeEntryInputs = ({
         onKeyDown={(e) =>
           e.key === 'Enter' && (e.target as HTMLInputElement).blur()
         }
+        style={{ padding: 0, lineHeight: 1 }}
         className={cn(
-          'text-primary h-6 w-[82px] border-none bg-transparent p-0 text-center font-mono text-[10px] font-bold transition-colors focus-visible:ring-0',
+          'text-primary h-5 w-[72px] border-none bg-transparent text-center font-mono text-[11px] font-semibold focus-visible:ring-0',
           errors.spent && 'text-destructive',
+          disabled && 'text-foreground/60',
         )}
         placeholder="0:00"
       />

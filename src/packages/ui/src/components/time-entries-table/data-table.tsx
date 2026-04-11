@@ -50,19 +50,20 @@ export function DataTable<TData extends { subRows?: TData[]; id: string }>({
   })
 
   return (
-    <div className="bg-background overflow-hidden rounded-md border shadow-sm">
-      <Table className="table-fixed">
+    <div className="bg-background w-full overflow-x-auto rounded-md border shadow-sm">
+      <Table className="w-full min-w-0 table-fixed">
         <TableHeader className="bg-muted/30">
           {table.getHeaderGroups().map((headerGroup) => (
             <TableRow key={headerGroup.id} className="hover:bg-transparent">
               {headerGroup.headers.map((header) => (
                 <TableHead
                   key={header.id}
-                  style={{
-                    width: `${header.getSize()}px`,
-                    maxWidth: `${header.getSize()}px`,
-                  }}
-                  className="text-muted-foreground px-4 py-3 text-[10px] font-bold tracking-wider uppercase"
+                  style={{ width: header.getSize() }}
+                  className={cn(
+                    'text-muted-foreground px-2 py-3 text-[10px] font-bold tracking-wider uppercase',
+                    header.id === 'createdAt' && 'hidden md:table-cell',
+                    header.id === 'syncStatus' && 'hidden sm:table-cell',
+                  )}
                 >
                   {header.isPlaceholder
                     ? null
@@ -91,16 +92,12 @@ export function DataTable<TData extends { subRows?: TData[]; id: string }>({
                 {row.getVisibleCells().map((cell) => (
                   <TableCell
                     key={cell.id}
-                    style={{
-                      width: `${cell.column.getSize()}px`,
-                      maxWidth: `${cell.column.getSize()}px`,
-                    }}
+                    style={{ width: cell.column.getSize() }}
                     className={cn(
-                      'border-border/40 overflow-hidden border-b py-2 text-sm whitespace-nowrap',
-                      cell.column.id === 'actions' ? 'px-0 pr-2' : 'px-4',
-                      cell.column.getIndex() === 0 && row.depth > 0 && 'pl-10',
-                      cell.column.id === 'expand' && 'px-0 pl-2',
-                      cell.column.getIndex() === 0 && row.depth > 0 && 'pl-10',
+                      'border-border/40 border-b py-2 text-sm',
+                      cell.column.id === 'actions' ? 'px-0 pr-2' : 'px-2',
+                      cell.column.id === 'createdAt' && 'hidden md:table-cell',
+                      cell.column.id === 'syncStatus' && 'hidden sm:table-cell',
                     )}
                   >
                     {flexRender(cell.column.columnDef.cell, cell.getContext())}
