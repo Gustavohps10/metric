@@ -1,5 +1,7 @@
 'use client'
 
+import { Button } from '@timelapse/ui/components'
+
 export function Hero() {
   return (
     <section
@@ -84,13 +86,7 @@ export function Hero() {
 
         {/* CTAs */}
         <div className="lp-animate-fade-in-up lp-delay-300 mt-12 flex flex-col items-center justify-center gap-4 sm:flex-row">
-          <a
-            id="cta-hero-start"
-            href="#pricing"
-            className="bg-primary text-primary-foreground hover:shadow-primary/25 inline-flex h-13 items-center rounded-xl px-8 text-base font-semibold transition-all duration-300 hover:scale-105 hover:shadow-xl active:scale-95"
-          >
-            Começar Grátis
-          </a>
+          <Button> Começar Grátis </Button>
           <a
             id="cta-hero-demo"
             href="#demo"

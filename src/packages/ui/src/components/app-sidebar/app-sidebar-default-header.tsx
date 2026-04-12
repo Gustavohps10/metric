@@ -13,7 +13,7 @@ export function AppSidebarDefaultHeader() {
         <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-white shadow-sm ring-1 ring-zinc-200 dark:bg-zinc-950 dark:ring-zinc-800">
           <img
             src={logoIcon}
-            className="h-5 w-5 opacity-90 dark:opacity-100 dark:invert"
+            className="h-4 w-4 opacity-90 dark:opacity-100 dark:invert"
             alt="Logo Metric"
           />
         </div>
@@ -26,7 +26,7 @@ export function AppSidebarDefaultHeader() {
             alt="Metric"
           />
           <span className="mt-0.5 truncate text-[11px] text-zinc-500 dark:text-zinc-400">
-            Open Source
+            Open Core
           </span>
         </div>
 

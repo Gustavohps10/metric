@@ -2,6 +2,7 @@ import '../index.css'
 
 import type { Metadata } from 'next'
 import { Geist_Mono, Inter } from 'next/font/google'
+import { ThemeProvider } from 'next-themes'
 
 const inter = Inter({
   variable: '--font-inter',
@@ -28,15 +29,18 @@ export default function RootLayout({
   return (
     <html
       lang="pt-BR"
+      suppressHydrationWarning // Utilizado para ignorar erro do NextThemes
       className={`${inter.variable} ${geistMono.variable} h-full antialiased`}
     >
-      <body
-        className="flex min-h-full flex-col"
-        style={{
-          fontFamily: 'var(--font-inter), Inter, system-ui, sans-serif',
-        }}
-      >
-        {children}
+      <body className="flex min-h-full flex-col">
+        <ThemeProvider
+          attribute="class"
+          defaultTheme="system"
+          enableSystem
+          disableTransitionOnChange
+        >
+          {children}
+        </ThemeProvider>
       </body>
     </html>
   )

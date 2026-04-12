@@ -1,3 +1,4 @@
+import { cpSync } from 'fs'
 import { defineConfig } from 'tsup'
 
 export default defineConfig({
@@ -11,6 +12,7 @@ export default defineConfig({
     'src/layouts/index.ts',
     'src/providers/index.ts',
     'src/pages/index.ts',
+    'src/assets/index.ts',
     'src/styles/globals.css',
   ],
   format: ['esm'],
@@ -23,6 +25,9 @@ export default defineConfig({
   // Mantemos o banner agressivo para os chunks não quebrarem o Next
   banner: {
     js: '"use client";',
+  },
+  onSuccess: async () => {
+    cpSync('src/assets', 'dist/ui', { recursive: true })
   },
 
   esbuildOptions(options) {
@@ -44,11 +49,11 @@ export default defineConfig({
   ],
   loader: {
     '.css': 'copy',
-    '.png': 'dataurl',
-    '.svg': 'dataurl',
-    '.jpg': 'dataurl',
-    '.jpeg': 'dataurl',
-    '.gif': 'dataurl',
+    '.png': 'copy',
+    '.svg': 'copy',
+    '.jpg': 'copy',
+    '.jpeg': 'copy',
+    '.gif': 'copy',
   },
 
   tsconfig: './tsconfig.build.json',
