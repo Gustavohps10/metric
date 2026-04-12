@@ -74,7 +74,7 @@ export function DownloadCTA({
 
       <div className="bg-border/60 w-px" />
 
-      <DropdownMenu>
+      <DropdownMenu modal={false}>
         <DropdownMenuTrigger asChild>
           <Button
             size={size}

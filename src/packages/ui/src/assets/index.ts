@@ -1,8 +1,6 @@
-export const jiraLogo = '/assets/temp-plugins-icons/jira.png'
-export const youtrackLogo = '/assets/temp-plugins-icons/youtrack.png'
+export const logo = '/ui/logo.svg'
+export const logoIcon = '/ui/logo-icon.svg'
+export const logoText = '/ui/logo-text.svg'
 
-export const logoTimelapse = '/assets/logo-atak.png'
-export const timerIcon = '/assets/timer-icon.png'
-export const logo = '/assets/logo.svg'
-export const logoIcon = '/assets/logo-icon.svg'
-export const logoText = '/assets/logo-text.svg'
+export const jiraLogo = '/ui/temp-plugins-icons/jira.png'
+export const youtrackLogo = '/ui/temp-plugins-icons/youtrack.png'

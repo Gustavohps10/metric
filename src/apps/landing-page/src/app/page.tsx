@@ -10,6 +10,7 @@ import {
 import {
   Activity,
   ArrowRight,
+  BookOpenTextIcon,
   Building2,
   Check,
   ChevronRight,
@@ -19,27 +20,60 @@ import {
   Github,
   GitMerge,
   HardDrive,
-  Layers,
-  LayoutDashboard,
   Linkedin,
   Lock,
+  MessageSquarePlus,
   Play,
-  Plus,
   RefreshCw,
   Server,
   ShieldCheck,
+  Star,
   Terminal,
   Timer,
   Twitter,
   User,
   Wifi,
   WifiOff,
-  Zap,
+  X,
 } from 'lucide-react'
+import Image from 'next/image'
 import * as React from 'react'
 
 import { DownloadCTA } from '@/app/components/download-cta'
+import { MobileMenu } from '@/components/mobile-menu'
 import { ServerSideModeToggle } from '@/components/mode-toggle'
+
+const TECH_STACK = [
+  {
+    name: 'TypeScript',
+    url: 'https://cdn.jsdelivr.net/gh/homarr-labs/dashboard-icons/svg/typescript.svg',
+  },
+  {
+    name: 'Node.js',
+    url: 'https://cdn.jsdelivr.net/gh/homarr-labs/dashboard-icons/svg/nodejs-alt.svg',
+  },
+  {
+    name: 'React',
+    url: 'https://cdn.jsdelivr.net/gh/homarr-labs/dashboard-icons/svg/reactjs.svg',
+  },
+  {
+    name: 'Next.js',
+    url: 'https://cdn.jsdelivr.net/gh/homarr-labs/dashboard-icons/svg/nextjs-light.svg',
+    invert: false,
+  },
+  {
+    name: 'Tailwind',
+    url: 'https://cdn.jsdelivr.net/gh/homarr-labs/dashboard-icons/svg/tailwind.svg',
+  },
+  {
+    name: 'Electron',
+    url: 'https://cdn.jsdelivr.net/gh/homarr-labs/dashboard-icons/svg/electron.svg',
+  },
+  {
+    name: 'Turbopack',
+    url: 'https://cdn.jsdelivr.net/gh/homarr-labs/dashboard-icons/svg/turbopack-light.svg',
+  },
+]
 
 // --- Mock Data ---
 
@@ -51,7 +85,6 @@ const FEATURES = [
     description:
       'Um atalho de teclado inicia o timer. Ele roda offline, sem latência, sem distrações. Quando você voltar, o contexto já está salvo.',
     tag: 'Core',
-    accent: 'from-violet-500/20 to-indigo-500/5',
     border: 'hover:border-violet-500/40',
     glow: 'group-hover:shadow-violet-500/10',
   },
@@ -62,7 +95,6 @@ const FEATURES = [
     description:
       'Conecte Redmine, Jira ou YouTrack. O Metric actua como bridge — os dados fluem nos dois sentidos sem conflito.',
     tag: 'Integração',
-    accent: 'from-sky-500/20 to-cyan-500/5',
     border: 'hover:border-sky-500/40',
     glow: 'group-hover:shadow-sky-500/10',
   },
@@ -73,7 +105,6 @@ const FEATURES = [
     description:
       'Detecta trocas de contexto, calcula sessões de foco real e apresenta um score diário de performance — tudo calculado localmente.',
     tag: 'Insights',
-    accent: 'from-emerald-500/20 to-teal-500/5',
     border: 'hover:border-emerald-500/40',
     glow: 'group-hover:shadow-emerald-500/10',
   },
@@ -86,15 +117,9 @@ const INTEGRATIONS = [
     status: 'live' as const,
     accentBg: 'bg-[#0052CC]/5',
     accentBorder: 'border-[#0052CC]/15',
-    icon: (
-      <svg viewBox="0 0 32 32" className="size-5" fill="none">
-        <path
-          d="M2 18.857L13.143 7.714 16 4.571 18.857 7.714 29.143 18.857 16 27.429 2 18.857z"
-          fill="#0052CC"
-        />
-        <path d="M16 4.571L13.143 7.714H18.857L16 4.571z" fill="#2684FF" />
-      </svg>
-    ),
+    darkInvert: false,
+    logoUrl:
+      'https://cdn.jsdelivr.net/gh/homarr-labs/dashboard-icons/svg/jira.svg',
   },
   {
     name: 'Redmine',
@@ -102,7 +127,9 @@ const INTEGRATIONS = [
     status: 'live' as const,
     accentBg: 'bg-red-600/5',
     accentBorder: 'border-red-600/15',
-    icon: <LayoutDashboard className="size-5 text-red-500" />,
+    darkInvert: false,
+    logoUrl:
+      'https://cdn.jsdelivr.net/gh/homarr-labs/dashboard-icons/svg/redmine.svg',
   },
   {
     name: 'GitHub',
@@ -110,7 +137,9 @@ const INTEGRATIONS = [
     status: 'live' as const,
     accentBg: 'bg-muted/30',
     accentBorder: 'border-border/40',
-    icon: <Github className="size-5" />,
+    darkInvert: true,
+    logoUrl:
+      'https://cdn.jsdelivr.net/gh/homarr-labs/dashboard-icons/svg/github.svg',
   },
   {
     name: 'YouTrack',
@@ -118,7 +147,9 @@ const INTEGRATIONS = [
     status: 'live' as const,
     accentBg: 'bg-amber-500/5',
     accentBorder: 'border-amber-500/15',
-    icon: <Zap className="size-5 text-amber-500" />,
+    darkInvert: false,
+    logoUrl:
+      'https://cdn.jsdelivr.net/gh/homarr-labs/dashboard-icons/svg/jetbrains-youtrack.svg',
   },
   {
     name: 'Linear',
@@ -126,7 +157,9 @@ const INTEGRATIONS = [
     status: 'soon' as const,
     accentBg: 'bg-violet-500/5',
     accentBorder: 'border-violet-500/15',
-    icon: <Layers className="size-5 text-violet-400" />,
+    darkInvert: true,
+    logoUrl:
+      'https://cdn.jsdelivr.net/gh/homarr-labs/dashboard-icons/svg/linear.svg',
   },
   {
     name: 'GitLab',
@@ -134,7 +167,9 @@ const INTEGRATIONS = [
     status: 'soon' as const,
     accentBg: 'bg-orange-500/5',
     accentBorder: 'border-orange-500/15',
-    icon: <GitMerge className="size-5 text-orange-400" />,
+    darkInvert: false,
+    logoUrl:
+      'https://cdn.jsdelivr.net/gh/homarr-labs/dashboard-icons/svg/gitlab.svg',
   },
 ]
 
@@ -192,32 +227,85 @@ export default function LandingPage() {
 
 function Navbar() {
   return (
-    <header className="border-border/40 bg-background/80 supports-[backdrop-filter]:bg-background/60 fixed top-0 z-50 w-full border-b backdrop-blur-xl">
-      <div className="container mx-auto flex h-14 items-center justify-between px-6">
+    <header className="border-border/40 bg-background/80 supports-backdrop-filter:bg-background/60 fixed top-0 z-50 w-full border-b backdrop-blur-xl">
+      <div className="container mx-auto flex h-16 items-center justify-between px-6 py-4">
         <div className="flex items-center gap-2.5 text-base font-bold tracking-tight">
-          <div className="bg-primary flex size-7 items-center justify-center rounded-md shadow-sm">
-            <Clock className="text-primary-foreground size-4" />
+          <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-white shadow-sm ring-1 ring-zinc-200 dark:bg-zinc-950 dark:ring-zinc-800">
+            <Image
+              src="/logo-icon.svg"
+              alt="Logo icon"
+              width={16}
+              height={16}
+              className="object-contain dark:invert"
+            />
           </div>
-          <span className="font-semibold">Metric</span>
+
+          <div className="flex min-w-0 flex-col leading-tight">
+            <Image
+              src="/logo-text.svg"
+              alt="Metric"
+              width={72}
+              height={16}
+              className="object-contain dark:invert"
+            />
+            <span className="mt-0.5 truncate pt-0.5 text-[11px] font-light text-zinc-500 dark:text-zinc-400">
+              Open Core
+            </span>
+          </div>
         </div>
 
-        <nav className="hidden items-center gap-6 md:flex">
-          {[
-            { href: '#features', label: 'Funcionalidades' },
-            { href: '#integrations', label: 'Integrações' },
-            { href: '#offline', label: 'Arquitetura' },
-            { href: '#pricing', label: 'Preços' },
-          ].map((item) => (
-            <a
-              key={item.href}
-              href={item.href}
-              className="text-muted-foreground hover:text-foreground text-sm transition-colors duration-200"
-            >
-              {item.label}
-            </a>
-          ))}
-          <ServerSideModeToggle />
+        <nav className="hidden h-full items-center py-2 md:flex">
+          <div className="mr-4 flex items-center gap-5">
+            {[
+              { href: '#features', label: 'Funcionalidades' },
+              { href: '#integrations', label: 'Integrações' },
+              { href: '#offline', label: 'Arquitetura' },
+              { href: '#pricing', label: 'Preços' },
+            ].map((item) => (
+              <a
+                key={item.href}
+                href={item.href}
+                className="text-muted-foreground hover:text-foreground text-sm font-medium transition-colors"
+              >
+                {item.label}
+              </a>
+            ))}
+          </div>
+
+          <Separator orientation="vertical" className="mx-3 h-4" />
+
+          <a
+            href="/docs"
+            className="text-muted-foreground hover:text-foreground flex items-center gap-2 text-sm font-medium transition-colors"
+          >
+            <BookOpenTextIcon className="size-4" />
+            Docs
+          </a>
+
+          <Separator orientation="vertical" className="mx-2 h-4" />
+
+          <div className="flex items-center">
+            <ServerSideModeToggle />
+          </div>
+
+          <Separator orientation="vertical" className="mx-2 h-4" />
+
+          <a
+            href="https://github.com/gustavohps10/metric"
+            target="_blank"
+            rel="noreferrer"
+            className="group text-muted-foreground hover:text-foreground flex items-center gap-2 rounded-md px-2 py-1 text-sm font-medium transition-all"
+          >
+            <Github className="size-4" />
+            <span className="text-foreground/90">gustavohps10/metric</span>
+            <div className="ml-0.5 flex items-center gap-1">
+              <Star className="size-3.5 transition-transform duration-200 group-hover:scale-110" />
+              <span className="text-xs tabular-nums opacity-80">120</span>
+            </div>
+          </a>
         </nav>
+
+        <MobileMenu />
       </div>
     </header>
   )
@@ -225,28 +313,52 @@ function Navbar() {
 
 // --- Hero ---
 
-function HeroSection() {
+export function HeroSection() {
   return (
-    <section className="relative overflow-hidden pt-36 pb-0 lg:pt-48">
-      {/* Background radial glow */}
-      <div className="pointer-events-none absolute inset-0 -z-10">
-        <div className="bg-primary/8 absolute top-0 left-1/2 h-[600px] w-[900px] -translate-x-1/2 rounded-full opacity-60 blur-[160px]" />
-        <div className="absolute top-48 left-1/4 h-[300px] w-[400px] rounded-full bg-violet-500/5 blur-[100px]" />
-        <div className="absolute top-32 right-1/4 h-[250px] w-[350px] rounded-full bg-sky-500/5 blur-[100px]" />
+    <section className="bg-background relative flex min-h-screen flex-col items-center justify-center overflow-hidden py-20 lg:py-48">
+      {/* Background effects - Estilo Premium com Orbs e Dot Pattern */}
+      <div className="pointer-events-none absolute inset-0">
+        {/* Orbs com animação de flutuação suave */}
+        <div
+          className="absolute -top-32 left-1/4 h-[600px] w-[600px] rounded-full opacity-20 blur-[120px]"
+          style={{
+            background: 'var(--primary)',
+            animation: 'hero-float 15s ease-in-out infinite',
+          }}
+        />
+        <div
+          className="absolute right-1/4 -bottom-32 h-[500px] w-[500px] rounded-full opacity-15 blur-[100px]"
+          style={{
+            background: 'var(--primary)',
+            animation: 'hero-float 20s ease-in-out infinite reverse',
+          }}
+        />
+
+        {/* Dot pattern */}
+        <div className="lp-dot-pattern absolute inset-0 opacity-[0.15]" />
+
+        {/* Radial gradient fade central */}
+        <div
+          className="absolute inset-0"
+          style={{
+            background:
+              'radial-gradient(ellipse 70% 50% at 50% 45%, transparent 0%, var(--background) 100%)',
+          }}
+        />
       </div>
 
-      <div className="container mx-auto px-6 text-center">
+      <div className="relative z-10 container mx-auto px-6 text-center">
         {/* Eyebrow badge */}
         <div className="border-border/60 bg-muted/40 text-muted-foreground mb-8 inline-flex items-center gap-2 rounded-full border px-4 py-1.5 text-xs font-medium backdrop-blur-sm">
-          <span className="size-1.5 animate-pulse rounded-full bg-emerald-400" />
-          Local-first · Offline-ready · Open-core
+          <span className="size-1.5 animate-pulse rounded-full bg-emerald-400 shadow-[0_0_8px_rgba(52,211,153,0.8)]" />
+          Local-first &middot; Offline-ready &middot; Open-core
         </div>
 
         {/* Headline */}
-        <h1 className="mx-auto max-w-4xl text-5xl leading-[1.08] font-extrabold tracking-tight sm:text-6xl lg:text-7xl">
+        <h1 className="text-foreground mx-auto max-w-4xl text-5xl leading-[1.08] font-extrabold tracking-tight sm:text-6xl lg:text-7xl">
           Seu tempo registrado{' '}
           <span className="relative">
-            <span className="from-primary to-primary bg-gradient-to-r via-violet-400 bg-clip-text text-transparent">
+            <span className="from-primary to-primary/60 bg-gradient-to-r bg-clip-text text-transparent">
               sem depender da nuvem.
             </span>
           </span>
@@ -254,18 +366,18 @@ function HeroSection() {
 
         {/* Subheadline */}
         <p className="text-muted-foreground mx-auto mt-6 max-w-2xl text-base leading-relaxed sm:text-lg">
-          Metric é um engine de produtividade local-first para devs e times
-          técnicos. Funciona offline, sincroniza com Jira, Redmine e GitHub — e
-          seus dados nunca saem da sua máquina sem sua permissão.
+          Metric &eacute; um engine de produtividade local-first para devs e
+          times t&eacute;cnicos. Funciona offline, sincroniza com Jira, Redmine
+          e GitHub &mdash; e seus dados nunca saem da sua m&aacute;quina sem sua
+          permiss&atilde;o.
         </p>
 
         {/* CTAs */}
         <div className="mt-10 flex flex-col items-center justify-center gap-3 sm:flex-row">
           <DownloadCTA />
           <Button
-            size="lg"
             variant="ghost"
-            className="text-muted-foreground hover:text-foreground border-border/50 hover:border-border h-11 gap-2 border px-6 text-sm"
+            className="text-muted-foreground hover:text-foreground border-border/50 hover:border-border h-11 gap-2 border px-6 text-sm backdrop-blur-sm"
           >
             <Play className="size-3.5 fill-current" />
             Ver Demo (2 min)
@@ -274,17 +386,18 @@ function HeroSection() {
 
         {/* Social proof */}
         <p className="text-muted-foreground/60 mt-5 text-xs">
-          Sem cartão de crédito · Instalação em 30 segundos · MIT License
+          Sem cart&atilde;o de cr&eacute;dito &middot; Instala&ccedil;&atilde;o
+          em 30 segundos &middot; MIT License
         </p>
 
         {/* Stats row */}
-        <div className="mt-16 flex flex-wrap justify-center gap-12">
+        <div className="text-foreground mt-16 flex flex-wrap justify-center gap-12 text-center">
           {[
             { label: 'Horas rastreadas', value: '10k+' },
             { label: 'Integrações nativas', value: '6+' },
             { label: 'Uptime do sync', value: '99.9%' },
           ].map((stat) => (
-            <div key={stat.label} className="text-center">
+            <div key={stat.label}>
               <div className="text-2xl font-bold tracking-tight">
                 {stat.value}
               </div>
@@ -295,155 +408,30 @@ function HeroSection() {
           ))}
         </div>
 
-        {/* Product screenshot with gradient fade */}
+        {/* Product screenshot */}
         <div className="relative mx-auto mt-16 w-full max-w-5xl">
-          {/* Glow halo behind the card */}
-          <div className="bg-primary/15 absolute inset-x-0 top-1/4 bottom-0 -z-10 mx-auto w-3/4 rounded-full blur-[80px]" />
+          {/* Brilho suave atrás do card */}
+          <div className="bg-primary/10 absolute inset-x-0 top-1/4 bottom-0 -z-10 mx-auto w-3/4 rounded-full blur-[80px]" />
 
-          {/* Screenshot container */}
-          <div
-            className="border-border/50 bg-card/80 relative overflow-hidden rounded-2xl border shadow-2xl shadow-black/30 backdrop-blur-sm"
-            style={{
-              boxShadow:
-                '0 0 0 1px hsl(var(--border) / 0.5), 0 32px 80px -12px rgba(0,0,0,0.4), 0 0 60px -20px hsl(var(--primary) / 0.2)',
-            }}
-          >
-            {/* Fake window chrome */}
-            <div className="border-border/40 bg-muted/30 flex items-center gap-2 border-b px-4 py-3">
-              <div className="flex gap-1.5">
-                <div className="size-3 rounded-full bg-red-500/50" />
-                <div className="size-3 rounded-full bg-yellow-500/50" />
-                <div className="size-3 rounded-full bg-green-500/50" />
-              </div>
-              <div className="mx-4 flex-1">
-                <div className="bg-muted/60 mx-auto flex h-5 max-w-[260px] items-center justify-center gap-1.5 rounded-md px-3">
-                  <Lock className="text-muted-foreground/50 size-2.5" />
-                  <span className="text-muted-foreground/50 text-[10px]">
-                    metric · local
-                  </span>
-                </div>
-              </div>
-            </div>
+          <Image
+            src="/images/feature_apontamento2.jpeg"
+            alt="Features"
+            width={1920}
+            height={800}
+            className="rounded-lg"
+          />
 
-            {/* Main app mockup */}
-            <div className="bg-background/50 p-6">
-              {/* Toolbar row */}
-              <div className="mb-6 flex items-center justify-between">
-                <div className="flex items-center gap-3">
-                  <div className="bg-muted/60 h-7 w-28 animate-pulse rounded-md" />
-                  <div className="bg-muted/40 h-7 w-20 rounded-md" />
-                  <div className="bg-muted/40 h-7 w-16 rounded-md" />
-                </div>
-                <div className="flex items-center gap-2">
-                  <div className="flex items-center gap-1.5 rounded-full border border-emerald-500/30 bg-emerald-500/10 px-3 py-1 font-mono text-xs text-emerald-400">
-                    <span className="size-1.5 animate-pulse rounded-full bg-emerald-400" />
-                    00:47:23
-                  </div>
-                  <Button size="sm" className="bg-primary/90 h-7 px-3 text-xs">
-                    <Timer className="mr-1 size-3" /> Stop
-                  </Button>
-                </div>
-              </div>
-
-              {/* Active task card — Productivity Card */}
-              <div className="border-primary/20 bg-primary/5 relative mb-4 overflow-hidden rounded-xl border p-5">
-                <div className="bg-primary/5 absolute top-0 right-0 h-48 w-48 translate-x-1/2 -translate-y-1/2 rounded-full blur-2xl" />
-                <div className="flex items-start justify-between">
-                  <div>
-                    <div className="mb-2 flex items-center gap-2">
-                      <Badge
-                        variant="secondary"
-                        className="bg-primary/10 text-primary border-primary/20 px-2 py-0.5 text-[10px]"
-                      >
-                        PROJ-4821
-                      </Badge>
-                      <span className="text-muted-foreground text-[10px]">
-                        Jira · Em progresso
-                      </span>
-                    </div>
-                    <h3 className="max-w-xs text-sm leading-snug font-semibold">
-                      Refactor auth middleware to use edge runtime
-                    </h3>
-                    <p className="text-muted-foreground mt-1 text-xs">
-                      Engenharia · Sprint 24
-                    </p>
-                  </div>
-                  <div className="shrink-0 text-right">
-                    <div className="text-primary font-mono text-3xl font-bold tabular-nums">
-                      00:47
-                    </div>
-                    <div className="text-muted-foreground mt-0.5 text-[10px]">
-                      sessão atual
-                    </div>
-                  </div>
-                </div>
-
-                {/* Progress bar */}
-                <div className="bg-muted/50 mt-4 h-1.5 overflow-hidden rounded-full">
-                  <div className="from-primary h-full w-[62%] rounded-full bg-gradient-to-r to-violet-400" />
-                </div>
-                <div className="mt-1 flex justify-between">
-                  <span className="text-muted-foreground text-[10px]">
-                    3h 12m hoje
-                  </span>
-                  <span className="text-muted-foreground text-[10px]">
-                    meta: 5h
-                  </span>
-                </div>
-              </div>
-
-              {/* Recent entries */}
-              <div className="space-y-2">
-                {[
-                  {
-                    ticket: 'PROJ-4819',
-                    title: 'Setup CI pipeline for staging',
-                    time: '1h 23m',
-                    tag: 'DevOps',
-                  },
-                  {
-                    ticket: 'PROJ-4802',
-                    title: 'Code review — payments module',
-                    time: '0h 41m',
-                    tag: 'Review',
-                  },
-                  {
-                    ticket: 'PROJ-4798',
-                    title: 'DB migration for user roles',
-                    time: '2h 05m',
-                    tag: 'Backend',
-                  },
-                ].map((entry) => (
-                  <div
-                    key={entry.ticket}
-                    className="border-border/30 bg-muted/20 hover:border-border/60 flex items-center justify-between rounded-lg border px-4 py-2.5 transition-colors"
-                  >
-                    <div className="flex items-center gap-3">
-                      <span className="text-muted-foreground font-mono text-[10px]">
-                        {entry.ticket}
-                      </span>
-                      <span className="text-foreground/80 max-w-[260px] truncate text-xs">
-                        {entry.title}
-                      </span>
-                    </div>
-                    <div className="flex shrink-0 items-center gap-2">
-                      <span className="bg-muted/60 text-muted-foreground rounded-md px-2 py-0.5 text-[10px]">
-                        {entry.tag}
-                      </span>
-                      <span className="text-muted-foreground font-mono text-xs">
-                        {entry.time}
-                      </span>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </div>
-          </div>
-
-          {/* Gradient fade bottom */}
-          <div className="from-background via-background/80 pointer-events-none absolute inset-x-0 bottom-0 h-48 bg-gradient-to-t to-transparent" />
+          {/* Bottom fade */}
+          {/* <div className="from-background via-background/80 pointer-events-none absolute inset-x-0 bottom-0 h-48 bg-gradient-to-t to-transparent" /> */}
         </div>
       </div>
+      {/* 
+      <style dangerouslySetInnerHTML={{ __html: `
+        @keyframes hero-float {
+          0%, 100% { transform: translateY(0) scale(1); }
+          50% { transform: translateY(-30px) scale(1.02); }
+        }
+      `}} /> */}
     </section>
   )
 }
@@ -452,7 +440,7 @@ function HeroSection() {
 
 function IntegrationsSection() {
   return (
-    <section id="integrations" className="pt-24 pb-20">
+    <section id="integrations" className="pb-20">
       <div className="container mx-auto px-6">
         <div className="mb-12 text-center">
           <p className="text-muted-foreground mb-3 text-xs font-semibold tracking-widest uppercase">
@@ -467,59 +455,142 @@ function IntegrationsSection() {
           </p>
         </div>
 
-        <div className="border-border/40 bg-border/20 mx-auto grid max-w-4xl grid-cols-1 gap-px overflow-hidden rounded-2xl border sm:grid-cols-2 lg:grid-cols-3">
+        <div className="mx-auto grid max-w-5xl grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
           {INTEGRATIONS.map((app) => (
             <div
               key={app.name}
-              className="group bg-background hover:bg-muted/30 relative flex flex-col gap-3 p-6 transition-colors duration-200"
+              className="group border-border/40 bg-background hover:border-border relative rounded-xl border p-6 transition-all duration-300 hover:-translate-y-0.5 hover:shadow-sm"
             >
-              {/* Logo */}
-              <div
-                className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border ${app.accentBg} ${app.accentBorder}`}
-              >
-                {app.icon}
-              </div>
+              {/* Top */}
+              <div className="flex items-start justify-between">
+                <div
+                  className={`flex h-11 w-11 items-center justify-center rounded-xl border ${app.accentBg} ${app.accentBorder} overflow-hidden`}
+                >
+                  <Image
+                    src={app.logoUrl}
+                    alt={`${app.name} logo`}
+                    width={22}
+                    height={22}
+                    className={`object-contain ${app.darkInvert ? 'dark:invert' : ''}`}
+                  />
+                </div>
 
-              <div className="flex items-center gap-2">
-                <span className="text-sm font-semibold">{app.name}</span>
                 <span
-                  className={`inline-flex items-center gap-1 rounded border px-2 py-0.5 text-[10px] font-medium ${
+                  className={`inline-flex items-center gap-1 rounded-full border px-2.5 py-1 text-[10px] font-medium ${
                     app.status === 'live'
-                      ? 'border-emerald-500/20 bg-emerald-500/8 text-emerald-500'
-                      : 'border-amber-500/20 bg-amber-500/8 text-amber-500'
+                      ? 'border-emerald-500/20 bg-emerald-500/10 text-emerald-500'
+                      : 'border-amber-500/20 bg-amber-500/10 text-amber-500'
                   }`}
                 >
                   <span
-                    className={`size-1.5 rounded-full ${app.status === 'live' ? 'bg-emerald-500' : 'bg-amber-400'}`}
+                    className={`size-1.5 rounded-full ${
+                      app.status === 'live' ? 'bg-emerald-500' : 'bg-amber-400'
+                    }`}
                   />
                   {app.status === 'live' ? 'Disponível' : 'Em breve'}
                 </span>
               </div>
 
-              <p className="text-muted-foreground flex-1 text-xs leading-relaxed">
+              {/* Nome */}
+              <div className="mt-5">
+                <h3 className="text-base font-semibold tracking-tight">
+                  {app.name}
+                </h3>
+              </div>
+
+              {/* Descrição */}
+              <p className="text-muted-foreground mt-2 text-sm leading-relaxed">
                 {app.desc}
               </p>
 
-              <div className="border-border/30 flex items-center justify-between border-t pt-3">
-                <span className="text-muted-foreground/50 text-[10px] font-medium tracking-wider uppercase">
+              {/* Footer */}
+              <div className="mt-6 flex items-center justify-between">
+                <span className="text-muted-foreground/50 text-[11px] font-medium tracking-wider uppercase">
                   {app.status === 'live'
                     ? 'Sync bidirecional'
                     : 'Em desenvolvimento'}
                 </span>
-                <ArrowRight className="text-muted-foreground/30 group-hover:text-muted-foreground size-3.5 -translate-x-1 transition-colors duration-200 group-hover:translate-x-0" />
+
+                <div className="text-muted-foreground/40 group-hover:text-muted-foreground flex items-center gap-1 transition-all">
+                  <span className="text-xs">Ver detalhes</span>
+                  <ArrowRight className="size-3.5 transition-transform duration-200 group-hover:translate-x-0.5" />
+                </div>
               </div>
             </div>
           ))}
         </div>
 
-        <div className="mt-6 flex justify-center">
-          <a
-            href="#"
-            className="border-border/50 bg-muted/20 text-muted-foreground/60 hover:text-muted-foreground hover:border-border inline-flex items-center gap-2 rounded-full border border-dashed px-5 py-2 text-xs transition-colors duration-200"
-          >
-            <Plus className="size-3" />
-            Sugira uma integração via GitHub Issues
-          </a>
+        <div className="relative mt-8 overflow-hidden rounded-3xl border border-dashed border-zinc-700 bg-[#0a0a0a] p-8 md:p-12">
+          {/* Background Decorativo */}
+          <div className="pointer-events-none absolute top-1/2 -right-6 -translate-y-1/2 text-zinc-500 opacity-10 select-none">
+            <Terminal size={240} strokeWidth={1} />
+          </div>
+
+          <div className="relative z-10 flex flex-col items-center text-center">
+            <h3 className="text-2xl font-semibold tracking-tight text-zinc-100 md:text-3xl">
+              Built by developers, for developers.
+            </h3>
+
+            <p className="mt-4 max-w-xl text-sm leading-relaxed text-zinc-400 md:text-base">
+              O Metric é open-source e focado em privacidade. Sinta-se em casa
+              para contribuir com código ou sugerir as ferramentas que faltam no
+              seu workflow.
+            </p>
+
+            <div className="relative z-10 flex flex-col items-center">
+              {/* Título e descrição que você já tem... */}
+
+              <div className="mt-10 flex flex-col items-center gap-8">
+                {/* Stack Badges - Minimalistas */}
+                <div className="flex flex-wrap items-center justify-center gap-6 opacity-40 grayscale transition-all duration-500 hover:opacity-100 hover:grayscale-0">
+                  {TECH_STACK.map((tech) => (
+                    <div
+                      key={tech.name}
+                      className="group relative flex items-center justify-center"
+                    >
+                      <Image
+                        src={tech.url}
+                        alt={tech.name}
+                        width={20}
+                        height={20}
+                        className={`h-5 w-auto transition-transform duration-300 group-hover:scale-110 ${tech.invert ? 'dark:invert' : ''}`}
+                      />
+                      {/* Tooltip opcional (Estilo Linear) */}
+                      <span className="absolute -top-8 scale-0 rounded bg-zinc-800 px-2 py-1 text-[10px] text-zinc-200 transition-all group-hover:scale-100">
+                        {tech.name}
+                      </span>
+                    </div>
+                  ))}
+                </div>
+
+                {/* Divisória sutil */}
+                <div className="h-px w-12 bg-zinc-800" />
+
+                {/* Seção de Botões */}
+                <div className="flex flex-col items-center gap-4 sm:flex-row">
+                  <a
+                    href="https://github.com/gustavohps10/metric"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="group inline-flex h-10 items-center justify-center gap-2 rounded-full bg-zinc-100 px-6 text-sm font-medium text-zinc-950 transition-all hover:bg-zinc-200 active:scale-95"
+                  >
+                    <Github className="size-4 transition-transform group-hover:rotate-12" />
+                    Contribuir no GitHub
+                  </a>
+
+                  <a
+                    href="https://github.com/gustavohps10/metric/issues/new"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="inline-flex h-10 items-center justify-center gap-2 rounded-full border border-zinc-800 bg-zinc-900/40 px-6 text-sm font-medium text-zinc-400 transition-all hover:border-zinc-700 hover:bg-zinc-900 hover:text-zinc-100 active:scale-95"
+                  >
+                    <MessageSquarePlus className="size-4" />
+                    Sugerir Integração
+                  </a>
+                </div>
+              </div>
+            </div>
+          </div>
         </div>
       </div>
     </section>
@@ -550,17 +621,17 @@ function FeaturesSection() {
           {FEATURES.map((feature) => (
             <div
               key={feature.title}
-              className={`group border-border/40 bg-card/60 relative rounded-2xl border p-6 transition-all duration-300 hover:-translate-y-1 hover:shadow-2xl ${feature.border} ${feature.glow} overflow-hidden`}
+              className={`group border-border/40 bg-card/60 relative rounded-xl border p-6 transition-all duration-300 hover:-translate-y-1 hover:shadow-2xl ${feature.border} ${feature.glow} overflow-hidden`}
             >
               {/* Background accent gradient */}
               <div
-                className={`absolute inset-0 -z-10 bg-gradient-to-br opacity-0 transition-opacity duration-500 group-hover:opacity-100 ${feature.accent}`}
+                className={`absolute inset-0 -z-10 bg-gradient-to-br opacity-0 transition-opacity duration-500 group-hover:opacity-100`}
               />
 
               {/* Problem statement */}
               <div className="mb-5">
                 <p className="text-muted-foreground/60 text-xs leading-relaxed italic">
-                  "{feature.problem}"
+                  &quot;{feature.problem}&quot;
                 </p>
               </div>
 
@@ -639,7 +710,7 @@ function OfflineArchitectureSection() {
           </div>
 
           {/* Architecture diagram line */}
-          <div className="border-border/30 bg-muted/20 mt-10 overflow-hidden rounded-2xl border p-6">
+          <div className="border-border/30 bg-muted/20 mt-10 overflow-hidden rounded-xl border p-6">
             <div className="text-muted-foreground/50 mb-4 flex items-center gap-2 font-mono text-xs">
               <Terminal className="size-3" />
               data flow · simplified
@@ -727,7 +798,7 @@ function VideoShowcaseSection() {
           <div className="bg-primary/10 absolute inset-x-10 -inset-y-4 -z-10 rounded-full blur-3xl" />
 
           <div
-            className="border-border/40 bg-card/80 group relative aspect-video cursor-pointer overflow-hidden rounded-2xl border shadow-2xl"
+            className="border-border/40 bg-card/80 group relative aspect-video cursor-pointer overflow-hidden rounded-xl border shadow-2xl"
             style={{
               boxShadow:
                 '0 40px 80px -20px rgba(0,0,0,0.5), 0 0 40px -10px hsl(var(--primary)/0.15)',
@@ -804,48 +875,103 @@ function PricingSection() {
             <PricingCard
               name="Free"
               price="R$ 0"
-              description="Para devs solo que querem clareza sobre o próprio tempo."
+              description="Essencial para o desenvolvedor organizar sua rotina local."
               features={[
-                '1 usuário',
-                'Até 3 projetos',
-                'Armazenamento local ilimitado',
-                'Export JSON/CSV',
-                'Relatórios básicos',
+                { text: 'App Desktop (Windows, Mac, Linux)', status: 'check' },
+                { text: 'Persistência local (RxDB)', status: 'check' },
+                { text: 'Atalhos e Timer global', status: 'check' },
+                {
+                  text: 'Analytics básico (Total de horas/dia)',
+                  status: 'check',
+                },
+                { text: '1 Workspace e 1 DataSource', status: 'check' },
+                { text: 'Analytics Individual Avançado', status: 'block' },
+                { text: 'Gestão de Times e Squads', status: 'block' },
               ]}
               cta="Baixar agora"
             />
+
             <PricingCard
-              name="Pro"
-              price="R$ 49"
+              name="Individual Pro"
+              price="R$ 16,90"
               period="/mês"
-              description="Para times que precisam de sync e visibilidade coletiva."
+              description="Para o dev que precisa de controle total do próprio tempo e produtividade."
               features={[
-                'Até 10 usuários',
-                'Projetos ilimitados',
-                'Sync bidirecional (Jira, Redmine, GitHub)',
-                'Dashboard do time',
-                'Deep work score',
-                'Suporte prioritário',
+                { text: 'Workspaces ilimitados', status: 'check' },
+                {
+                  text: 'Múltiplas DataSources (Jira, Redmine, etc)',
+                  status: 'check',
+                },
+                { text: 'Analytics Individual Avançado', status: 'check' },
+                { text: 'Métricas de Deep Work e foco', status: 'check' },
+                {
+                  text: 'Relatórios de esforço e faturamento',
+                  status: 'check',
+                },
+                {
+                  text: 'Correlação com atividades (commits, tasks)',
+                  status: 'check',
+                },
+                { text: 'Gestão de Times e Squads', status: 'block' },
               ]}
               highlighted
-              badge="Mais popular"
+              badge="Para devs avançados"
               cta="Testar 14 dias grátis"
             />
           </TabsContent>
-          <TabsContent value="enterprise" className="flex justify-center">
+
+          <TabsContent value="enterprise" className="grid gap-5 md:grid-cols-2">
+            <PricingCard
+              name="Team"
+              price="R$ 49"
+              period="/mês por membro"
+              description="Visibilidade e gestão de esforço para times de desenvolvimento."
+              features={[
+                {
+                  text: 'Workspaces e DataSources ilimitados',
+                  status: 'check',
+                },
+                {
+                  text: 'Replicação Automática (Jira, Redmine)',
+                  status: 'check',
+                },
+                {
+                  text: 'Dashboard do Time (Analytics coletivo)',
+                  status: 'check',
+                },
+                { text: 'Relatórios de Esforço por Sprint', status: 'check' },
+                { text: 'Métricas de Deep Work individuais', status: 'check' },
+                { text: 'Painel de gestão de membros', status: 'check' },
+                { text: 'Modo Self-Hosted e API Pública', status: 'block' },
+              ]}
+              highlighted
+              badge="O melhor para times"
+              cta="Testar 14 dias grátis"
+            />
+
             <PricingCard
               name="Enterprise"
               price="Sob consulta"
-              description="Para organizações que precisam de compliance, SSO e SLA."
+              description="Soberania total e governança para grandes operações."
               features={[
-                'Usuários ilimitados',
-                'SSO / SAML',
-                'Auditoria completa',
-                'Self-hosted disponível',
-                'Gestor de conta dedicado',
-                'SLA 99.9% garantido',
+                {
+                  text: 'Modo Self-Hosted (Soberania de Dados)',
+                  status: 'check',
+                },
+                { text: 'API Pública (Integração ERP/BI)', status: 'check' },
+                { text: 'Autenticação SSO / SAML', status: 'check' },
+                {
+                  text: 'Visualização Peer-To-Peer (Team Sync)',
+                  status: 'check',
+                },
+                { text: 'Relatórios de Rentabilidade e ROI', status: 'check' },
+                {
+                  text: 'Configuração de Domínios Permitidos',
+                  status: 'check',
+                },
+                { text: 'SLA 99.9% e Suporte Dedicado', status: 'check' },
               ]}
-              cta="Falar com o time"
+              cta="Falar com nosso time"
               className="w-full max-w-md"
             />
           </TabsContent>
@@ -879,12 +1005,17 @@ function PricingSection() {
   )
 }
 
+interface Feature {
+  text: string
+  status: 'check' | 'block'
+}
+
 interface PricingCardProps extends React.HTMLAttributes<HTMLDivElement> {
   name: string
   price: string
   period?: string
   description: string
-  features: string[]
+  features: Feature[]
   highlighted?: boolean
   badge?: string
   cta: string
@@ -900,14 +1031,16 @@ function PricingCard({
   badge,
   cta,
   className = '',
+  ...props
 }: PricingCardProps) {
   return (
     <div
-      className={`relative flex flex-col rounded-2xl border p-6 transition-all duration-300 hover:-translate-y-0.5 ${
+      className={`relative flex flex-col rounded-xl border p-6 transition-all duration-300 hover:-translate-y-0.5 ${
         highlighted
           ? 'border-primary/50 bg-primary/5 shadow-primary/10 shadow-xl'
           : 'border-border/40 bg-card/60 hover:border-border/80'
       } ${className}`}
+      {...props}
     >
       {badge && (
         <div className="absolute -top-3 left-1/2 -translate-x-1/2">
@@ -931,11 +1064,21 @@ function PricingCard({
       </div>
 
       <div className="mb-6 flex-1 space-y-2.5">
-        {features.map((f) => (
-          <div key={f} className="flex items-start gap-2.5 text-sm">
-            <Check className="text-primary mt-0.5 size-3.5 shrink-0" />
-            <span className="text-foreground/80 text-xs leading-relaxed">
-              {f}
+        {features.map((f, index) => (
+          <div key={index} className="flex items-start gap-2.5 text-sm">
+            {f.status === 'check' ? (
+              <Check className="text-primary mt-0.5 size-3.5 shrink-0" />
+            ) : (
+              <X className="text-muted-foreground/30 mt-0.5 size-3.5 shrink-0" />
+            )}
+            <span
+              className={`text-xs leading-relaxed ${
+                f.status === 'check'
+                  ? 'text-foreground/80'
+                  : 'text-muted-foreground/40 decoration-muted-foreground/20 line-through'
+              }`}
+            >
+              {f.text}
             </span>
           </div>
         ))}
@@ -943,7 +1086,9 @@ function PricingCard({
 
       <Button
         variant={highlighted ? 'default' : 'outline'}
-        className={`h-10 w-full text-sm ${highlighted ? 'shadow-primary/20 shadow-md' : ''}`}
+        className={`h-10 w-full text-sm font-medium ${
+          highlighted ? 'shadow-primary/20 shadow-md' : ''
+        }`}
       >
         {cta}
       </Button>
@@ -960,10 +1105,28 @@ function Footer() {
         <div className="grid gap-10 md:grid-cols-4">
           <div className="col-span-2">
             <div className="mb-3 flex items-center gap-2 text-sm font-bold">
-              <div className="bg-primary flex size-6 items-center justify-center rounded-md">
-                <Clock className="text-primary-foreground size-3.5" />
+              <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-white shadow-sm ring-1 ring-zinc-200 dark:bg-zinc-950 dark:ring-zinc-800">
+                <Image
+                  src="/logo-icon.svg"
+                  alt="Logo icon"
+                  width={16}
+                  height={16}
+                  className="object-contain dark:invert"
+                />
               </div>
-              <span>Metric</span>
+
+              <div className="flex min-w-0 flex-col leading-tight">
+                <Image
+                  src="/logo-text.svg"
+                  alt="Metric"
+                  width={72}
+                  height={16}
+                  className="object-contain dark:invert"
+                />
+                <span className="mt-0.5 truncate pt-0.5 text-[11px] font-light text-zinc-500 dark:text-zinc-400">
+                  Open Core
+                </span>
+              </div>
             </div>
             <p className="text-muted-foreground max-w-xs text-xs leading-relaxed">
               Engine de produtividade local-first para devs e times técnicos.
