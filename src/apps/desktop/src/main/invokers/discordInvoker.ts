@@ -1,4 +1,4 @@
-import { IDiscordAPI } from '@timelapse/application'
+import { IDiscordAPI } from '@metric-org/application'
 
 import { IpcInvoker } from '@/main/adapters/IpcInvoker'
 import { DiscordUserResponse } from '@/main/auth/discord-handler'

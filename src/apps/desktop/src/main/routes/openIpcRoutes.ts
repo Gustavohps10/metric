@@ -1,5 +1,5 @@
-import { IDataSourceResolver, IServiceProvider } from '@timelapse/application'
-import { IRequest } from '@timelapse/cross-cutting/transport'
+import { IDataSourceResolver, IServiceProvider } from '@metric-org/application'
+import { IRequest } from '@metric-org/cross-cutting/transport'
 import { app } from 'electron'
 
 import { IpcHandler } from '@/main/adapters/IpcHandler'

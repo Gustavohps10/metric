@@ -1,4 +1,4 @@
-import { Entity } from '@timelapse/domain'
+import { Entity } from '@metric-org/domain'
 
 export interface IRepositoryBase<T extends Entity> {
   create(entity: T): Promise<void>

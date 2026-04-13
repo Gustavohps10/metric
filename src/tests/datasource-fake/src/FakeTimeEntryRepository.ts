@@ -1,4 +1,4 @@
-import type { TimeEntry } from '@timelapse/sdk'
+import type { TimeEntry } from '@metric-org/sdk'
 
 const store = new Map<string, TimeEntry>()
 

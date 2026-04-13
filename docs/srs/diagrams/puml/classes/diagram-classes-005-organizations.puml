@@ -1,5 +1,5 @@
 @startuml ClassOrganizations
-title TIMELAPSE - Organizações (SRS 4.2, 4.3)
+title METRIC - Organizações (SRS 4.2, 4.3)
 package "Control Plane" {
     class Organization {
         +UUID id

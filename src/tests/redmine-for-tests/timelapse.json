@@ -4,7 +4,7 @@
   "Type": "Generic",
   "Author": "Gustavo Henrique",
   "ShortDescription": "Addon de exemplo para testes",
-  "Description": "Este addon serve como exemplo de configuração padrão no Timelapse SDK.",
+  "Description": "Este addon serve como exemplo de configuração padrão no Metric SDK.",
   "Tags": ["exemplo", "teste", "addon"],
   "SourceUrl": "https://github.com/meuusuario/meu-addon-exemplo",
   "IconUrl": "https://meusite.com/icon.png",

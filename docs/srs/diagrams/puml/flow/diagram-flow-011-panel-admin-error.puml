@@ -1,12 +1,12 @@
 @startuml PanelAdminErrorFlow
-title TIMELAPSE - Painel Admin - Fluxo de Erro (UC003)
+title METRIC - Painel Admin - Fluxo de Erro (UC003)
 actor Admin
 participant Browser
 participant ControlPlane
 participant AuthAPI
 participant LicenseManager
 
-Admin -> Browser: Acessa app.timelapse.dev
+Admin -> Browser: Acessa app.metric.dev
 Browser -> ControlPlane: GET /admin
 
 alt Não autenticado

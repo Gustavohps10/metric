@@ -1,6 +1,6 @@
 'use client'
 
-import { Button } from '@timelapse/ui/components'
+import { Button } from '@metric-org/ui/components'
 
 export function Hero() {
   return (

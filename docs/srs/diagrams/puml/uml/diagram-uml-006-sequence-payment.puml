@@ -1,5 +1,5 @@
 @startuml SequencePayment
-title TIMELAPSE - Sequência: Ativação Pro (UC003)
+title METRIC - Sequência: Ativação Pro (UC003)
 actor User
 participant DesktopApp
 participant ControlPlane

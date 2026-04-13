@@ -3,7 +3,7 @@ import {
   PagedResultDTO,
   PaginationOptionsDTO,
   WorkspaceDTO,
-} from '@timelapse/application'
+} from '@metric-org/application'
 import { promises as fs } from 'fs'
 import path from 'path'
 

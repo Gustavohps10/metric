@@ -1,4 +1,4 @@
-import { Task } from '@timelapse/domain'
+import { Task } from '@metric-org/domain'
 
 import { IRepositoryBase } from '@/contracts/data'
 

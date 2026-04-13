@@ -1,4 +1,4 @@
-import { ITimeEntryRepository, TimeEntry } from '@timelapse/sdk'
+import { ITimeEntryRepository, TimeEntry } from '@metric-org/sdk'
 
 import { RedmineBase } from './RedmineBase'
 

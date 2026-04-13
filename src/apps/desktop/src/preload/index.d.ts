@@ -1,5 +1,5 @@
 import { ElectronAPI } from '@electron-toolkit/preload'
-import type { IApplicationAPI } from '@timelapse/application'
+import type { IApplicationAPI } from '@metric-org/application'
 
 declare global {
   interface Window {

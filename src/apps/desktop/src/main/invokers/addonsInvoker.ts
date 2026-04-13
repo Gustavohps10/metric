@@ -1,5 +1,5 @@
-import { AddonManifest, FileData, IAddonsAPI } from '@timelapse/application'
-import { IRequest } from '@timelapse/cross-cutting/transport'
+import { AddonManifest, FileData, IAddonsAPI } from '@metric-org/application'
+import { IRequest } from '@metric-org/cross-cutting/transport'
 
 import { IpcInvoker } from '@/main/adapters/IpcInvoker'
 

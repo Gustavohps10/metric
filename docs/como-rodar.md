@@ -102,7 +102,7 @@ yarn --version
 
 **4.2 — Atualizar para Yarn 4 (só com Yarn, sem Corepack)**
 
-Na **raiz do repositório** (pasta do Timelapse), rode:
+Na **raiz do repositório** (pasta do Metric), rode:
 
 ```bash
 yarn set version 4

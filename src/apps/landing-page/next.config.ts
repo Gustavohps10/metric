@@ -7,7 +7,7 @@ const nextConfig: NextConfig = {
 
   reactCompiler: true,
 
-  transpilePackages: ['@timelapse/ui', '@timelapse/application'],
+  transpilePackages: ['@metric-org/ui', '@metric-org/application'],
 
   images: {
     remotePatterns: [

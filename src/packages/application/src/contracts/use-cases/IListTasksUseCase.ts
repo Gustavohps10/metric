@@ -1,4 +1,4 @@
-import { AppError, Either } from '@timelapse/cross-cutting/helpers'
+import { AppError, Either } from '@metric-org/cross-cutting/helpers'
 
 import { PagedResultDTO, TaskDTO } from '@/dtos'
 

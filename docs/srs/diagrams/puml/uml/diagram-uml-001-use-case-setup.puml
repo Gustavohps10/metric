@@ -3,7 +3,7 @@ left to right direction
 actor "User" as U
 actor "Admin" as A
 
-rectangle "Timelapse System" {
+rectangle "Metric System" {
     usecase "Configurar Workspace" as UC1
     usecase "Instalar Addon (Jira/Redmine)" as UC2
     usecase "Sincronizar Tarefas Externas" as UC3

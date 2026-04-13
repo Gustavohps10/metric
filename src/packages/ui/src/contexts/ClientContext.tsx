@@ -1,4 +1,4 @@
-import { IApplicationAPI } from '@timelapse/application'
+import { IApplicationAPI } from '@metric-org/application'
 import React from 'react'
 import { createContext } from 'react'
 

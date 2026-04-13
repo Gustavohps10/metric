@@ -1,6 +1,6 @@
 'use client'
 
-import type { FieldGroup } from '@timelapse/application'
+import type { FieldGroup } from '@metric-org/application'
 import { AlertCircle, CheckCircle, ExternalLink } from 'lucide-react'
 import { useState } from 'react'
 

@@ -1,4 +1,4 @@
-import { ICredentialsStorage } from '@timelapse/application'
+import { ICredentialsStorage } from '@metric-org/application'
 import keytar from 'keytar'
 
 export class KeytarTokenStorage implements ICredentialsStorage {

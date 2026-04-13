@@ -2,10 +2,10 @@ import {
   IJWTService,
   IServiceProvider,
   ISessionManager,
-} from '@timelapse/application'
-import { Either } from '@timelapse/cross-cutting/helpers'
-import { IRequest } from '@timelapse/cross-cutting/transport'
-import { ViewModel } from '@timelapse/presentation/view-models'
+} from '@metric-org/application'
+import { Either } from '@metric-org/cross-cutting/helpers'
+import { IRequest } from '@metric-org/cross-cutting/transport'
+import { ViewModel } from '@metric-org/presentation/view-models'
 
 type NextFunction<TRes> = () => Promise<Either<any, TRes>>
 

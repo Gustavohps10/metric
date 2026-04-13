@@ -1,11 +1,11 @@
 'use client'
 
+import { WorkspaceViewModel } from '@metric-org/presentation/view-models'
 import {
   useMutation,
   useQueryClient,
   useSuspenseQuery,
 } from '@tanstack/react-query'
-import { WorkspaceViewModel } from '@timelapse/presentation/view-models'
 import {
   CableIcon,
   CalendarIcon,

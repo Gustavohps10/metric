@@ -33,7 +33,7 @@ export function AppSidebarDefaultHeader() {
         {/* GitHub + Theme */}
         <div className="ml-auto flex shrink-0 items-center">
           <a
-            href="https://github.com/gustavohps10/timelapse"
+            href="https://github.com/gustavohps10/metric"
             target="_blank"
             rel="noreferrer"
             className="flex items-center gap-1 rounded-md px-1.5 py-1 text-[11px] text-zinc-600 transition-all duration-200 ease-out hover:-translate-y-[1px] hover:scale-[1.03] hover:bg-zinc-200 active:scale-[0.98] dark:text-zinc-300 dark:hover:bg-zinc-800"

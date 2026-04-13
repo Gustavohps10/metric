@@ -1,5 +1,5 @@
 @startuml PluginActivationFlow
-title TIMELAPSE - Ativação de Plugin/Addon (UC001 - RF002, RF003)
+title METRIC - Ativação de Plugin/Addon (UC001 - RF002, RF003)
 actor User
 participant UI
 participant AddonMarket

@@ -3,7 +3,7 @@ import {
   Either,
   InternalServerError,
   NotFoundError,
-} from '@timelapse/cross-cutting/helpers'
+} from '@metric-org/cross-cutting/helpers'
 
 import { FileData, IFileManager } from '@/contracts'
 import { IAddonsFacade } from '@/contracts/facades'

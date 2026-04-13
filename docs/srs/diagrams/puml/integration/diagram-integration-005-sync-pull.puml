@@ -1,5 +1,5 @@
 @startuml IntegrationSyncPull
-title TIMELAPSE - Sincronização Pull (RF004, RF005 - UC001)
+title METRIC - Sincronização Pull (RF004, RF005 - UC001)
 participant UI
 participant SyncEngine
 participant CheckpointStore

@@ -1,5 +1,5 @@
 ﻿@startuml SyncConflict
-title TIMELAPSE - Resolução de Conflitos
+title METRIC - Resolução de Conflitos
 participant LocalDB
 participant SyncEngine
 participant RemoteAPI

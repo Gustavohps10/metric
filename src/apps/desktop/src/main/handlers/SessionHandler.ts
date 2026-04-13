@@ -1,8 +1,11 @@
-import { IGetCurrentUserUseCase } from '@timelapse/application'
-import { MemberDTO } from '@timelapse/application'
-import { AppError, Either } from '@timelapse/cross-cutting/helpers'
-import { IRequest } from '@timelapse/cross-cutting/transport'
-import { MemberViewModel, ViewModel } from '@timelapse/presentation/view-models'
+import { IGetCurrentUserUseCase } from '@metric-org/application'
+import { MemberDTO } from '@metric-org/application'
+import { AppError, Either } from '@metric-org/cross-cutting/helpers'
+import { IRequest } from '@metric-org/cross-cutting/transport'
+import {
+  MemberViewModel,
+  ViewModel,
+} from '@metric-org/presentation/view-models'
 import { IpcMainInvokeEvent } from 'electron'
 
 export interface GetCurrentUserRequest {

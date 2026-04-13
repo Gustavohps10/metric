@@ -1,5 +1,5 @@
+import { WorkspaceViewModel } from '@metric-org/presentation/view-models'
 import { useQuery } from '@tanstack/react-query'
-import { WorkspaceViewModel } from '@timelapse/presentation/view-models'
 import { createContext, ReactNode } from 'react'
 import { useParams } from 'react-router'
 

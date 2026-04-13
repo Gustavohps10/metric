@@ -1,12 +1,12 @@
 'use client'
 
-import { useMutation, useQuery } from '@tanstack/react-query'
 import {
   AddonManifest,
   FieldGroup,
   WorkspaceConnectionDTO,
   WorkspaceDTO,
-} from '@timelapse/application'
+} from '@metric-org/application'
+import { useMutation, useQuery } from '@tanstack/react-query'
 import { Search, UploadIcon } from 'lucide-react'
 import { useMemo, useState } from 'react'
 import { useParams } from 'react-router-dom'

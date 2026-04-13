@@ -1,4 +1,4 @@
-import logoTimelapse from './logo-timelapse.png'
+import logoMetric from './logo-metric.png'
 import timerIcon from './timer-icon.png'
 
-export { logoTimelapse, timerIcon }
+export { logoMetric, timerIcon }

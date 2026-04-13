@@ -2,7 +2,7 @@ import {
   AppError,
   Either,
   InternalServerError,
-} from '@timelapse/cross-cutting/helpers'
+} from '@metric-org/cross-cutting/helpers'
 
 import { IWorkspacesQuery } from '@/contracts/data/queries'
 import { IListWorkspacesUseCase } from '@/contracts/use-cases/IListWorkspacesUseCase'

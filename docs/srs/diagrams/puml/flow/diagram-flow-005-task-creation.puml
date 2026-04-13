@@ -1,5 +1,5 @@
 @startuml TaskCreationFlow
-title TIMELAPSE - Criação de Tarefa (UC005 - SRS)
+title METRIC - Criação de Tarefa (UC005 - SRS)
 actor User
 participant UI
 participant SyncEngine

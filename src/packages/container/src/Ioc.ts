@@ -20,11 +20,11 @@ import {
   TimeEntriesPullService,
   TimeEntriesPushService,
   UnlinkDataSourceService,
-} from '@timelapse/application'
-import { JwtService } from '@timelapse/infra/auth'
-import { AddonsFacade } from '@timelapse/infra/facades'
-import { HttpClient } from '@timelapse/infra/http'
-import { FileManager } from '@timelapse/infra/storage'
+} from '@metric-org/application'
+import { JwtService } from '@metric-org/infra/auth'
+import { AddonsFacade } from '@metric-org/infra/facades'
+import { HttpClient } from '@metric-org/infra/http'
+import { FileManager } from '@metric-org/infra/storage'
 import {
   asClass,
   asValue,

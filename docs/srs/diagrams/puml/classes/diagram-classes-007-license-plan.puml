@@ -1,5 +1,5 @@
 @startuml ClassLicensePlan
-title TIMELAPSE - Planos de Licença (SRS 3, 4.3)
+title METRIC - Planos de Licença (SRS 3, 4.3)
 package "Control Plane" {
     class LicensePlan {
         +String id

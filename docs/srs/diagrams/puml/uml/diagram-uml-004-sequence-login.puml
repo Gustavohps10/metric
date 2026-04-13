@@ -1,5 +1,5 @@
 @startuml SequenceLogin
-title TIMELAPSE - Sequência: Autenticação Magic Link (RF010 - SRS)
+title METRIC - Sequência: Autenticação Magic Link (RF010 - SRS)
 actor User
 participant App
 participant ControlPlane

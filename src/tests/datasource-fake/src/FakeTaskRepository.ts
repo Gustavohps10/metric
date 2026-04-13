@@ -1,4 +1,4 @@
-import type { Task } from '@timelapse/sdk'
+import type { Task } from '@metric-org/sdk'
 
 const store = new Map<string, Task>()
 

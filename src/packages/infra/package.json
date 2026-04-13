@@ -1,8 +1,8 @@
 {
-  "name": "@timelapse/infra",
+  "name": "@metric-org/infra",
   "version": "1.0.0",
   "private": true,
-  "description": "Pacote de infraestrutura consolidado para o Timelapse, contendo implementações concretas de recursos externos",
+  "description": "Pacote de infraestrutura consolidado para o Metric, contendo implementações concretas de recursos externos",
   "type": "module",
   "scripts": {
     "build": "tsup --format esm,cjs --dts",
@@ -43,9 +43,9 @@
     }
   },
   "dependencies": {
-    "@timelapse/application": "workspace:*",
-    "@timelapse/cross-cutting": "workspace:*",
-    "@timelapse/domain": "workspace:*",
+    "@metric-org/application": "workspace:*",
+    "@metric-org/cross-cutting": "workspace:*",
+    "@metric-org/domain": "workspace:*",
     "ajv": "^8.17.1",
     "archiver": "^7.0.1",
     "axios": "^1.7.9",

@@ -1,9 +1,9 @@
 @startuml UseCaseTimer
-title TIMELAPSE - Casos de Uso: Rastreamento de Tempo (UC002 - SRS)
+title METRIC - Casos de Uso: Rastreamento de Tempo (UC002 - SRS)
 left to right direction
 actor "User" as U
 
-rectangle "Timelapse System" {
+rectangle "Metric System" {
     usecase "Selecionar Tarefa" as UC1
     usecase "Iniciar Timer" as UC2
     usecase "Pausar Timer" as UC3

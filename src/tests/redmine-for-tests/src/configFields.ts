@@ -1,4 +1,4 @@
-import { FieldGroup } from '@timelapse/sdk'
+import { FieldGroup } from '@metric-org/sdk'
 
 export const credentialFieldGroups: FieldGroup[] = [
   {

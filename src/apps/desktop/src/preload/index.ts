@@ -1,5 +1,5 @@
 import { electronAPI } from '@electron-toolkit/preload'
-import { IApplicationAPI } from '@timelapse/application'
+import { IApplicationAPI } from '@metric-org/application'
 import { contextBridge } from 'electron'
 
 import {

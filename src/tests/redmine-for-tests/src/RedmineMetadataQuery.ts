@@ -1,4 +1,4 @@
-import { IMetadataQuery, MetadataDTO, MetadataItem } from '@timelapse/sdk'
+import { IMetadataQuery, MetadataDTO, MetadataItem } from '@metric-org/sdk'
 import { AxiosResponse } from 'axios'
 
 import { RedmineBase } from '@/RedmineBase'

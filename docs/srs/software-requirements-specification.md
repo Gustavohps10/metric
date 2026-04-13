@@ -1,4 +1,4 @@
-# TIMELAPSE
+# METRIC
 
 ## Sistema de Rastreamento e Visualização de Produtividade
 
@@ -20,7 +20,7 @@
 
 ## 1.1 Finalidade
 
-O **TIMELAPSE** tem como finalidade o rastreamento e a visualização de produtividade no desenvolvimento de software.
+O **METRIC** tem como finalidade o rastreamento e a visualização de produtividade no desenvolvimento de software.
 
 O sistema atua como um **hub agnóstico** que consome tarefas de **Data Sources externos** (Jira, Redmine, ERPs) e gerencia o tempo investido através de uma arquitetura de sincronização robusta e operação **offline-first**.
 
@@ -87,7 +87,7 @@ O sistema continua funcional **offline para operações locais**.
 
 # 3. Modelo de Produto
 
-O Timelapse segue o modelo **Open-Core**.
+O Metric segue o modelo **Open-Core**.
 
 ### Open Source
 
@@ -109,7 +109,7 @@ O Timelapse segue o modelo **Open-Core**.
 
 # 4. Modelo de Execução
 
-O Timelapse possui **dois modos principais de execução**.
+O Metric possui **dois modos principais de execução**.
 
 ## 4.1 Desktop Client (Modo Padrão)
 
@@ -132,11 +132,11 @@ Usuários do plano **Free** podem utilizar o sistema sem autenticação.
 
 ## 4.2 Self-Hosted
 
-Empresas podem executar o Timelapse em sua própria infraestrutura.
+Empresas podem executar o Metric em sua própria infraestrutura.
 
 Exemplo:
 
-https://timelapse.internal.company.com
+https://metric.internal.company.com
 
 Motivações comuns:
 
@@ -147,15 +147,15 @@ Motivações comuns:
 
 Nesse modo geralmente existe **uma única organização interna**.
 
-## 4.3 Infraestrutura de Controle (Timelapse Cloud)
+## 4.3 Infraestrutura de Controle (Metric Cloud)
 
-Além dos modos de execução, o Timelapse utiliza um **serviço centralizado de controle**.
+Além dos modos de execução, o Metric utiliza um **serviço centralizado de controle**.
 
 Esse serviço é responsável apenas por **gestão de contas, organizações e licenças**.
 
 Exemplo:
 
-https://app.timelapse.dev
+https://app.metric.dev
 
 ### Responsabilidades do serviço central
 
@@ -167,7 +167,7 @@ https://app.timelapse.dev
 
 ### Dados que o serviço central NÃO armazena
 
-O **serviço central de controle do Timelapse não armazena dados operacionais da aplicação**, como:
+O **serviço central de controle do Metric não armazena dados operacionais da aplicação**, como:
 
 - Tarefas
 - Registros de tempo

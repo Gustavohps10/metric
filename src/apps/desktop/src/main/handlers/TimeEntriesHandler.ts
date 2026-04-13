@@ -4,13 +4,13 @@ import {
   ITimeEntriesPullUseCase,
   ITimeEntriesPushUseCase,
   PushTimeEntriesInput,
-} from '@timelapse/application'
-import { IRequest } from '@timelapse/cross-cutting/transport'
+} from '@metric-org/application'
+import { IRequest } from '@metric-org/cross-cutting/transport'
 import {
   PaginatedViewModel,
   SyncDocumentViewModel,
   TimeEntryViewModel,
-} from '@timelapse/presentation/view-models'
+} from '@metric-org/presentation/view-models'
 import { IpcMainInvokeEvent } from 'electron'
 
 export interface ListTimeEntriesRequest {

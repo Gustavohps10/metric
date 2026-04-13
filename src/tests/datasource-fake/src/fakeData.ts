@@ -4,7 +4,7 @@ import type {
   MetadataItem,
   TaskDTO,
   TimeEntryDTO,
-} from '@timelapse/sdk'
+} from '@metric-org/sdk'
 
 const FAKE_USER_ID = '1'
 

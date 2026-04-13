@@ -1,4 +1,4 @@
-import { IHeaders, IRequest } from '@timelapse/cross-cutting/transport'
+import { IHeaders, IRequest } from '@metric-org/cross-cutting/transport'
 import {
   AuthenticationViewModel,
   MemberViewModel,
@@ -9,7 +9,7 @@ import {
   TimeEntryViewModel,
   ViewModel,
   WorkspaceViewModel,
-} from '@timelapse/presentation/view-models'
+} from '@metric-org/presentation/view-models'
 
 import { FileData } from '@/contracts/infra'
 import { PushTimeEntriesInput } from '@/contracts/use-cases'

@@ -1,8 +1,8 @@
 @startuml ComponentGitPlugin
-title TIMELAPSE - Plugin Git Activity (RF002)
+title METRIC - Plugin Git Activity (RF002)
 package "Plugin System" {
     component [Plugin Host] as Host
-    interface "ITimelapsePlugin" as IPlugin
+    interface "IMetricPlugin" as IPlugin
 }
 
 package "Git Extension" {

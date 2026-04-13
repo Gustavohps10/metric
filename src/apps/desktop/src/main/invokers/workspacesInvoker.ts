@@ -1,4 +1,4 @@
-import { IWorkspacesAPI } from '@timelapse/application'
+import { IWorkspacesAPI } from '@metric-org/application'
 
 import { IpcInvoker } from '@/main/adapters/IpcInvoker'
 

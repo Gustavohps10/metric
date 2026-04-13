@@ -1,19 +1,19 @@
 @startuml IntegrationOtherDataSources
-title TIMELAPSE - Outros Data Sources (RF002, RF003)
-participant Timelapse
+title METRIC - Outros Data Sources (RF002, RF003)
+participant Metric
 participant PluginHost
 participant CustomAdapter
 participant ExternalAPI
 
-Timelapse -> PluginHost: getRegisteredDataSource()
+Metric -> PluginHost: getRegisteredDataSource()
 PluginHost -> CustomAdapter: getAdapter(type: ERP/Outro)
 CustomAdapter -> CustomAdapter: Implementa IDataSourcePlugin
 
-Timelapse -> CustomAdapter: pull(checkpoint)
+Metric -> CustomAdapter: pull(checkpoint)
 CustomAdapter -> ExternalAPI: GET /api/endpoint (API específica)
 ExternalAPI -> CustomAdapter: JSON/XML resposta
-CustomAdapter -> CustomAdapter: Map ExternalFormat -> TimelapseTask
-CustomAdapter -> Timelapse: tasks[], metadata[]
+CustomAdapter -> CustomAdapter: Map ExternalFormat -> MetricTask
+CustomAdapter -> Metric: tasks[], metadata[]
 
 note over CustomAdapter
   Addons customizados para

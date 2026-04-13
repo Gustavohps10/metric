@@ -5,7 +5,7 @@ import {
   PaginationOptionsDTO,
   Participants,
   TaskDTO,
-} from '@timelapse/sdk'
+} from '@metric-org/sdk'
 
 import { RedmineBase } from '@/RedmineBase'
 

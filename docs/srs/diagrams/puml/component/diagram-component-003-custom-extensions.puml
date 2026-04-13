@@ -1,5 +1,5 @@
 @startuml ComponentCustomExtensions
-title TIMELAPSE - Extensões Customizadas (RF002)
+title METRIC - Extensões Customizadas (RF002)
 package "Plugin Host" {
     component [Extension API] as ExtAPI
     interface "IDataSourcePlugin" as IDS

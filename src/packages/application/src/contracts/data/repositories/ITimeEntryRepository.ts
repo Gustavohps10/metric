@@ -1,4 +1,4 @@
-import { TimeEntry } from '@timelapse/domain'
+import { TimeEntry } from '@metric-org/domain'
 
 import { IRepositoryBase } from '@/contracts/data'
 

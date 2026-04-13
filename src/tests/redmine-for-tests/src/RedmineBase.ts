@@ -1,4 +1,4 @@
-import type { DataSourceContext } from '@timelapse/sdk'
+import type { DataSourceContext } from '@metric-org/sdk'
 import axios, { AxiosInstance } from 'axios'
 
 export abstract class RedmineBase {

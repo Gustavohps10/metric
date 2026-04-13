@@ -3,7 +3,7 @@ import type {
   MemberDTO,
   PagedResultDTO,
   PaginationOptionsDTO,
-} from '@timelapse/sdk'
+} from '@metric-org/sdk'
 
 import { FAKE_MEMBER } from './fakeData'
 

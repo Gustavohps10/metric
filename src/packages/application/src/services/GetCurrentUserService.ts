@@ -4,7 +4,7 @@ import {
   InternalServerError,
   NotFoundError,
   UnauthorizedError,
-} from '@timelapse/cross-cutting/helpers'
+} from '@metric-org/cross-cutting/helpers'
 
 import {
   GetCurrentUserInput,

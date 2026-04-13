@@ -1,4 +1,4 @@
-import { IJWTService } from '@timelapse/application'
+import { IJWTService } from '@metric-org/application'
 import jwt from 'jsonwebtoken'
 
 export class JwtService implements IJWTService {

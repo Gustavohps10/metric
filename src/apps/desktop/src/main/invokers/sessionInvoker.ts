@@ -1,6 +1,9 @@
-import { ISessionAPI } from '@timelapse/application'
-import { IRequest } from '@timelapse/cross-cutting/transport'
-import { MemberViewModel, ViewModel } from '@timelapse/presentation/view-models'
+import { ISessionAPI } from '@metric-org/application'
+import { IRequest } from '@metric-org/cross-cutting/transport'
+import {
+  MemberViewModel,
+  ViewModel,
+} from '@metric-org/presentation/view-models'
 
 import { IpcInvoker } from '@/main/adapters/IpcInvoker'
 

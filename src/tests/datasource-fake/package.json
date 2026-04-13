@@ -1,9 +1,9 @@
 {
-  "name": "@timelapse/datasource-fake",
+  "name": "@metric-org/datasource-fake",
   "private": true,
   "version": "1.0.0",
   "description": "Datasource fake para testes e validação de envio de dados (1000 tarefas, 1000 apontamentos).",
-  "author": "Timelapse",
+  "author": "Metric",
   "license": "MIT",
   "type": "module",
   "main": "./dist/index.js",
@@ -22,7 +22,7 @@
     "clean": "rimraf dist"
   },
   "dependencies": {
-    "@timelapse/sdk": "workspace:*"
+    "@metric-org/sdk": "workspace:*"
   },
   "devDependencies": {
     "tsup": "^8.5.0",

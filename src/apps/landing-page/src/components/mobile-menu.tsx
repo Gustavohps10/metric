@@ -6,7 +6,7 @@ import {
   SheetContent,
   SheetTitle,
   SheetTrigger,
-} from '@timelapse/ui/components'
+} from '@metric-org/ui/components'
 import { BookOpenTextIcon, Github, Menu, Star } from 'lucide-react'
 import * as React from 'react'
 

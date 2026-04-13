@@ -1,5 +1,5 @@
 @startuml ComponentSharedUI
-title TIMELAPSE - Application Layer Compartilhada (RNF001)
+title METRIC - Application Layer Compartilhada (RNF001)
 package "Shared UI Layer" {
     component [Task List Component] as TaskList
     component [Timer Component] as Timer

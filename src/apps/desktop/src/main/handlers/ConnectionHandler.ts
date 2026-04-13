@@ -3,13 +3,13 @@ import {
   IConnectDataSourceUseCase,
   ICredentialsStorage,
   IDisconnectDataSourceUseCase,
-} from '@timelapse/application'
-import { IRequest } from '@timelapse/cross-cutting/transport'
+} from '@metric-org/application'
+import { IRequest } from '@metric-org/cross-cutting/transport'
 import {
   AuthenticationViewModel,
   MemberViewModel,
   ViewModel,
-} from '@timelapse/presentation/view-models'
+} from '@metric-org/presentation/view-models'
 import { IpcMainInvokeEvent } from 'electron'
 
 export interface ConnectDataSourceRequest {
@@ -94,12 +94,12 @@ export class ConnectionHandler {
     // Usamos o connectionInstanceId para garantir a chave única por conta
     const key = getMemberStorageKey(body.workspaceId, body.connectionInstanceId)
 
-    let raw = await this.credentialsStorage.getToken('timelapse', key)
+    let raw = await this.credentialsStorage.getToken('metric', key)
 
     if (!raw) {
       // Fallback para chaves antigas se necessário, mas mantendo o foco na instância
       const legacyKey = `workspace-session-${body.workspaceId}-${body.connectionInstanceId}-member`
-      raw = await this.credentialsStorage.getToken('timelapse', legacyKey)
+      raw = await this.credentialsStorage.getToken('metric', legacyKey)
     }
 
     if (!raw) {

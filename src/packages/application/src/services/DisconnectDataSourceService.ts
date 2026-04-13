@@ -3,7 +3,7 @@ import {
   Either,
   InternalServerError,
   NotFoundError,
-} from '@timelapse/cross-cutting/helpers'
+} from '@metric-org/cross-cutting/helpers'
 
 import {
   DisconnectDataSourceInput,
@@ -37,8 +37,8 @@ export class DisconnectDataSourceService implements IDisconnectDataSourceUseCase
         input.connectionInstanceId,
       )
 
-      await this.credentialsStorage.deleteToken('timelapse', storageKey)
-      await this.credentialsStorage.deleteToken('timelapse', memberKey)
+      await this.credentialsStorage.deleteToken('metric', storageKey)
+      await this.credentialsStorage.deleteToken('metric', memberKey)
 
       const result = workspace.disconnectDataSource(input.connectionInstanceId)
 

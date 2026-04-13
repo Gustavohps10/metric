@@ -1,4 +1,4 @@
-import type { FieldGroup } from '@timelapse/application'
+import type { FieldGroup } from '@metric-org/application'
 import {
   DataSourceContext,
   ICredentialsStorage,
@@ -6,14 +6,14 @@ import {
   IDataSourceResolver,
   IWorkspacesRepository,
   ResolvedConnection,
-} from '@timelapse/application'
-import DataSourceFake from '@timelapse/datasource-fake'
-import Redmine4Test from '@timelapse/redmine-for-tests'
+} from '@metric-org/application'
+import DataSourceFake from '@metric-org/datasource-fake'
+import Redmine4Test from '@metric-org/redmine-for-tests'
 import { existsSync } from 'fs'
 import { resolve } from 'path'
 import { pathToFileURL } from 'url'
 
-export const FAKE_DATASOURCE_ADDON_ID = 'timelapse-datasource-fake'
+export const FAKE_DATASOURCE_ADDON_ID = 'metric-datasource-fake'
 export const REDMINE4TEST_ADDON_ID = '@timelapse/redmine-plugin'
 
 interface DataSourceModule {
@@ -78,7 +78,7 @@ export class DataSourceResolver implements IDataSourceResolver {
     } else {
       const storageKey = `workspace-session-${workspaceId}-${connectionInstanceId}`
       const credentialsSerialized = await this.credentialsStorage.getToken(
-        'timelapse',
+        'metric',
         storageKey,
       )
 

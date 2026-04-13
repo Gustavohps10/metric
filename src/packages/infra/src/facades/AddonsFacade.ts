@@ -2,20 +2,20 @@ import {
   AddonInstallerDTO,
   AddonManifestDTO,
   IAddonsFacade,
-} from '@timelapse/application'
+} from '@metric-org/application'
 import {
   AppError,
   Either,
   InternalServerError,
   NotFoundError,
   ValidationError,
-} from '@timelapse/cross-cutting/helpers'
+} from '@metric-org/cross-cutting/helpers'
 import axios from 'axios'
 import { promises as fs } from 'fs'
 import yaml from 'js-yaml'
 import { join } from 'path'
 
-const GITHUB_REPO = 'Gustavohps10/timelapse'
+const GITHUB_REPO = 'Gustavohps10/metric'
 const GITHUB_PATH = 'src/packages/addonDatabase/dataSource'
 const LOCAL_ADDONS_PATH = './addons/datasource'
 
@@ -49,12 +49,12 @@ export class AddonsFacade implements IAddonsFacade {
   public async listAvailable(): Promise<Either<AppError, AddonManifestDTO[]>> {
     try {
       const indexUrl =
-        'https://gustavohps10.github.io/timelapse-addons/addonDatabase/dataSource/index.json'
+        'https://gustavohps10.github.io/metric-addons/addonDatabase/dataSource/index.json'
       const { data: yamlFiles } = await axios.get<string[]>(indexUrl)
 
       const addons: AddonManifestDTO[] = await Promise.all(
         yamlFiles.map(async (filename) => {
-          const yamlUrl = `https://gustavohps10.github.io/timelapse-addons/addonDatabase/dataSource/${filename}`
+          const yamlUrl = `https://gustavohps10.github.io/metric-addons/addonDatabase/dataSource/${filename}`
           const { data: rawYaml } = await axios.get(yamlUrl)
           const parsed = await this.parseManifest(rawYaml)
           if (parsed.isFailure()) throw parsed.failure

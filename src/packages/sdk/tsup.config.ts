@@ -16,10 +16,10 @@ export default defineConfig({
   splitting: true,
   tsconfig: './tsconfig.build.json',
   noExternal: [
-    '@timelapse/application',
-    '@timelapse/cross-cutting',
-    '@timelapse/domain',
-    '@timelapse/presentation',
+    '@metric-org/application',
+    '@metric-org/cross-cutting',
+    '@metric-org/domain',
+    '@metric-org/presentation',
   ],
   define: {
     __SDK_VERSION__: JSON.stringify(pkg.version),

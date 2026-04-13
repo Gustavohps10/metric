@@ -1,5 +1,5 @@
+import { AddonInstaller, AddonManifest } from '@metric-org/application'
 import { useQuery } from '@tanstack/react-query'
-import { AddonInstaller, AddonManifest } from '@timelapse/application'
 import { Download, Star } from 'lucide-react'
 import { useState } from 'react'
 

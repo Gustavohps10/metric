@@ -1,10 +1,10 @@
 import { electronApp, is, optimizer } from '@electron-toolkit/utils'
-import { ContainerBuilder, PlatformDependencies } from '@timelapse/container'
+import { ContainerBuilder, PlatformDependencies } from '@metric-org/container'
 import {
   JSONWorkspacesQuery,
   JSONWorkspacesRepository,
-} from '@timelapse/infra/data'
-import { KeytarTokenStorage } from '@timelapse/infra/storage'
+} from '@metric-org/infra/data'
+import { KeytarTokenStorage } from '@metric-org/infra/storage'
 import { app, BrowserWindow, Menu, screen, shell, Tray } from 'electron'
 import installExtension, {
   REACT_DEVELOPER_TOOLS,
@@ -135,7 +135,7 @@ const createTray = () => {
       { label: 'Sair', role: 'quit' },
     ])
 
-  tray.setToolTip('Timelapse')
+  tray.setToolTip('Metric')
 
   tray.on('click', () => {
     const menu = buildContextMenu()

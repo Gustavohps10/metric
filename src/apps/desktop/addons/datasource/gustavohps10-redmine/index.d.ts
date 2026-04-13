@@ -1,5 +1,5 @@
-import { IConnector } from '@timelapse/sdk';
+import { IConnector } from '@metric-org/sdk'
 
-declare const RedmineConnector: IConnector;
+declare const RedmineConnector: IConnector
 
-export { RedmineConnector as default };
+export { RedmineConnector as default }

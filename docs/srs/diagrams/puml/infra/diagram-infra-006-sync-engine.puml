@@ -1,5 +1,5 @@
 @startuml SyncEngine
-title TIMELAPSE - Motor de Sincronização (RF004, RF005, RF008)
+title METRIC - Motor de Sincronização (RF004, RF005, RF008)
 package "Sync Engine" {
     component [Checkpoint Manager] as Checkpoint {
         [getLastCheckpoint()]

@@ -1,4 +1,4 @@
-import type { FieldGroup, IDataSource } from '@timelapse/sdk'
+import type { FieldGroup, IDataSource } from '@metric-org/sdk'
 
 import { FakeAuthenticationStrategy } from './FakeAuthenticationStrategy'
 import { FakeMemberQuery } from './FakeMemberQuery'
@@ -15,7 +15,7 @@ const configFields: { credentials: FieldGroup[]; configuration: FieldGroup[] } =
   }
 
 const FakeDataSource: IDataSource = {
-  id: 'timelapse-datasource-fake',
+  id: 'metric-datasource-fake',
   dataSourceType: 'fake',
   displayName: 'DataSource Fake (Testes)',
   configFields,

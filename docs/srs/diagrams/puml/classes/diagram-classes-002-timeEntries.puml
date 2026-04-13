@@ -1,5 +1,5 @@
 @startuml ClassTimeEntries
-title TIMELAPSE - Coleção timeEntries (SRS 6.2)
+title METRIC - Coleção timeEntries (SRS 6.2)
 package "Core Models" {
     class TimeEntry {
         +String _id

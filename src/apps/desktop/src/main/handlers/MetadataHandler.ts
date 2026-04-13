@@ -1,14 +1,14 @@
-import { MetadataDTO } from '@timelapse/application'
+import { MetadataDTO } from '@metric-org/application'
 import {
   IMetadataPullUseCase,
   PullMetadataInput,
-} from '@timelapse/application/contracts/use-cases/IMetadataPullUseCase'
-import { AppError, Either } from '@timelapse/cross-cutting/helpers'
-import { IRequest } from '@timelapse/cross-cutting/transport'
+} from '@metric-org/application/contracts/use-cases/IMetadataPullUseCase'
+import { AppError, Either } from '@metric-org/cross-cutting/helpers'
+import { IRequest } from '@metric-org/cross-cutting/transport'
 import {
   MetadataViewModel,
   ViewModel,
-} from '@timelapse/presentation/view-models'
+} from '@metric-org/presentation/view-models'
 
 export class MetadataHandler {
   constructor(private readonly metadataPullService: IMetadataPullUseCase) {}

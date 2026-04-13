@@ -1,5 +1,5 @@
-import { IWorkspacesRepository } from '@timelapse/application'
-import { Workspace } from '@timelapse/domain'
+import { IWorkspacesRepository } from '@metric-org/application'
+import { Workspace } from '@metric-org/domain'
 import { promises as fs } from 'fs'
 import path from 'path'
 

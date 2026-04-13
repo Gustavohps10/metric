@@ -1,6 +1,6 @@
 @startuml ComponentOverview
-title TIMELAPSE - Visão Geral de Componentes (SRS)
-package "Control Plane (app.timelapse.dev)" {
+title METRIC - Visão Geral de Componentes (SRS)
+package "Control Plane (app.metric.dev)" {
     [Auth]
     [Organizations]
     [Licensing]

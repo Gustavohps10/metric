@@ -1,4 +1,4 @@
-import { IHeaders, IRequest } from '@timelapse/cross-cutting/transport'
+import { IHeaders, IRequest } from '@metric-org/cross-cutting/transport'
 import { ipcRenderer } from 'electron'
 
 import { IpcChannels } from '@/main/constants/IpcChannels'

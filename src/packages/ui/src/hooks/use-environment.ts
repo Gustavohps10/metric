@@ -1,4 +1,4 @@
-import type { EnvironmentInfo } from '@timelapse/application'
+import type { EnvironmentInfo } from '@metric-org/application'
 import { useContext } from 'react'
 
 import { EnvironmentContext } from '@/contexts/EnvironmentContext'

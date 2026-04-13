@@ -4,14 +4,14 @@ import {
   ITaskPullUseCase,
   PagedResultDTO,
   TaskDTO,
-} from '@timelapse/application'
-import { AppError, Either } from '@timelapse/cross-cutting/helpers'
-import { IRequest } from '@timelapse/cross-cutting/transport'
+} from '@metric-org/application'
+import { AppError, Either } from '@metric-org/cross-cutting/helpers'
+import { IRequest } from '@metric-org/cross-cutting/transport'
 import {
   PaginatedViewModel,
   TaskViewModel,
   ViewModel,
-} from '@timelapse/presentation/view-models'
+} from '@metric-org/presentation/view-models'
 import { IpcMainInvokeEvent } from 'electron'
 
 export interface ListTasksRequest {

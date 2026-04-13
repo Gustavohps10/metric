@@ -1,4 +1,4 @@
-import { Entity } from '@timelapse/domain'
+import { Entity } from '@metric-org/domain'
 
 import { IQueryBase } from '@/contracts/data'
 import { IRepositoryBase } from '@/contracts/data'

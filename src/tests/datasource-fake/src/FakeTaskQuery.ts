@@ -3,7 +3,7 @@ import type {
   PagedResultDTO,
   PaginationOptionsDTO,
   TaskDTO,
-} from '@timelapse/sdk'
+} from '@metric-org/sdk'
 
 import { FAKE_TASKS } from './fakeData'
 

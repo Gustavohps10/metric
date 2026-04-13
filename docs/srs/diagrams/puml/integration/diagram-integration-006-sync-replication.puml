@@ -1,5 +1,5 @@
 @startuml IntegrationSyncReplication
-title TIMELAPSE - Replicação de Apontamentos (RF008)
+title METRIC - Replicação de Apontamentos (RF008)
 participant UI
 participant SyncEngine
 participant RxDB

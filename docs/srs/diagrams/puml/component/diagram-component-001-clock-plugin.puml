@@ -1,7 +1,7 @@
 ﻿@startuml ComponentClock
 package "Plugin System" {
     component [Plugin Host] as Host
-    interface "ITimelapsePlugin" as IPlugin
+    interface "IMetricPlugin" as IPlugin
 }
 
 package "Clock Extension" {

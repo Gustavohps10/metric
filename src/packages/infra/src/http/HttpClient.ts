@@ -2,7 +2,7 @@ import {
   AppError,
   Either,
   InternalServerError,
-} from '@timelapse/cross-cutting/helpers'
+} from '@metric-org/cross-cutting/helpers'
 import axios, { AxiosError, AxiosInstance, AxiosRequestConfig } from 'axios'
 
 import { IHttpClient } from '@/contracts/IHttpClient'

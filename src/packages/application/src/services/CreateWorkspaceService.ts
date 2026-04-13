@@ -2,8 +2,8 @@ import {
   AppError,
   Either,
   InternalServerError,
-} from '@timelapse/cross-cutting/helpers'
-import { Workspace } from '@timelapse/domain'
+} from '@metric-org/cross-cutting/helpers'
+import { Workspace } from '@metric-org/domain'
 
 import {
   CreateWorkspaceInput,

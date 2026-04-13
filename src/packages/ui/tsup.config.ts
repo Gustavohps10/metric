@@ -44,7 +44,7 @@ export default defineConfig({
     'lucide-react',
     'react-hook-form',
     '@radix-ui/*',
-    '@timelapse/application',
+    '@metric-org/application',
     'nuqs',
   ],
   loader: {

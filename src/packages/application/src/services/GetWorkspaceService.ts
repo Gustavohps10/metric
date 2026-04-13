@@ -2,7 +2,7 @@ import {
   AppError,
   Either,
   NotFoundError,
-} from '@timelapse/cross-cutting/helpers'
+} from '@metric-org/cross-cutting/helpers'
 
 import { IWorkspacesRepository } from '@/contracts'
 import {

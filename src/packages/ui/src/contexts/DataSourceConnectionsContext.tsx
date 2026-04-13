@@ -1,6 +1,6 @@
 'use client'
 
-import { WorkspaceConnectionDTO, WorkspaceDTO } from '@timelapse/application'
+import { WorkspaceConnectionDTO, WorkspaceDTO } from '@metric-org/application'
 import React, {
   createContext,
   ReactNode,
@@ -82,7 +82,7 @@ export function DataSourceConnectionsProvider({
 
       await client.modules.tokenStorage.saveToken({
         body: {
-          service: 'timelapse',
+          service: 'metric',
           account: `jwt-${workspace.id}-${connectionInstanceId}`,
           token,
         },
@@ -115,7 +115,7 @@ export function DataSourceConnectionsProvider({
 
       await client.modules.tokenStorage.deleteToken({
         body: {
-          service: 'timelapse',
+          service: 'metric',
           account: `jwt-${workspace.id}-${connectionInstanceId}`,
         },
       })
@@ -145,7 +145,7 @@ export function DataSourceConnectionsProvider({
         try {
           const res = await client.modules.tokenStorage.getToken({
             body: {
-              service: 'timelapse',
+              service: 'metric',
               account: `jwt-${workspace.id}-${conn.id}`,
             },
           })

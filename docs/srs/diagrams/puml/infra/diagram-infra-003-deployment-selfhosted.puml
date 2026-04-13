@@ -1,7 +1,7 @@
 @startuml DeploymentSelfHosted
-title TIMELAPSE - Deploy Self-Hosted (SRS 4.2)
+title METRIC - Deploy Self-Hosted (SRS 4.2)
 node "Infraestrutura da Empresa" {
-    node "timelapse.internal.company.com" {
+    node "metric.internal.company.com" {
         component [Web Server] as Web
         component [Auth Service] as Auth
         component [Sync Server] as Sync

@@ -1,6 +1,6 @@
 @startuml DeploymentCloud
-title TIMELAPSE - Deploy Control Plane (app.timelapse.dev - SRS 4.3)
-node "Timelapse Cloud" {
+title METRIC - Deploy Control Plane (app.metric.dev - SRS 4.3)
+node "Metric Cloud" {
     cloud "Control Plane" {
         component [Auth API] as Auth
         component [Organizations API] as Orgs

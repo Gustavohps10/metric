@@ -1,5 +1,5 @@
 ﻿@startuml LoginFlow
-title TIMELAPSE - Login Multi-Plataforma
+title METRIC - Login Multi-Plataforma
 actor User
 participant App
 participant Backend

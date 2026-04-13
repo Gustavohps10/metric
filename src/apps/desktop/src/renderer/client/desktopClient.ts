@@ -1,4 +1,4 @@
-import { IApplicationAPI } from '@timelapse/application'
+import { IApplicationAPI } from '@metric-org/application'
 
 const ipcClient: IApplicationAPI = {
   services: window.api.services,

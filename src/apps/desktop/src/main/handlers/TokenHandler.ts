@@ -1,6 +1,6 @@
-import { ICredentialsStorage } from '@timelapse/application'
-import { IRequest } from '@timelapse/cross-cutting/transport'
-import { ViewModel } from '@timelapse/presentation/view-models'
+import { ICredentialsStorage } from '@metric-org/application'
+import { IRequest } from '@metric-org/cross-cutting/transport'
+import { ViewModel } from '@metric-org/presentation/view-models'
 
 export interface TokenRequest {
   service: string

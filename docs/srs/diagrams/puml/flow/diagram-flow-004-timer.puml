@@ -1,5 +1,5 @@
 ﻿@startuml TimerFlow
-title TIMELAPSE - Motor do Timer (Local-First)
+title METRIC - Motor do Timer (Local-First)
 participant UI
 participant TimerEngine
 participant RxDB

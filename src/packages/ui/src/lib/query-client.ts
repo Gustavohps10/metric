@@ -1,5 +1,5 @@
+import { ViewModel } from '@metric-org/presentation/view-models'
 import { MutationCache, QueryCache, QueryClient } from '@tanstack/react-query'
-import { ViewModel } from '@timelapse/presentation/view-models'
 
 export const queryClient = new QueryClient({
   queryCache: new QueryCache({

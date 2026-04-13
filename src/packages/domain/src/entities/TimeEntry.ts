@@ -1,4 +1,4 @@
-import { Either, ValidationError } from '@timelapse/cross-cutting/helpers'
+import { Either, ValidationError } from '@metric-org/cross-cutting/helpers'
 import { randomUUID } from 'crypto'
 import z from 'zod'
 

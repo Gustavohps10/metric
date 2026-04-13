@@ -1,11 +1,11 @@
-import { UnauthorizedError } from '@timelapse/cross-cutting/helpers'
+import { UnauthorizedError } from '@metric-org/cross-cutting/helpers'
 import {
   AppError,
   AuthenticationResult,
   Either,
   IAuthenticationStrategy,
   MemberDTO,
-} from '@timelapse/sdk'
+} from '@metric-org/sdk'
 import axios, { AxiosInstance } from 'axios'
 
 export interface RedmineConfiguration {

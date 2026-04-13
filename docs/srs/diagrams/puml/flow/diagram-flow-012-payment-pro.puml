@@ -1,5 +1,5 @@
 @startuml PaymentProFlow
-title TIMELAPSE - Ativação Pro (UC003 - RF010)
+title METRIC - Ativação Pro (UC003 - RF010)
 actor User
 participant DesktopApp
 participant ControlPlane

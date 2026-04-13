@@ -1,10 +1,10 @@
 @startuml UseCasePanel
-title TIMELAPSE - Casos de Uso: Painel Administrativo (UC003 - SRS)
+title METRIC - Casos de Uso: Painel Administrativo (UC003 - SRS)
 left to right direction
 actor "Admin" as A
 actor "Member" as M
 
-rectangle "Timelapse System (Pro/Enterprise)" {
+rectangle "Metric System (Pro/Enterprise)" {
     usecase "Acessar Painel Admin" as UC1
     usecase "Gerenciar Organizações" as UC2
     usecase "Gerenciar Membros" as UC3

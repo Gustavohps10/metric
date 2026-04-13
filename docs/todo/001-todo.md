@@ -34,7 +34,7 @@ Resumo: o trabalho é **só dentro de um novo addon**. O resto do monorepo conti
 
 Arquivos que você **vai criar** (todos dentro de `src/tests/datasource-fake`):
 
-- `manifest.yaml` — Type: DataSource, id único (ex.: `timelapse-datasource-fake`), displayName ex.: "DataSource Fake (Testes)".
+- `manifest.yaml` — Type: DataSource, id único (ex.: `metric-datasource-fake`), displayName ex.: "DataSource Fake (Testes)".
 - `package.json` / `tsconfig` / build (ex.: tsup) — espelhando o addon-for-tests para o addon ser buildável.
 - `src/index.ts` — export default de um objeto que implementa `IDataSource` (id, dataSourceType, displayName, configFields, getAuthenticationStrategy, getTaskQuery, getTimeEntryQuery, getTimeEntryRepository, getMemberQuery, getTaskRepository, getMetadataQuery).
 - `src/FakeAuthenticationStrategy.ts` — implementa `IAuthenticationStrategy`; `authenticate()` sempre sucesso (ex.: credenciais fixas ou qualquer login/senha).
@@ -67,7 +67,7 @@ Nenhuma alteração nesses fluxos é necessária; só a existência do novo plug
 ## Checklist rápido para o dev
 
 1. Criar pasta `src/tests/datasource-fake` e estrutura igual ao addon-for-tests (manifest, package.json, tsconfig, build).
-2. Implementar todas as interfaces do `IDataSource` com classes Fake* (Strategy, TaskQuery, TaskRepository, TimeEntryQuery, TimeEntryRepository, MemberQuery, MetadataQuery).
+2. Implementar todas as interfaces do `IDataSource` com classes Fake\* (Strategy, TaskQuery, TaskRepository, TimeEntryQuery, TimeEntryRepository, MemberQuery, MetadataQuery).
 3. Criar módulo de dados: 1000 tasks, 1000 time entries, 1 member, metadata fixa; usar no Fake*Query e Fake*Repository.
 4. Garantir que FakeTimeEntryRepository persista create/update/delete em memória para validar o push.
 5. Registrar ou copiar o addon na pasta que o desktop usa para carregar addons (se for o caso), para aparecer na UI e poder conectar ao workspace.

@@ -28,8 +28,8 @@ export type {
   TaskDTO,
   TimeEntryDTO,
   WorkspaceDTO,
-} from '@timelapse/application'
-export { AppError, Either } from '@timelapse/cross-cutting/helpers'
-export type { IHeaders, IRequest } from '@timelapse/cross-cutting/transport'
-export { Member, Task, TimeEntry, Workspace } from '@timelapse/domain'
-export * from '@timelapse/presentation/view-models'
+} from '@metric-org/application'
+export { AppError, Either } from '@metric-org/cross-cutting/helpers'
+export type { IHeaders, IRequest } from '@metric-org/cross-cutting/transport'
+export { Member, Task, TimeEntry, Workspace } from '@metric-org/domain'
+export * from '@metric-org/presentation/view-models'

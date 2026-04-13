@@ -1,4 +1,4 @@
-import { Workspace } from '@timelapse/domain'
+import { Workspace } from '@metric-org/domain'
 
 import { IRepositoryBase } from '@/contracts/data/repositories'
 

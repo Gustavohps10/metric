@@ -1,9 +1,9 @@
-import { IUnitOfWork, IWorkspacesRepository } from '@timelapse/application'
+import { IUnitOfWork, IWorkspacesRepository } from '@metric-org/application'
 import {
   IMemberQuery,
   ITaskQuery,
   ITimeEntryQuery,
-} from '@timelapse/application'
+} from '@metric-org/application'
 
 export class UnitOfWork implements IUnitOfWork {
   public inTransaction: boolean = false

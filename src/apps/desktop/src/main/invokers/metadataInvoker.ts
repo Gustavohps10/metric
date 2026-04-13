@@ -1,10 +1,10 @@
-import { IMetadataAPI } from '@timelapse/application'
-import { PullMetadataInput } from '@timelapse/application/contracts/use-cases/IMetadataPullUseCase'
-import { IRequest } from '@timelapse/cross-cutting/transport'
+import { IMetadataAPI } from '@metric-org/application'
+import { PullMetadataInput } from '@metric-org/application/contracts/use-cases/IMetadataPullUseCase'
+import { IRequest } from '@metric-org/cross-cutting/transport'
 import {
   MetadataViewModel,
   ViewModel,
-} from '@timelapse/presentation/view-models'
+} from '@metric-org/presentation/view-models'
 
 import { IpcInvoker } from '@/main/adapters/IpcInvoker'
 

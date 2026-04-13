@@ -20,7 +20,7 @@
     ],
     "paths": {
       "@/*": ["./src/*"],
-      "@timelapse/ui/*": ["../ui/src/*"]
+      "@metric-org/ui/*": ["../ui/src/*"]
     }
   },
   "include": [

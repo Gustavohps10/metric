@@ -1,4 +1,4 @@
-import { IServiceProvider } from '@timelapse/application'
+import { IServiceProvider } from '@metric-org/application'
 import { asValue, AwilixContainer } from 'awilix'
 
 export class ServiceProvider implements IServiceProvider {

@@ -1,5 +1,5 @@
 @startuml DeploymentDesktop
-title TIMELAPSE - Deploy Desktop Client (SRS 4.1)
+title METRIC - Deploy Desktop Client (SRS 4.1)
 node "Máquina do Usuário" {
     component [Electron / Tauri App] as App {
         component [Shared UI (React)] as UI
@@ -14,7 +14,7 @@ node "Máquina do Usuário" {
 }
 
 cloud "Internet" {
-    [app.timelapse.dev] as Cloud
+    [app.metric.dev] as Cloud
     [Jira API] as Jira
     [Redmine API] as Redmine
 }

@@ -5,11 +5,11 @@
     "baseUrl": ".",
     "paths": {
       "@/*": ["./src/*"],
-      "@timelapse/application/*": ["../../packages/application/src/*"],
-      "@timelapse/presentation/*": ["../../packages/presentation/src/*"],
-      "@timelapse/cross-cutting/*": ["../../packages/cross-cutting/src/*"],
-      "@timelapse/container/*": ["../../packages/container/src/*"],
-      "@timelapse/ui/*": ["../../packages/ui/src/*"]
+      "@metric-org/application/*": ["../../packages/application/src/*"],
+      "@metric-org/presentation/*": ["../../packages/presentation/src/*"],
+      "@metric-org/cross-cutting/*": ["../../packages/cross-cutting/src/*"],
+      "@metric-org/container/*": ["../../packages/container/src/*"],
+      "@metric-org/ui/*": ["../../packages/ui/src/*"]
     },
     "types": ["electron-vite/node", "node"]
   },

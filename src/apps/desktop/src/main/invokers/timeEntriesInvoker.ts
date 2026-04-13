@@ -1,10 +1,10 @@
-import { ITimeEntriesAPI, PushTimeEntriesInput } from '@timelapse/application'
-import { IRequest } from '@timelapse/cross-cutting/transport'
+import { ITimeEntriesAPI, PushTimeEntriesInput } from '@metric-org/application'
+import { IRequest } from '@metric-org/cross-cutting/transport'
 import {
   PaginatedViewModel,
   SyncDocumentViewModel,
   TimeEntryViewModel,
-} from '@timelapse/presentation/view-models'
+} from '@metric-org/presentation/view-models'
 
 import { IpcInvoker } from '@/main/adapters/IpcInvoker'
 import { ListTimeEntriesRequest, PullTimeEntriesRequest } from '@/main/handlers'

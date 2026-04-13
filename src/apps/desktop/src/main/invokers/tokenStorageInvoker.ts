@@ -1,6 +1,6 @@
-import { ITokenStorageAPI } from '@timelapse/application'
-import { IRequest } from '@timelapse/cross-cutting/transport'
-import { ViewModel } from '@timelapse/presentation/view-models'
+import { ITokenStorageAPI } from '@metric-org/application'
+import { IRequest } from '@metric-org/cross-cutting/transport'
+import { ViewModel } from '@metric-org/presentation/view-models'
 
 import { IpcInvoker } from '@/main/adapters/IpcInvoker'
 import { TokenRequest } from '@/main/handlers'

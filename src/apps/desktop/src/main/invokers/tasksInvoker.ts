@@ -1,10 +1,10 @@
-import { ITaskAPI, PullTasksInput, TaskDTO } from '@timelapse/application'
-import { IRequest } from '@timelapse/cross-cutting/transport'
+import { ITaskAPI, PullTasksInput, TaskDTO } from '@metric-org/application'
+import { IRequest } from '@metric-org/cross-cutting/transport'
 import {
   PaginatedViewModel,
   TaskViewModel,
   ViewModel,
-} from '@timelapse/presentation/view-models'
+} from '@metric-org/presentation/view-models'
 
 import { IpcInvoker } from '@/main/adapters/IpcInvoker'
 

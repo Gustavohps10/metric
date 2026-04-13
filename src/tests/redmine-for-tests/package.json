@@ -1,5 +1,5 @@
 {
-  "name": "@timelapse/redmine-for-tests",
+  "name": "@metric-org/redmine-for-tests",
   "private": true,
   "version": "1.0.3",
   "description": "Redmine datasource para testes.",
@@ -20,11 +20,11 @@
   "scripts": {
     "build": "tsup --format esm,cjs --dts",
     "clean": "rimraf dist",
-    "manifest": "timelapse manifest ./ --config ./timelapse.json",
-    "pkg": "timelapse pkg ./dist --config ./timelapse.json"
+    "manifest": "metric manifest ./ --config ./metric.json",
+    "pkg": "metric pkg ./dist --config ./metric.json"
   },
   "dependencies": {
-    "@timelapse/sdk": "workspace:*",
+    "@metric-org/sdk": "workspace:*",
     "axios": "^1.7.9"
   },
   "devDependencies": {

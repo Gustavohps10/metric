@@ -3,7 +3,7 @@ import {
   AppLayout,
   HomeLayout,
   WorkspaceLayout,
-} from '@timelapse/ui/layouts'
+} from '@metric-org/ui/layouts'
 import {
   Activities,
   AddonsPage,
@@ -15,7 +15,7 @@ import {
   TimeEntries,
   TimerWidget,
   WorkspaceSettings,
-} from '@timelapse/ui/pages'
+} from '@metric-org/ui/pages'
 import { createHashRouter, Navigate } from 'react-router-dom'
 
 export const router = createHashRouter([

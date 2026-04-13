@@ -1,8 +1,8 @@
 'use client'
 
+import { WorkspaceConnectionDTO } from '@metric-org/application'
 import { useInfiniteQuery, useQuery } from '@tanstack/react-query'
 import { useVirtualizer } from '@tanstack/react-virtual'
-import { WorkspaceConnectionDTO } from '@timelapse/application'
 import {
   AlertCircle,
   Circle,

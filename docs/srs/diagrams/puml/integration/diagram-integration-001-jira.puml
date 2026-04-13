@@ -1,12 +1,12 @@
 ﻿@startuml IntegrationJira
 title Jira Integration Flow
-participant Timelapse
+participant Metric
 participant JiraAdapter
 participant JiraAPI
 
-Timelapse -> JiraAdapter: Request Sync (LastCheckpoint)
+Metric -> JiraAdapter: Request Sync (LastCheckpoint)
 JiraAdapter -> JiraAPI: GET /rest/api/2/search?jql=updated > Checkpoint
 JiraAPI -> JiraAdapter: Return JSON (Issues)
-JiraAdapter -> JiraAdapter: Map JiraIssue -> TimelapseTask
-JiraAdapter -> Timelapse: Return Normalized Data
+JiraAdapter -> JiraAdapter: Map JiraIssue -> MetricTask
+JiraAdapter -> Metric: Return Normalized Data
 @enduml

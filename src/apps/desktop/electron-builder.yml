@@ -1,5 +1,5 @@
 appId: com.electron.app
-productName: timelapse
+productName: metric
 directories:
   buildResources: build
 files:
@@ -18,11 +18,11 @@ extraResources:
 asarUnpack:
   - resources/**
 protocols:
-  name: Timelapse Auth Protocol
+  name: Metric Auth Protocol
   schemes:
-    - timelapse
+    - metric
 win:
-  executableName: timelapse
+  executableName: metric
 nsis:
   artifactName: ${name}-${version}-setup.${ext}
   shortcutName: ${productName}

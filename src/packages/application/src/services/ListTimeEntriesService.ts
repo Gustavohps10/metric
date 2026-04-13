@@ -2,7 +2,7 @@ import {
   AppError,
   Either,
   InternalServerError,
-} from '@timelapse/cross-cutting/helpers'
+} from '@metric-org/cross-cutting/helpers'
 
 import { IDataSourceResolver } from '@/contracts/resolvers'
 import {

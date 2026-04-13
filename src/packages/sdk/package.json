@@ -1,7 +1,7 @@
 {
-  "name": "@timelapse/sdk",
+  "name": "@metric-org/sdk",
   "version": "1.1.0",
-  "description": "Toolkit para o ecossistema Timelapse.",
+  "description": "Toolkit para o ecossistema Metric.",
   "repository": {
     "url": ""
   },
@@ -25,10 +25,10 @@
     "clean": "rimraf dist .turbo"
   },
   "devDependencies": {
-    "@timelapse/application": "workspace:*",
-    "@timelapse/cross-cutting": "workspace:*",
-    "@timelapse/domain": "workspace:*",
-    "@timelapse/presentation": "workspace:*",
+    "@metric-org/application": "workspace:*",
+    "@metric-org/cross-cutting": "workspace:*",
+    "@metric-org/domain": "workspace:*",
+    "@metric-org/presentation": "workspace:*",
     "@types/adm-zip": "^0",
     "@types/js-yaml": "^4.0.9",
     "@types/turndown": "^5.0.5",
@@ -40,7 +40,7 @@
     "typescript": "^5.8.3"
   },
   "bin": {
-    "timelapse": "./dist/cli.cjs"
+    "metric": "./dist/cli.cjs"
   },
   "dependencies": {
     "highlight.js": "^11.11.1",

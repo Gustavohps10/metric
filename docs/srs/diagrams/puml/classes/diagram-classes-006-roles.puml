@@ -1,5 +1,5 @@
 @startuml ClassRoles
-title TIMELAPSE - Papéis e Permissões (SRS 4.3)
+title METRIC - Papéis e Permissões (SRS 4.3)
 package "Control Plane" {
     class Role {
         +String id

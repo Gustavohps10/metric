@@ -6,7 +6,7 @@ import type {
   ITaskRepository,
   ITimeEntryQuery,
   ITimeEntryRepository,
-} from '@timelapse/application'
+} from '@metric-org/application'
 
 export interface ConfigField {
   id: string

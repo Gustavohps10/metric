@@ -3,7 +3,7 @@ import {
   Either,
   InternalServerError,
   NotFoundError,
-} from '@timelapse/cross-cutting/helpers'
+} from '@metric-org/cross-cutting/helpers'
 
 import {
   ConnectDataSourceInput,
@@ -68,13 +68,13 @@ export class ConnectDataSourceService implements IConnectDataSourceUseCase {
       )
 
       await this.credentialsStorage.saveToken(
-        'timelapse',
+        'metric',
         storageKey,
         serializedCredentials,
       )
 
       await this.credentialsStorage.saveToken(
-        'timelapse',
+        'metric',
         memberKey,
         JSON.stringify(member),
       )
@@ -105,8 +105,8 @@ export class ConnectDataSourceService implements IConnectDataSourceUseCase {
         input.connectionInstanceId,
       )
 
-      await this.credentialsStorage.deleteToken('timelapse', storageKey)
-      await this.credentialsStorage.deleteToken('timelapse', memberKey)
+      await this.credentialsStorage.deleteToken('metric', storageKey)
+      await this.credentialsStorage.deleteToken('metric', memberKey)
 
       return Either.failure(
         InternalServerError.danger('ERRO_AO_CONECTAR_DATA_SOURCE'),

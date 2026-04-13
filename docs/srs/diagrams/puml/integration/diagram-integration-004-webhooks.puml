@@ -1,24 +1,24 @@
 @startuml IntegrationWebhooks
-title TIMELAPSE - Webhooks (Integrações assíncronas)
+title METRIC - Webhooks (Integrações assíncronas)
 participant ExternalSystem
-participant Timelapse
+participant Metric
 participant SyncEngine
 participant RxDB
 
-ExternalSystem -> Timelapse: POST /webhook {event, data}
-Timelapse -> Timelapse: Validar assinatura
+ExternalSystem -> Metric: POST /webhook {event, data}
+Metric -> Metric: Validar assinatura
 
 alt event: issue.updated
-    Timelapse -> SyncEngine: triggerIncrementalSync(issueId)
+    Metric -> SyncEngine: triggerIncrementalSync(issueId)
     SyncEngine -> ExternalSystem: GET /issue/{id}
     ExternalSystem -> SyncEngine: Dados atualizados
     SyncEngine -> SyncEngine: Normalizar
     SyncEngine -> RxDB: upsert task
 else event: time_entry.created
-    Timelapse -> SyncEngine: syncTimeEntry(data)
+    Metric -> SyncEngine: syncTimeEntry(data)
     SyncEngine -> RxDB: upsert timeEntry
 end
 
-SyncEngine -> Timelapse: OK
-Timelapse -> ExternalSystem: 200 OK
+SyncEngine -> Metric: OK
+Metric -> ExternalSystem: 200 OK
 @enduml

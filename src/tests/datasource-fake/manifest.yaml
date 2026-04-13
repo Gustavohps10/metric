@@ -1,8 +1,8 @@
-AddonId: timelapse-datasource-fake
+AddonId: metric-datasource-fake
 Version: 1.0.0
 Type: DataSource
 Name: DataSource Fake (Testes)
-Author: Timelapse
+Author: Metric
 ShortDescription: Datasource mock para testes
 Description: Datasource com dados locais fixos (1000 tarefas, 1000 apontamentos) para testes e validação de envio de dados.
 Tags:

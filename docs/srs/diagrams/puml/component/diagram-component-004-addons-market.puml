@@ -1,5 +1,5 @@
 @startuml ComponentAddonsMarket
-title TIMELAPSE - Loja de Addons (RF002)
+title METRIC - Loja de Addons (RF002)
 package "Desktop App" {
     component [Addons Market UI] as MarketUI
     component [Plugin Installer] as Installer

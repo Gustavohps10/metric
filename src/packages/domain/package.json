@@ -1,8 +1,8 @@
 {
-  "name": "@timelapse/domain",
+  "name": "@metric-org/domain",
   "version": "1.0.0",
   "private": true,
-  "description": "Contém as entidades, interfaces e regras de negócio principais do ecossistema Timelapse.",
+  "description": "Contém as entidades, interfaces e regras de negócio principais do ecossistema Metric.",
   "type": "module",
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
@@ -17,7 +17,7 @@
     "clean": "rimraf dist .turbo"
   },
   "dependencies": {
-    "@timelapse/cross-cutting": "workspace:*",
+    "@metric-org/cross-cutting": "workspace:*",
     "zod": "^3.24.2"
   },
   "devDependencies": {

@@ -1,8 +1,8 @@
 {
-  "name": "@timelapse/presentation",
+  "name": "@metric-org/presentation",
   "version": "1.0.0",
   "private": true,
-  "description": "Contém os serviços e casos de uso (use cases) da aplicação Timelapse.",
+  "description": "Contém os serviços e casos de uso (use cases) da aplicação Metric.",
   "type": "module",
   "exports": {
     "./view-models": {

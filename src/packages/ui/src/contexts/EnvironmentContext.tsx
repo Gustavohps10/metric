@@ -1,4 +1,4 @@
-import type { EnvironmentInfo } from '@timelapse/application'
+import type { EnvironmentInfo } from '@metric-org/application'
 import { createContext, type ReactNode } from 'react'
 
 export const EnvironmentContext = createContext<EnvironmentInfo | null>(null)

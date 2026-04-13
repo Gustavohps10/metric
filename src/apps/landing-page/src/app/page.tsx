@@ -6,7 +6,7 @@ import {
   TabsContent,
   TabsList,
   TabsTrigger,
-} from '@timelapse/ui/components'
+} from '@metric-org/ui/components'
 import {
   Activity,
   ArrowRight,

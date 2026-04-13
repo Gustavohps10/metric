@@ -3,7 +3,7 @@ import {
   Either,
   InternalServerError,
   UnauthorizedError,
-} from '@timelapse/cross-cutting/helpers'
+} from '@metric-org/cross-cutting/helpers'
 
 import { IDataSourceResolver } from '@/contracts/resolvers'
 import {

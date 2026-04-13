@@ -1,15 +1,15 @@
 // src/renderer/main.tsx (ou onde você monta o App)
 import '@/renderer/index.css'
 
-import { QueryClientProvider } from '@tanstack/react-query'
-import { queryClient } from '@timelapse/ui/lib'
+import { queryClient } from '@metric-org/ui/lib'
 import {
   ClientProvider,
   EnvironmentProvider,
   SidebarProvider,
   ThemeProvider,
   TooltipProvider,
-} from '@timelapse/ui/providers'
+} from '@metric-org/ui/providers'
+import { QueryClientProvider } from '@tanstack/react-query'
 import { NuqsAdapter } from 'nuqs/adapters/react-router/v6'
 import { useEffect, useState } from 'react'
 import { RouterProvider } from 'react-router-dom'

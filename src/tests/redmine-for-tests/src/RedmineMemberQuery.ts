@@ -4,7 +4,7 @@ import {
   MemberDTO,
   PagedResultDTO,
   PaginationOptionsDTO,
-} from '@timelapse/sdk'
+} from '@metric-org/sdk'
 
 import { RedmineBase } from '@/RedmineBase'
 

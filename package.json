@@ -1,5 +1,5 @@
 {
-  "name": "timelapse-monorepo",
+  "name": "metric-monorepo",
   "private": true,
   "version": "1.0.0",
   "author": "Gustavo Henrique",
@@ -16,11 +16,11 @@
     "src/tests/*"
   ],
   "scripts": {
-    "dev:landing-page": "turbo run dev --parallel --filter=@timelapse/landing-page",
-    "dev:desktop": "turbo run dev --parallel --filter=@timelapse/desktop",
+    "dev:landing-page": "turbo run dev --parallel --filter=@metric-org/landing-page",
+    "dev:desktop": "turbo run dev --parallel --filter=@metric-org/desktop",
     "dev": "turbo run dev --parallel",
-    "build:landing-page": "turbo run build --filter=@timelapse/landing-page",
-    "build:desktop": "turbo run build --filter=@timelapse/desktop",
+    "build:landing-page": "turbo run build --filter=@metric-org/landing-page",
+    "build:desktop": "turbo run build --filter=@metric-org/desktop",
     "build": "turbo run build",
     "lint": "eslint --ext .ts,.tsx --ignore-pattern '**/*.d.ts' --ignore-pattern 'node_modules' --ignore-pattern 'dist' --ignore-pattern 'out'",
     "lint:fix": "eslint --ext .ts,.tsx --ignore-pattern '**/*.d.ts' --ignore-pattern 'node_modules' --ignore-pattern 'dist' --ignore-pattern 'out' --fix",

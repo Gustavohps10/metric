@@ -2,7 +2,7 @@ import {
   AppError,
   Either,
   ValidationError,
-} from '@timelapse/cross-cutting/helpers'
+} from '@metric-org/cross-cutting/helpers'
 import { randomUUID } from 'crypto'
 
 import { Entity } from '@/entities/Entity'

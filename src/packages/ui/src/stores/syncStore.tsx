@@ -1,8 +1,8 @@
 'use client'
 
-import { IApplicationAPI } from '@timelapse/application'
-import type { IHeaders } from '@timelapse/cross-cutting/transport'
-import { TimeEntryViewModel } from '@timelapse/presentation/view-models'
+import { IApplicationAPI } from '@metric-org/application'
+import type { IHeaders } from '@metric-org/cross-cutting/transport'
+import { TimeEntryViewModel } from '@metric-org/presentation/view-models'
 import {
   createContext,
   ReactNode,
@@ -98,7 +98,7 @@ async function resolveBearerHeaders(
   try {
     const res = await client.modules.tokenStorage.getToken({
       body: {
-        service: 'timelapse',
+        service: 'metric',
         account: `jwt-${workspaceId}-${connectionInstanceId}`,
       },
     })

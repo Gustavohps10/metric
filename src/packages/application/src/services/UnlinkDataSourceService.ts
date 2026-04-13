@@ -3,7 +3,7 @@ import {
   Either,
   InternalServerError,
   NotFoundError,
-} from '@timelapse/cross-cutting/helpers'
+} from '@metric-org/cross-cutting/helpers'
 
 import {
   ICredentialsStorage,
@@ -70,9 +70,9 @@ export class UnlinkDataSourceService implements IUnlinkDataSourceUseCase {
     connectionInstanceId: string,
   ): Promise<void> {
     const sessionKey = `workspace-session-${workspaceId}-${connectionInstanceId}`
-    await this.credentialsStorage.deleteToken('timelapse', sessionKey)
+    await this.credentialsStorage.deleteToken('metric', sessionKey)
     await this.credentialsStorage.deleteToken(
-      'timelapse',
+      'metric',
       getMemberStorageKey(workspaceId, connectionInstanceId),
     )
   }

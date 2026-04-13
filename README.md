@@ -1,4 +1,4 @@
-# ⏱️ Timelapse
+# ⏱️ Metric
 
 ## Plataforma Local-First para Apontamento de Horas e Produtividade
 
@@ -7,7 +7,7 @@
   <img src="./docs/diagram-dark.png#gh-light-mode-only" width="100%" />
 </p>
 
-O **Timelapse** é uma plataforma de **apontamento de horas Local-First** projetada para oferecer:
+O **Metric** é uma plataforma de **apontamento de horas Local-First** projetada para oferecer:
 
 - performance instantânea
 - operação offline
@@ -38,17 +38,17 @@ O projeto é guiado pelos seguintes pilares:
 
 # 🏗️ Modelo de Execução
 
-O Timelapse opera em **três modos** (ver **ADR-001**):
+O Metric opera em **três modos** (ver **ADR-001**):
 
 - **Desktop** — cliente na máquina do usuário (Windows / Linux / macOS); modo padrão; dados locais (RxDB), sync com datasources via plugins.
-- **Cloud SaaS** — backend hospedado pelo Timelapse (ex.: app.timelapse.dev); autenticação, painel admin, organizações, planos.
-- **Self-Hosted** — empresas rodam em sua própria infraestrutura (ex.: timelapse.internal.company.com); compliance, dados internos, isolamento.
+- **Cloud SaaS** — backend hospedado pelo Metric (ex.: app.metric.dev); autenticação, painel admin, organizações, planos.
+- **Self-Hosted** — empresas rodam em sua própria infraestrutura (ex.: metric.internal.company.com); compliance, dados internos, isolamento.
 
 ---
 
-# ☁️ Timelapse Control Plane
+# ☁️ Metric Control Plane
 
-O Timelapse possui um serviço central opcional chamado **Control Plane**.
+O Metric possui um serviço central opcional chamado **Control Plane**.
 
 Ele **não armazena dados operacionais** da aplicação.
 
@@ -148,7 +148,7 @@ Ele fornece:
 
 # 🔄 Sincronização
 
-A sincronização ocorre entre o **banco local (RxDB)** e as **APIs externas**, via **plugins** (datasources). Cada (workspace, conexão) tem seu próprio motor de sync e checkpoint — ver **ADR-002**. O backend Timelapse **não participa da sincronização operacional** (tarefas/apontamentos ficam no cliente ou nas ferramentas integradas).
+A sincronização ocorre entre o **banco local (RxDB)** e as **APIs externas**, via **plugins** (datasources). Cada (workspace, conexão) tem seu próprio motor de sync e checkpoint — ver **ADR-002**. O backend Metric **não participa da sincronização operacional** (tarefas/apontamentos ficam no cliente ou nas ferramentas integradas).
 
 ---
 

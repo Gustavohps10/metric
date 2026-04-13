@@ -4,8 +4,8 @@ import {
   InternalServerError,
   UnauthorizedError,
   ValidationError,
-} from '@timelapse/cross-cutting/helpers'
-import { TimeEntry } from '@timelapse/domain'
+} from '@metric-org/cross-cutting/helpers'
+import { TimeEntry } from '@metric-org/domain'
 
 import {
   IDataSourceResolver,

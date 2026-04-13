@@ -1,5 +1,5 @@
-import { IHeadersAPI } from '@timelapse/application'
-import { IHeaders } from '@timelapse/cross-cutting/transport'
+import { IHeadersAPI } from '@metric-org/application'
+import { IHeaders } from '@metric-org/cross-cutting/transport'
 
 import { IpcInvoker } from '@/main/adapters/IpcInvoker'
 

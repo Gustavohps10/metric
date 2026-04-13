@@ -8,7 +8,7 @@ import { runManifestWizard } from './manifest'
 import { buildAddon } from './pkg'
 
 program
-  .name('timelapse')
+  .name('metric')
   .description('CLI to create and package .tladdon addons')
   .version(__SDK_VERSION__)
 
@@ -28,7 +28,7 @@ program
   .option('--generic', 'Set type as Generic')
   .option('--datasource', 'Set type as DataSource')
   .option('--theme', 'Set type as Theme')
-  .option('--config <file>', 'Path to timelapse.json with default config')
+  .option('--config <file>', 'Path to metric.json with default config')
   .action(async (addonDir, options) => {
     const pkg = readPackageJson(addonDir)
     const configDefaults = readConfig(options.config)
@@ -59,7 +59,7 @@ program
   .description('Package addon into .tladdon and update installer.yaml')
   .option('--download-url <url>', 'Public URL to download this addon version')
   .option('--changelog <items...>', 'List of changes for this version')
-  .option('--config <file>', 'Path to timelapse.json with default config')
+  .option('--config <file>', 'Path to metric.json with default config')
   .action(async (addonDir, options) => {
     const configDefaults = readConfig(options.config)
     let downloadUrl = options.downloadUrl || configDefaults.downloadUrl

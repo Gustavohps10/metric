@@ -4,9 +4,9 @@ import {
   FileData,
   IAddonsFacade,
   IImportAddonUseCase,
-} from '@timelapse/application'
-import { IRequest } from '@timelapse/cross-cutting/transport'
-import { ViewModel } from '@timelapse/presentation/view-models'
+} from '@metric-org/application'
+import { IRequest } from '@metric-org/cross-cutting/transport'
+import { ViewModel } from '@metric-org/presentation/view-models'
 import { app, type IpcMainInvokeEvent } from 'electron'
 
 import {
@@ -17,7 +17,7 @@ import {
 const DEV_FAKE_MANIFEST: AddonManifest = {
   id: FAKE_DATASOURCE_ADDON_ID,
   name: 'DataSource Fake (Testes)',
-  creator: 'Timelapse',
+  creator: 'Metric',
   description:
     'Datasource mock com 1000 tarefas e 1000 apontamentos locais para testes e validação de envio de dados.',
   path: '',
@@ -32,7 +32,7 @@ const DEV_FAKE_MANIFEST: AddonManifest = {
 const DEV_REDMINE_MANIFEST: AddonManifest = {
   id: REDMINE4TEST_ADDON_ID,
   name: 'Redmine (Oficial)',
-  creator: 'Timelapse',
+  creator: 'Metric',
   description: 'Conector Redmine para testes.',
   path: '',
   logo: '',

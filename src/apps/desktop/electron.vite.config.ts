@@ -10,7 +10,7 @@ const uiSubpaths = readdirSync(resolve(__dirname, '../../packages/ui/src'), {
   withFileTypes: true,
 })
   .filter((dirent) => dirent.isDirectory())
-  .map((dirent) => `@timelapse/ui/${dirent.name}`)
+  .map((dirent) => `@metric-org/ui/${dirent.name}`)
 
 export default defineConfig({
   main: {
@@ -58,7 +58,7 @@ export default defineConfig({
       dedupe: ['react', 'react-dom', 'react-router', 'react-router-dom'],
     },
     optimizeDeps: {
-      exclude: ['@timelapse/ui', ...uiSubpaths],
+      exclude: ['@metric-org/ui', ...uiSubpaths],
     },
     plugins: [react(), tailwindcss(), image()],
     build: {

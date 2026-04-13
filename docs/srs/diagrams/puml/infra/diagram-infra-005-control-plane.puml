@@ -1,6 +1,6 @@
 @startuml ControlPlane
-title TIMELAPSE - Control Plane (SRS 4.3)
-package "Timelapse Cloud (app.timelapse.dev)" {
+title METRIC - Control Plane (SRS 4.3)
+package "Metric Cloud (app.metric.dev)" {
     component [Magic Link Auth] as Auth {
         [POST /auth/magic-link]
         [GET /auth/verify]

@@ -1,12 +1,12 @@
 @startuml PanelAdminSuccessFlow
-title TIMELAPSE - Painel Admin - Fluxo de Sucesso (UC003 - RF009)
+title METRIC - Painel Admin - Fluxo de Sucesso (UC003 - RF009)
 actor Admin
 participant Browser
 participant ControlPlane
 participant AuthAPI
 participant LicenseManager
 
-Admin -> Browser: Acessa app.timelapse.dev
+Admin -> Browser: Acessa app.metric.dev
 Browser -> ControlPlane: GET /login
 
 Admin -> Browser: Informa Email (Magic Link)

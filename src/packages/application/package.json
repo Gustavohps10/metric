@@ -1,8 +1,8 @@
 {
-  "name": "@timelapse/application",
+  "name": "@metric-org/application",
   "version": "1.0.0",
   "private": true,
-  "description": "Contém os serviços e casos de uso (use cases) da aplicação Timelapse.",
+  "description": "Contém os serviços e casos de uso (use cases) da aplicação Metric.",
   "type": "module",
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
@@ -17,8 +17,8 @@
     "clean": "rimraf dist .turbo"
   },
   "dependencies": {
-    "@timelapse/cross-cutting": "workspace:*",
-    "@timelapse/domain": "workspace:*"
+    "@metric-org/cross-cutting": "workspace:*",
+    "@metric-org/domain": "workspace:*"
   },
   "devDependencies": {
     "typescript": "^5.8.3"

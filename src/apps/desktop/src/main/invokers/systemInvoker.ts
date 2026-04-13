@@ -1,4 +1,4 @@
-import { EnvironmentInfo, ISystemAPI } from '@timelapse/application'
+import { EnvironmentInfo, ISystemAPI } from '@metric-org/application'
 
 import { IpcInvoker } from '@/main/adapters/IpcInvoker'
 

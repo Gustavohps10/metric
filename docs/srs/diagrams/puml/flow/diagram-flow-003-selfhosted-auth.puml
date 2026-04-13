@@ -1,12 +1,12 @@
 @startuml SelfHostedAuthFlow
-title TIMELAPSE - Autenticação Self-Hosted (SRS 4.2)
+title METRIC - Autenticação Self-Hosted (SRS 4.2)
 actor User
 participant Browser
 participant SelfHostedServer
 participant AuthService
 participant EmailService
 
-User -> Browser: Acessa timelapse.internal.company.com
+User -> Browser: Acessa metric.internal.company.com
 Browser -> SelfHostedServer: GET /login
 SelfHostedServer -> Browser: Página de Login
 

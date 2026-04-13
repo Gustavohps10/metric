@@ -1,5 +1,5 @@
 @startuml InviteFlow
-title TIMELAPSE - Fluxo de Convite para Organização (SRS 4.3)
+title METRIC - Fluxo de Convite para Organização (SRS 4.3)
 actor Admin
 participant Browser
 participant ControlPlane
