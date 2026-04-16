@@ -13,10 +13,11 @@ export class Either<Failure, Success> {
     return new Either<never, Success>(undefined, value)
   }
 
-  static failure<Failure>(value: Failure): Either<Failure, never> {
-    return new Either<Failure, never>(value, undefined)
+  static failure<Failure, Success = never>(
+    value: Failure,
+  ): Either<Failure, Success> {
+    return new Either<Failure, Success>(value, undefined)
   }
-
   // ========= Succes Status Checkers =========
   isFailure(): boolean {
     return this._failure !== undefined

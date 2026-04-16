@@ -31,8 +31,8 @@ import {
   DropdownMenuSubTrigger,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
-import { SyncTaskRxDBDTO } from '@/db/schemas/tasks-sync-schema'
 import { formatDate } from '@/lib/format'
+import { SyncTaskRxDBDTO } from '@/local-db/schemas/tasks-sync-schema'
 
 interface StatusOption {
   id: string

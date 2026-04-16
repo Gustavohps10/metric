@@ -7,7 +7,8 @@
   "changeset": "changeset",
   "lint-staged": {
     "*.{ts,tsx}": [
-      "eslint --ext .ts,.tsx --ignore-pattern '**/*.d.ts' --ignore-pattern 'node_modules' --ignore-pattern 'dist' --ignore-pattern 'out'"
+      "eslint --ext .ts,.tsx --ignore-pattern '**/*.d.ts' --ignore-pattern 'node_modules' --ignore-pattern 'dist' --ignore-pattern 'out'",
+      "yarn vitest related --run"
     ]
   },
   "workspaces": [
@@ -16,6 +17,11 @@
     "src/tests/*"
   ],
   "scripts": {
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "test:run": "vitest run",
+    "test:ui": "vitest --ui",
+    "test:coverage": "vitest run --coverage",
     "dev:landing-page": "turbo run dev --parallel --filter=@metric-org/landing-page",
     "dev:desktop": "turbo run dev --parallel --filter=@metric-org/desktop",
     "dev": "turbo run dev --parallel",
@@ -39,9 +45,14 @@
     "@mermaid-js/mermaid-cli": "^11.12.0",
     "@swc/core": "^1.12.11",
     "@swc/helpers": "^0.5.17",
+    "@testing-library/jest-dom": "^6.9.1",
+    "@testing-library/react": "^16.3.2",
     "@types/js-yaml": "^4.0.9",
+    "@types/node": "^25.6.0",
     "@typescript-eslint/eslint-plugin": "^8.30.1",
     "@typescript-eslint/parser": "^8.30.1",
+    "@vitest/coverage-v8": "4.1.4",
+    "@vitest/ui": "^4.1.4",
     "changeset": "^0.2.6",
     "eslint": "^9.25.0",
     "eslint-config-prettier": "^10.1.2",
@@ -55,7 +66,9 @@
     "fs-extra": "^11.3.4",
     "globals": "^16.0.0",
     "husky": "^8.0.0",
+    "jsdom": "^29.0.2",
     "lint-staged": "^15.5.1",
+    "msw": "^2.13.3",
     "pako": "^2.1.0",
     "prettier": "^3.5.3",
     "prettier-plugin-tailwindcss": "^0.6.11",
@@ -64,7 +77,8 @@
     "tsup": "^8.5.0",
     "turbo": "^2.5.4",
     "typescript": "^5.8.3",
-    "typescript-eslint": "^8.30.1"
+    "typescript-eslint": "^8.30.1",
+    "vitest": "^4.1.4"
   },
   "resolutions": {
     "react": "19.1.0",

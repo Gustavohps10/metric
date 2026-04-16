@@ -1,5 +1,5 @@
-import { SyncMetadataRxDBDTO } from '@/db/schemas/metadata-sync-schema'
-import { SyncTaskRxDBDTO } from '@/db/schemas/tasks-sync-schema'
+import { SyncMetadataRxDBDTO } from '@/local-db/schemas/metadata-sync-schema'
+import { SyncTaskRxDBDTO } from '@/local-db/schemas/tasks-sync-schema'
 
 export type TCard = {
   task: SyncTaskRxDBDTO
