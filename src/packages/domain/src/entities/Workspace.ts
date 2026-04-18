@@ -3,7 +3,6 @@ import {
   Either,
   ValidationError,
 } from '@metric-org/cross-cutting/helpers'
-import { randomUUID } from 'crypto'
 
 import { Entity } from '@/entities/Entity'
 
@@ -37,7 +36,7 @@ export class Workspace extends Entity {
 
   static create(name: string): Workspace {
     const now = new Date()
-    return new Workspace(`ws-${randomUUID()}`, name, now, now, [])
+    return new Workspace(`ws-${crypto.randomUUID()}`, name, now, now, [])
   }
 
   get id(): string {
@@ -77,7 +76,7 @@ export class Workspace extends Entity {
 
     if (exists) {
       this.touch()
-      return Either.success(undefined)
+      return Either.success()
     }
 
     this._dataSourceConnections.push({
@@ -86,7 +85,7 @@ export class Workspace extends Entity {
     })
 
     this.touch()
-    return Either.success(undefined)
+    return Either.success()
   }
 
   unlinkDataSource(id?: string): Either<AppError, void> {
@@ -99,7 +98,7 @@ export class Workspace extends Entity {
     }
 
     this.touch()
-    return Either.success(undefined)
+    return Either.success()
   }
 
   connectDataSource(
@@ -118,7 +117,7 @@ export class Workspace extends Entity {
 
     connection.config = config
     this.touch()
-    return Either.success(undefined)
+    return Either.success()
   }
 
   disconnectDataSource(id: string): Either<AppError, void> {
@@ -129,7 +128,7 @@ export class Workspace extends Entity {
       this.touch()
     }
 
-    return Either.success(undefined)
+    return Either.success()
   }
 
   updateName(newName: string): void {

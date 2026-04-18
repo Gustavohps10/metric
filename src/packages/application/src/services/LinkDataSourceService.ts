@@ -47,7 +47,7 @@ export class LinkDataSourceService implements ILinkDataSourceUseCase {
       }
 
       return Either.success(workspaceDTO)
-    } catch (error) {
+    } catch {
       return Either.failure(InternalServerError.danger('ERRO_INESPERADO'))
     }
   }

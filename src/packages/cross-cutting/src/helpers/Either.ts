@@ -1,30 +1,39 @@
 export class Either<Failure, Success> {
+  private readonly _isSuccess: boolean
+
   private constructor(
     private readonly _failure: Failure | undefined,
     private readonly _success: Success | undefined,
-  ) {}
+    isSuccess: boolean,
+  ) {
+    this._isSuccess = isSuccess
+  }
 
   forwardFailure<Success>(): Either<Failure, Success> {
     return Either.failure<Failure>(this.failure)
   }
 
-  // ========= Failure Factory Methods =========
-  static success<Success>(value: Success): Either<never, Success> {
-    return new Either<never, Success>(undefined, value)
+  // ========= Success Factory Methods =========
+  static success(): Either<never, void>
+  static success<Success>(value: Success): Either<never, Success>
+  static success<Success>(value?: Success): Either<never, Success | void> {
+    return new Either<never, any>(undefined, value, true)
   }
 
+  // ========= Failure Factory Methods =========
   static failure<Failure, Success = never>(
     value: Failure,
   ): Either<Failure, Success> {
-    return new Either<Failure, Success>(value, undefined)
+    return new Either<Failure, Success>(value, undefined, false)
   }
-  // ========= Succes Status Checkers =========
+
+  // ========= Status Checkers =========
   isFailure(): boolean {
-    return this._failure !== undefined
+    return !this._isSuccess
   }
 
   isSuccess(): boolean {
-    return this._success !== undefined
+    return this._isSuccess
   }
 
   // ========= Value Getters =========
@@ -41,14 +50,14 @@ export class Either<Failure, Success> {
   // ========= Transformations =========
   map<U>(fn: (s: Success) => U): Either<Failure, U> {
     return this.isSuccess()
-      ? new Either<Failure, U>(undefined, fn(this.success))
-      : new Either<Failure, U>(this.failure, undefined)
+      ? new Either<Failure, U>(undefined, fn(this.success), true)
+      : new Either<Failure, U>(this.failure, undefined, false)
   }
 
   flatMap<U>(fn: (s: Success) => Either<Failure, U>): Either<Failure, U> {
     return this.isSuccess()
       ? fn(this.success)
-      : new Either<Failure, U>(this.failure, undefined)
+      : new Either<Failure, U>(this.failure, undefined, false)
   }
 
   getOrElse(defaultValue: Success): Success {
@@ -56,6 +65,6 @@ export class Either<Failure, Success> {
   }
 
   unwrap(): Failure | Success {
-    return this.isSuccess() ? this.success : this.failure
+    return this.isSuccess() ? this.success : this.failure!
   }
 }

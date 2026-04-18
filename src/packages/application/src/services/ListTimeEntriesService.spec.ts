@@ -1,6 +1,7 @@
-import type { Mocked } from 'vitest'
+import type { Mock, Mocked } from 'vitest'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
+import type { ITimeEntryQuery } from '@/contracts/data'
 import type { IDataSourceResolver } from '@/contracts/resolvers'
 import type { IDataSourceAdapter } from '@/contracts/resolvers/IDataSourceAdapter'
 import type { ListTimeEntriesInput } from '@/contracts/use-cases/IListTimeEntriesUseCase'
@@ -8,28 +9,39 @@ import type { PagedResultDTO, TimeEntryDTO } from '@/dtos'
 
 import { ListTimeEntriesService } from './ListTimeEntriesService'
 
-type FindByMemberIdFn = (
-  memberId: string,
-  startDate: Date,
-  endDate: Date,
-) => Promise<PagedResultDTO<TimeEntryDTO>>
-
 describe('ListTimeEntriesService', () => {
   let sut: ListTimeEntriesService
 
   let dataSourceResolverMock: Mocked<IDataSourceResolver>
-  let adapterMock: Partial<IDataSourceAdapter>
-  let findByMemberIdMock: ReturnType<typeof vi.fn<FindByMemberIdFn>>
+  let findByMemberIdMock: Mock<ITimeEntryQuery['findByMemberId']>
+  let adapterMock: IDataSourceAdapter
+
+  const makeInput = (): ListTimeEntriesInput => ({
+    workspaceId: 'workspace-1',
+    pluginId: 'plugin-1',
+    connectionInstanceId: 'conn-1',
+    memberId: 'member-1',
+    startDate: new Date('2024-01-01'),
+    endDate: new Date('2024-01-31'),
+  })
+
+  const makePagedResult = (): PagedResultDTO<TimeEntryDTO> => ({
+    items: [],
+    total: 0,
+    page: 1,
+    pageSize: 10,
+  })
 
   beforeEach(() => {
-    // Arrange
-    findByMemberIdMock = vi.fn<FindByMemberIdFn>()
+    vi.clearAllMocks()
+
+    findByMemberIdMock = vi.fn()
 
     adapterMock = {
       timeEntryQuery: {
         findByMemberId: findByMemberIdMock,
-      } as unknown as IDataSourceAdapter['timeEntryQuery'],
-    }
+      } as Partial<ITimeEntryQuery> as ITimeEntryQuery,
+    } as Partial<IDataSourceAdapter> as IDataSourceAdapter
 
     dataSourceResolverMock = {
       getDataSource: vi.fn(),
@@ -40,34 +52,12 @@ describe('ListTimeEntriesService', () => {
     sut = new ListTimeEntriesService(dataSourceResolverMock)
   })
 
-  function makeInput(): ListTimeEntriesInput {
-    return {
-      workspaceId: 'workspace-1',
-      pluginId: 'plugin-1',
-      connectionInstanceId: 'conn-1',
-      memberId: 'member-1',
-      startDate: new Date('2024-01-01'),
-      endDate: new Date('2024-01-31'),
-    }
-  }
-
-  function makePagedResult(): PagedResultDTO<TimeEntryDTO> {
-    return {
-      items: [],
-      total: 0,
-      page: 1,
-      pageSize: 10,
-    }
-  }
-
   it('should resolve data source and return time entries', async () => {
     // Arrange
     const input = makeInput()
     const fakeResult = makePagedResult()
 
-    dataSourceResolverMock.getDataSource.mockResolvedValue(
-      adapterMock as IDataSourceAdapter,
-    )
+    dataSourceResolverMock.getDataSource.mockResolvedValue(adapterMock)
     findByMemberIdMock.mockResolvedValue(fakeResult)
 
     // Act
@@ -102,16 +92,14 @@ describe('ListTimeEntriesService', () => {
 
     // Assert
     expect(result.isFailure()).toBe(true)
+    expect(findByMemberIdMock).not.toHaveBeenCalled()
   })
 
   it('should return failure when adapter query throws', async () => {
     // Arrange
     const input = makeInput()
 
-    dataSourceResolverMock.getDataSource.mockResolvedValue(
-      adapterMock as IDataSourceAdapter,
-    )
-
+    dataSourceResolverMock.getDataSource.mockResolvedValue(adapterMock)
     findByMemberIdMock.mockRejectedValue(new Error('query error'))
 
     // Act
@@ -119,5 +107,7 @@ describe('ListTimeEntriesService', () => {
 
     // Assert
     expect(result.isFailure()).toBe(true)
+    expect(dataSourceResolverMock.getDataSource).toHaveBeenCalledOnce()
+    expect(findByMemberIdMock).toHaveBeenCalledOnce()
   })
 })

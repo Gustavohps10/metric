@@ -1,6 +1,6 @@
-import type { FieldGroup } from '@metric-org/application'
 import {
   DataSourceContext,
+  FieldGroup,
   ICredentialsStorage,
   IDataSourceAdapter,
   IDataSourceResolver,
@@ -9,36 +9,13 @@ import {
 } from '@metric-org/application'
 import DataSourceFake from '@metric-org/datasource-fake'
 import Redmine4Test from '@metric-org/redmine-for-tests'
+import type { IDataSource } from '@metric-org/sdk'
 import { existsSync } from 'fs'
 import { resolve } from 'path'
 import { pathToFileURL } from 'url'
 
 export const FAKE_DATASOURCE_ADDON_ID = 'metric-datasource-fake'
 export const REDMINE4TEST_ADDON_ID = '@timelapse/redmine-plugin'
-
-interface DataSourceModule {
-  configFields: {
-    credentials: { id: string; label: string; fields: unknown[] }[]
-    configuration: { id: string; label: string; fields: unknown[] }[]
-  }
-  getAuthenticationStrategy: (
-    ctx: DataSourceContext,
-  ) => IDataSourceAdapter['authenticationStrategy']
-  getMemberQuery: (ctx: DataSourceContext) => IDataSourceAdapter['memberQuery']
-  getTaskQuery: (ctx: DataSourceContext) => IDataSourceAdapter['taskQuery']
-  getTaskRepository: (
-    ctx: DataSourceContext,
-  ) => IDataSourceAdapter['taskRepository']
-  getTimeEntryQuery: (
-    ctx: DataSourceContext,
-  ) => IDataSourceAdapter['timeEntryQuery']
-  getTimeEntryRepository: (
-    ctx: DataSourceContext,
-  ) => IDataSourceAdapter['timeEntryRepository']
-  getMetadataQuery: (
-    ctx: DataSourceContext,
-  ) => IDataSourceAdapter['metadataQuery']
-}
 
 export interface DataSourceResolverOptions {
   addonsBasePath: string
@@ -82,19 +59,17 @@ export class DataSourceResolver implements IDataSourceResolver {
         storageKey,
       )
 
-      const credentials = credentialsSerialized
-        ? JSON.parse(credentialsSerialized)
-        : undefined
-
       context = {
         config,
-        credentials,
+        credentials: credentialsSerialized
+          ? JSON.parse(credentialsSerialized)
+          : undefined,
       }
     }
 
     const datasource = await this.loadModule(pluginId)
 
-    const adapter: IDataSourceAdapter = {
+    return {
       id: connectionInstanceId,
       authenticationStrategy: datasource.getAuthenticationStrategy(context),
       memberQuery: datasource.getMemberQuery(context),
@@ -104,8 +79,6 @@ export class DataSourceResolver implements IDataSourceResolver {
       timeEntryRepository: datasource.getTimeEntryRepository(context),
       metadataQuery: datasource.getMetadataQuery(context),
     }
-
-    return adapter
   }
 
   async getDataSourcesForWorkspace(
@@ -126,21 +99,16 @@ export class DataSourceResolver implements IDataSourceResolver {
     configuration: FieldGroup[]
   }> {
     const mod = await this.loadModule(pluginId)
-    return mod.configFields as {
-      credentials: FieldGroup[]
-      configuration: FieldGroup[]
-    }
+    return mod.configFields
   }
 
-  private async loadModule(pluginId: string): Promise<DataSourceModule> {
-    const isDev = this.options.isDevelopment === true
-
-    if (isDev && pluginId === FAKE_DATASOURCE_ADDON_ID) {
-      return DataSourceFake as DataSourceModule
+  private async loadModule(pluginId: string): Promise<IDataSource> {
+    if (this.options.isDevelopment && pluginId === FAKE_DATASOURCE_ADDON_ID) {
+      return DataSourceFake as IDataSource
     }
 
-    if (isDev && pluginId === REDMINE4TEST_ADDON_ID) {
-      return Redmine4Test as DataSourceModule
+    if (this.options.isDevelopment && pluginId === REDMINE4TEST_ADDON_ID) {
+      return Redmine4Test as IDataSource
     }
 
     const addonPath = resolve(this.options.addonsBasePath, pluginId, 'index.js')
@@ -154,9 +122,9 @@ export class DataSourceResolver implements IDataSourceResolver {
     const defaultExport = datasourceModule?.default
 
     if (!defaultExport || typeof defaultExport.getTaskQuery !== 'function') {
-      throw new Error(`Datasource inválido em ${addonPath}`)
+      throw new Error(`Datasource inválido ou corrompido em ${addonPath}`)
     }
 
-    return defaultExport as DataSourceModule
+    return defaultExport as IDataSource
   }
 }
