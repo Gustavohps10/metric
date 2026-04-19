@@ -78,6 +78,7 @@
     "turbo": "^2.5.4",
     "typescript": "^5.8.3",
     "typescript-eslint": "^8.30.1",
+    "vite-tsconfig-paths": "^6.1.1",
     "vitest": "^4.1.4"
   },
   "resolutions": {
