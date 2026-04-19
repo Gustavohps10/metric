@@ -19,4 +19,5 @@ jobs:
       - run: corepack enable
       - run: yarn install --frozen-lockfile
 
+      - run: yarn build
       - run: yarn test
