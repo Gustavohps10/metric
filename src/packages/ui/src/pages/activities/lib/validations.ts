@@ -7,8 +7,8 @@ import {
 } from 'nuqs' // Importado de 'nuqs' (cliente)
 
 import { flagConfig } from '@/config/flag'
-import { SyncTaskRxDBDTO } from '@/db/schemas/tasks-sync-schema'
 import { getFiltersStateParser, getSortingStateParser } from '@/lib/parsers'
+import { SyncTaskRxDBDTO } from '@/local-db/schemas/tasks-sync-schema'
 // import { z } from 'zod'
 
 /**

@@ -5,7 +5,10 @@ export type EntityProps<T> = {
 export abstract class Entity {
   protected constructor() {}
 
-  static hydrate<T extends Entity>(data: EntityProps<T>): T {
+  static hydrate<T extends Entity>(
+    this: { prototype: T },
+    data: EntityProps<T>,
+  ): T {
     const entity = Object.create(this.prototype) as T
 
     Object.keys(data).forEach((key) => {

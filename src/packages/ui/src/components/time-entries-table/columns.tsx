@@ -17,7 +17,7 @@ import {
   TooltipContent,
   TooltipTrigger,
 } from '@/components/ui/tooltip'
-import { SyncTimeEntryRxDBDTO } from '@/db/schemas/time-entries-sync-schema'
+import { SyncTimeEntryRxDBDTO } from '@/local-db/schemas/time-entries-sync-schema'
 
 export type Row = SyncTimeEntryRxDBDTO & {
   subRows?: SyncTimeEntryRxDBDTO[]

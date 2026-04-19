@@ -4,7 +4,7 @@ import { differenceInSeconds, parseISO } from 'date-fns'
 import { createContext, ReactNode, useContext, useRef } from 'react'
 import { createStore, StoreApi, useStore } from 'zustand'
 
-import { SyncTimeEntryRxDBDTO } from '@/db/schemas/time-entries-sync-schema'
+import { SyncTimeEntryRxDBDTO } from '@/local-db/schemas/time-entries-sync-schema'
 import { AppDatabase } from '@/stores/syncStore'
 
 /* ============================= */

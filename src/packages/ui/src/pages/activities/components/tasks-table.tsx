@@ -6,8 +6,8 @@ import type { DataTableRowAction, QueryKeys } from '@/@types/data-table'
 import { DataTable } from '@/components/data-table/data-table'
 import { DataTableSortList } from '@/components/data-table/data-table-sort-list'
 import { DataTableToolbar } from '@/components/data-table/data-table-toolbar'
-import { SyncTaskRxDBDTO } from '@/db/schemas/tasks-sync-schema'
 import { useDataTable } from '@/hooks/use-data-table'
+import { SyncTaskRxDBDTO } from '@/local-db/schemas/tasks-sync-schema'
 
 import type {
   getAllPriorities,

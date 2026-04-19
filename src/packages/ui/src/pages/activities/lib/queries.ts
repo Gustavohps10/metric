@@ -3,8 +3,8 @@ import { MangoQuery, MangoQuerySortPart } from 'rxdb'
 import {
   SyncMetadataItem,
   SyncMetadataRxDBDTO,
-} from '@/db/schemas/metadata-sync-schema'
-import { SyncTaskRxDBDTO } from '@/db/schemas/tasks-sync-schema'
+} from '@/local-db/schemas/metadata-sync-schema'
+import { SyncTaskRxDBDTO } from '@/local-db/schemas/tasks-sync-schema'
 import { AppDatabase } from '@/stores/syncStore'
 
 type SortDescriptor = {

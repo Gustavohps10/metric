@@ -8,9 +8,9 @@ import {
 import { MangoQuerySelector } from 'rxdb'
 import { toast } from 'sonner'
 
-import { AutomationRxDBDTO } from '@/db/schemas/automations-schema'
-import { TaskKanbanColumnRxDBDTO } from '@/db/schemas/kanban-task-columns-schema'
-import { SyncTaskRxDBDTO } from '@/db/schemas/tasks-sync-schema'
+import { AutomationRxDBDTO } from '@/local-db/schemas/automations-schema'
+import { TaskKanbanColumnRxDBDTO } from '@/local-db/schemas/kanban-task-columns-schema'
+import { SyncTaskRxDBDTO } from '@/local-db/schemas/tasks-sync-schema'
 import { useSyncStore } from '@/stores/syncStore'
 
 const OP_MAP: Record<string, string> = {

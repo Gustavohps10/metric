@@ -4,8 +4,8 @@ import type { Table } from '@tanstack/react-table'
 import { Download } from 'lucide-react'
 
 import { Button } from '@/components/ui/button'
-import { SyncTaskRxDBDTO } from '@/db/schemas/tasks-sync-schema'
 import { exportTableToCSV } from '@/lib/export'
+import { SyncTaskRxDBDTO } from '@/local-db/schemas/tasks-sync-schema'
 
 import { CreateTaskSheet } from './create-task-sheet'
 // import { DeleteTasksDialog } from './delete-tasks-dialog'

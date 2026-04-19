@@ -1,5 +1,5 @@
-import { AutomationRxDBDTO } from '@/db/schemas/automations-schema'
-import { SyncTaskRxDBDTO } from '@/db/schemas/tasks-sync-schema'
+import { AutomationRxDBDTO } from '@/local-db/schemas/automations-schema'
+import { SyncTaskRxDBDTO } from '@/local-db/schemas/tasks-sync-schema'
 
 function getTaskValue(task: any, path: string): string {
   return String(

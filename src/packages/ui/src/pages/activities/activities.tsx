@@ -39,13 +39,12 @@ import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import { Skeleton } from '@/components/ui/skeleton'
-import { KanbanColumnRxDBDTO } from '@/db/schemas/kanban-column-schema'
-import { TaskKanbanColumnRxDBDTO } from '@/db/schemas/kanban-task-columns-schema'
-import { SyncMetadataRxDBDTO } from '@/db/schemas/metadata-sync-schema'
-import { AppDatabase } from '@/db/schemas/sync-types'
-import { SyncTaskRxDBDTO } from '@/db/schemas/tasks-sync-schema'
 import { useWorkspace } from '@/hooks'
-import { useSyncStore } from '@/stores/syncStore'
+import { KanbanColumnRxDBDTO } from '@/local-db/schemas/kanban-column-schema'
+import { TaskKanbanColumnRxDBDTO } from '@/local-db/schemas/kanban-task-columns-schema'
+import { SyncMetadataRxDBDTO } from '@/local-db/schemas/metadata-sync-schema'
+import { SyncTaskRxDBDTO } from '@/local-db/schemas/tasks-sync-schema'
+import { AppDatabase, useSyncStore } from '@/stores/syncStore'
 
 type TaskWithTimeEntries = SyncTaskRxDBDTO & { timeEntries: any[] }
 

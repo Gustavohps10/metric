@@ -28,23 +28,23 @@ import { wrappedValidateAjvStorage } from 'rxdb/plugins/validate-ajv'
 import { Subscription } from 'rxjs'
 import { createStore, type StoreApi, useStore } from 'zustand'
 
-import { automationsSchema } from '@/db/schemas/automations-schema'
-import { kanbanColumnsSchema } from '@/db/schemas/kanban-column-schema'
-import { kanbanTaskColumnsSchema } from '@/db/schemas/kanban-task-columns-schema'
+import { useEnvironment, useWorkspace } from '@/hooks'
+import { useClient } from '@/hooks/use-client'
+import { automationsSchema } from '@/local-db/schemas/automations-schema'
+import { kanbanColumnsSchema } from '@/local-db/schemas/kanban-column-schema'
+import { kanbanTaskColumnsSchema } from '@/local-db/schemas/kanban-task-columns-schema'
 import {
   metadataSyncSchema,
   SyncMetadataRxDBDTO,
-} from '@/db/schemas/metadata-sync-schema'
+} from '@/local-db/schemas/metadata-sync-schema'
 import {
   SyncTaskRxDBDTO,
   tasksSyncSchema,
-} from '@/db/schemas/tasks-sync-schema'
+} from '@/local-db/schemas/tasks-sync-schema'
 import {
   SyncTimeEntryRxDBDTO,
   timeEntriesSyncSchema,
-} from '@/db/schemas/time-entries-sync-schema'
-import { useWorkspace } from '@/hooks'
-import { useClient } from '@/hooks/use-client'
+} from '@/local-db/schemas/time-entries-sync-schema'
 
 // --- TYPES ---
 export type ReplicationCheckpoint = { updatedAt: string; id: string }
@@ -391,6 +391,7 @@ export const createSyncStore = (
   workspaceId: string,
   dataSources: DataSourceRef[],
   client: IApplicationAPI,
+  isDevelopment: boolean,
 ): StoreApi<SyncStore> => {
   const engineModules: ReplicationModule[] = []
   return createStore<SyncStore>((set, get) => ({
@@ -406,12 +407,17 @@ export const createSyncStore = (
     },
     init: async () => {
       if (get().isInitialized) return
+
       try {
-        const { RxDBDevModePlugin } = await import('rxdb/plugins/dev-mode')
+        if (isDevelopment) {
+          const { RxDBDevModePlugin } = await import('rxdb/plugins/dev-mode')
+          addRxPlugin(RxDBDevModePlugin)
+        }
+
         const { RxDBQueryBuilderPlugin } =
           await import('rxdb/plugins/query-builder')
-        addRxPlugin(RxDBDevModePlugin)
         addRxPlugin(RxDBQueryBuilderPlugin)
+
         const db = await createRxDatabase<AppCollections>({
           name: `db-${workspaceId}`,
           storage: wrappedValidateAjvStorage({ storage: getRxStorageDexie() }),
@@ -532,6 +538,7 @@ export const createSyncStore = (
 export const SyncProvider: React.FC<{ children: ReactNode }> = ({
   children,
 }) => {
+  const { isDevelopment } = useEnvironment()
   const { workspace } = useWorkspace()
   const client = useClient()
   const [activeStore, setActiveStore] = useState<StoreApi<SyncStore> | null>(
@@ -562,7 +569,12 @@ export const SyncProvider: React.FC<{ children: ReactNode }> = ({
       }
 
       if (nextWorkspaceId) {
-        const newStore = createSyncStore(nextWorkspaceId, dataSources, client)
+        const newStore = createSyncStore(
+          nextWorkspaceId,
+          dataSources,
+          client,
+          isDevelopment,
+        )
         currentWorkspaceId.current = nextWorkspaceId
         newStore
           .getState()
@@ -590,6 +602,7 @@ export const SyncProvider: React.FC<{ children: ReactNode }> = ({
             nextWorkspaceId,
             dataSources,
             client,
+            isDevelopment,
           )
           refreshedStore
             .getState()

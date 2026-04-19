@@ -13,8 +13,9 @@ import {
   IJWTService,
   IWorkspacesRepository,
 } from '@/contracts'
-import { getMemberStorageKey } from '@/credentials-storage-keys'
 import { AuthenticationDTO } from '@/dtos'
+
+import { getMemberStorageKey } from '../credentials-storage-keys'
 
 export class ConnectDataSourceService implements IConnectDataSourceUseCase {
   constructor(

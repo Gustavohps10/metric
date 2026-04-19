@@ -1,5 +1,4 @@
 import { Either, ValidationError } from '@metric-org/cross-cutting/helpers'
-import { randomUUID } from 'crypto'
 import z from 'zod'
 
 import { Entity } from '@/entities/Entity'
@@ -68,13 +67,10 @@ export class TimeEntry extends Entity {
     const details: Record<string, string[]> = {}
 
     if (!parsed.success) {
-      for (const [key, val] of Object.entries(parsed.error.format())) {
-        if (
-          '_errors' in val &&
-          Array.isArray(val._errors) &&
-          val._errors.length
-        )
-          details[key] = val._errors as string[]
+      for (const issue of parsed.error.issues) {
+        const key = issue.path.join('.') || 'root'
+        if (!details[key]) details[key] = []
+        details[key].push(issue.message)
       }
       return Either.failure(ValidationError.danger('CAMPOS_INVALIDOS', details))
     }
@@ -82,7 +78,7 @@ export class TimeEntry extends Entity {
     const data = parsed.data
     const now = new Date()
     const instance = new TimeEntry(
-      randomUUID(),
+      crypto.randomUUID(),
       data.task,
       data.activity,
       data.user,
@@ -142,7 +138,7 @@ export class TimeEntry extends Entity {
     return this._updatedAt
   }
 
-  updateComments(comments?: string): Either<ValidationError, void> {
+  updateComments(comments?: string): Either<ValidationError, TimeEntry> {
     const parsed = CommentSchema.safeParse(comments)
     if (!parsed.success) {
       const details: Record<string, string[]> = {}
@@ -153,14 +149,14 @@ export class TimeEntry extends Entity {
     }
     this._comments = comments?.trim()
     this.touch()
-    return Either.success(undefined)
+    return Either.success(this)
   }
 
   updateHours(
     startDate?: Date,
     endDate?: Date,
     timeSpent?: number,
-  ): Either<ValidationError, void> {
+  ): Either<ValidationError, TimeEntry> {
     const hasStart = startDate !== undefined
     const hasEnd = endDate !== undefined
     const hasTime = timeSpent !== undefined
@@ -201,7 +197,7 @@ export class TimeEntry extends Entity {
       this._endDate = endDate
       this._timeSpent = computed
       this.touch()
-      return Either.success(undefined)
+      return Either.success(this)
     }
 
     if (!hasTime) {
@@ -216,7 +212,7 @@ export class TimeEntry extends Entity {
     this._endDate = undefined
     this._timeSpent = timeSpent
     this.touch()
-    return Either.success(undefined)
+    return Either.success(this)
   }
 
   private touch() {

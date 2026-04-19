@@ -5,9 +5,8 @@ import { Suspense, useMemo } from 'react'
 
 import { DataTableSkeleton } from '@/components/data-table/data-table-skeleton'
 import { Shell } from '@/components/shell'
-import { AppDatabase } from '@/db/schemas/sync-types'
 import { useDataSourceConnections } from '@/hooks'
-import { useSyncStore } from '@/stores/syncStore'
+import { AppDatabase, useSyncStore } from '@/stores/syncStore'
 
 import { TasksTable } from './components/tasks-table'
 import {

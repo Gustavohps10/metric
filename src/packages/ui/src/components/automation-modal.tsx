@@ -39,10 +39,10 @@ import {
   SelectValue,
 } from '@/components/ui/select'
 import { Switch } from '@/components/ui/switch'
-import { AutomationRxDBDTO } from '@/db/schemas/automations-schema'
-import { SyncMetadataRxDBDTO } from '@/db/schemas/metadata-sync-schema'
 import { useAutomations } from '@/hooks/use-automations'
 import { cn } from '@/lib/utils'
+import { AutomationRxDBDTO } from '@/local-db/schemas/automations-schema'
+import { SyncMetadataRxDBDTO } from '@/local-db/schemas/metadata-sync-schema'
 import { useSyncStore } from '@/stores/syncStore'
 
 const TRIGGERS = [
