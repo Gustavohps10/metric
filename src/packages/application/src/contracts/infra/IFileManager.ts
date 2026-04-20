@@ -1,20 +1,13 @@
-export type FileData =
-  | Uint8Array
-  | Buffer
-  | NodeJS.ReadableStream
-  | ReadableStream<Uint8Array>
+import { AppError, Either } from '@metric-org/cross-cutting/helpers'
+
+import { FileData } from '@/contracts/infra/IFileStorage'
 
 export interface IFileManager {
-  readFile(filePath: string): Promise<FileData>
-  writeFile(filePath: string, data: FileData): Promise<void>
-  exists(filePath: string): Promise<boolean>
-  delete(filePath: string): Promise<void>
-
+  zip(files: { name: string; content: FileData }[]): Promise<Buffer>
   unzipInMemory(
     fileData: FileData,
   ): Promise<{ name: string; content: Buffer }[]>
-  zip(
-    files: { name: string; content: FileData }[],
-    destinationPath?: string,
-  ): Promise<Buffer>
+  getMimeType(
+    file: FileData,
+  ): Promise<Either<AppError, { mime: string; ext: string }>>
 }

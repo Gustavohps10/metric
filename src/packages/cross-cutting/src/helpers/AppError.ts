@@ -1,74 +1,108 @@
 export type AppErrorType = 'danger' | 'warning'
 
+export type FieldErrors = Record<string, string[]>
+
 export abstract class AppError {
-  constructor(
-    public readonly messageKey: string,
-    public readonly details?: Record<string, string[]>,
-    public readonly statusCode: number = 500,
-    public readonly type: AppErrorType = 'danger',
-  ) {}
+  public readonly messageKey: string
+  public readonly details?: FieldErrors
+  public readonly statusCode: number
+  public readonly type: AppErrorType
 
-  static danger<T extends AppError>(
-    this: new (
-      messageKey: string,
-      details?: Record<string, string[]>,
-      type?: AppErrorType,
-    ) => T,
+  protected constructor(
     messageKey: string,
-    details?: Record<string, string[]>,
-  ): T {
-    return new this(messageKey, details, 'danger')
+    statusCode: number,
+    details?: FieldErrors,
+    type: AppErrorType = 'danger',
+  ) {
+    this.messageKey = messageKey
+    this.details = details
+    this.statusCode = statusCode
+    this.type = type
   }
 
-  static warning<T extends AppError>(
-    this: new (
-      messageKey: string,
-      details?: Record<string, string[]>,
-      type?: AppErrorType,
-    ) => T,
+  // ===== FACTORIES (ÚNICO PONTO DE ENTRADA) =====
+
+  static ValidationError(
     messageKey: string,
-    details?: Record<string, string[]>,
-  ): T {
-    return new this(messageKey, details, 'warning')
+    details?: FieldErrors,
+    type: AppErrorType = 'danger',
+  ): ValidationError {
+    return new ValidationError(messageKey, details, type)
+  }
+
+  static NotFound(
+    messageKey: string,
+    details?: FieldErrors,
+    type: AppErrorType = 'danger',
+  ): NotFoundError {
+    return new NotFoundError(messageKey, details, type)
+  }
+
+  static Unauthorized(
+    messageKey: string,
+    details?: FieldErrors,
+    type: AppErrorType = 'danger',
+  ): UnauthorizedError {
+    return new UnauthorizedError(messageKey, details, type)
+  }
+
+  static Internal(
+    messageKey: string,
+    details?: FieldErrors,
+    type: AppErrorType = 'danger',
+  ): InternalServerError {
+    return new InternalServerError(messageKey, details, type)
+  }
+
+  // ===== HELPERS =====
+
+  getFieldErrors(field: string): string[] {
+    return this.details?.[field] ?? []
+  }
+
+  hasErrors(): boolean {
+    return !!this.details && Object.keys(this.details).length > 0
   }
 }
 
-export class NotFoundError extends AppError {
+// ===== IMPLEMENTAÇÕES =====
+
+class ValidationError extends AppError {
   constructor(
     messageKey: string,
-    details?: Record<string, string[]>,
+    details?: FieldErrors,
     type: AppErrorType = 'danger',
   ) {
-    super(messageKey, details, 404, type)
+    super(messageKey, 422, details, type)
   }
 }
 
-export class ValidationError extends AppError {
+class NotFoundError extends AppError {
   constructor(
     messageKey: string,
-    details?: Record<string, string[]>,
+    details?: FieldErrors,
     type: AppErrorType = 'danger',
   ) {
-    super(messageKey, details, 422, type)
+    super(messageKey, 404, details, type)
   }
 }
 
-export class UnauthorizedError extends AppError {
+class UnauthorizedError extends AppError {
   constructor(
     messageKey: string,
-    details?: Record<string, string[]>,
+    details?: FieldErrors,
     type: AppErrorType = 'danger',
   ) {
-    super(messageKey, details, 401, type)
+    super(messageKey, 401, details, type)
   }
 }
 
-export class InternalServerError extends AppError {
+class InternalServerError extends AppError {
   constructor(
     messageKey: string,
-    details?: Record<string, string[]>,
+    details?: FieldErrors,
     type: AppErrorType = 'danger',
   ) {
-    super(messageKey, details, 500, type)
+    super(messageKey, 500, details, type)
   }
 }
