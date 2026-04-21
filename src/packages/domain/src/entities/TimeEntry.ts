@@ -1,4 +1,8 @@
-import { Either, ValidationError } from '@metric-org/cross-cutting/helpers'
+import {
+  AppError,
+  Either,
+  FieldErrors,
+} from '@metric-org/cross-cutting/helpers'
 import z from 'zod'
 
 import { Entity } from '@/entities/Entity'
@@ -62,91 +66,106 @@ export class TimeEntry extends Entity {
     this._updatedAt = updatedAt
   }
 
-  static create(props: TimeEntryProps): Either<ValidationError, TimeEntry> {
+  // ===== Factory =====
+
+  static create(props: TimeEntryProps): Either<AppError, TimeEntry> {
     const parsed = TimeEntrySchema.safeParse(props)
-    const details: Record<string, string[]> = {}
 
     if (!parsed.success) {
-      for (const issue of parsed.error.issues) {
-        const key = issue.path.join('.') || 'root'
-        if (!details[key]) details[key] = []
-        details[key].push(issue.message)
-      }
-      return Either.failure(ValidationError.danger('CAMPOS_INVALIDOS', details))
+      return Either.failure(
+        AppError.ValidationError(
+          'CAMPOS_INVALIDOS',
+          mapZodErrors(parsed.error),
+        ),
+      )
     }
 
     const data = parsed.data
     const now = new Date()
-    const instance = new TimeEntry(
-      crypto.randomUUID(),
-      data.task,
-      data.activity,
-      data.user,
-      data.timeSpent ?? 0,
-      now,
-      now,
-      data.startDate,
-      data.endDate,
-      data.comments,
-    )
 
-    const hoursResult = instance.updateHours(
+    const hoursResult = validateHours(
       data.startDate,
       data.endDate,
       data.timeSpent,
     )
 
     if (hoursResult.isFailure()) {
-      const domainErr = hoursResult.failure
-      if (domainErr.details) {
-        for (const [k, v] of Object.entries(domainErr.details)) details[k] = v
-      }
-      return Either.failure(ValidationError.danger('CAMPOS_INVALIDOS', details))
+      return Either.failure(hoursResult.failure)
     }
+
+    const hours = hoursResult.success
+
+    const instance = new TimeEntry(
+      crypto.randomUUID(),
+      data.task,
+      data.activity,
+      data.user,
+      hours.timeSpent,
+      now,
+      now,
+      hours.startDate,
+      hours.endDate,
+      data.comments?.trim(),
+    )
 
     return Either.success(instance)
   }
 
-  get id(): string {
+  // ===== Getters =====
+
+  get id() {
     return this._id
   }
-  get task(): { id: string } {
+
+  get task() {
     return { ...this._task }
   }
-  get activity(): { id: string } {
+
+  get activity() {
     return { ...this._activity }
   }
-  get user(): { id: string; name?: string } {
+
+  get user() {
     return { ...this._user }
   }
-  get startDate(): Date | undefined {
+
+  get startDate() {
     return this._startDate
   }
-  get endDate(): Date | undefined {
+
+  get endDate() {
     return this._endDate
   }
-  get timeSpent(): number {
+
+  get timeSpent() {
     return this._timeSpent
   }
-  get comments(): string | undefined {
+
+  get comments() {
     return this._comments
   }
-  get createdAt(): Date {
+
+  get createdAt() {
     return this._createdAt
   }
-  get updatedAt(): Date {
+
+  get updatedAt() {
     return this._updatedAt
   }
 
-  updateComments(comments?: string): Either<ValidationError, TimeEntry> {
+  // ===== Mutations =====
+
+  updateComments(comments?: string): Either<AppError, TimeEntry> {
     const parsed = CommentSchema.safeParse(comments)
+
     if (!parsed.success) {
-      const details: Record<string, string[]> = {}
-      details.comments = parsed.error.errors.map((err) => err.message)
       return Either.failure(
-        ValidationError.danger('COMENTARIO_INVALIDO', details),
+        AppError.ValidationError('COMENTARIO_INVALIDO', {
+          comments: parsed.error.errors.map((e) => e.message),
+        }),
       )
     }
+
     this._comments = comments?.trim()
     this.touch()
     return Either.success(this)
@@ -156,61 +175,19 @@ export class TimeEntry extends Entity {
     startDate?: Date,
     endDate?: Date,
     timeSpent?: number,
-  ): Either<ValidationError, TimeEntry> {
-    const hasStart = startDate !== undefined
-    const hasEnd = endDate !== undefined
-    const hasTime = timeSpent !== undefined
+  ): Either<AppError, TimeEntry> {
+    const result = validateHours(startDate, endDate, timeSpent)
 
-    if ((hasStart && !hasEnd) || (!hasStart && hasEnd)) {
-      const details: Record<string, string[]> = {}
-      if (hasStart && !hasEnd)
-        details.endDate = ['endDate é obrigatório quando startDate é fornecida']
-      if (!hasStart && hasEnd)
-        details.startDate = [
-          'startDate é obrigatório quando endDate é fornecida',
-        ]
-      return Either.failure(
-        ValidationError.danger('DATAS_INCOMPLETAS', details),
-      )
+    if (result.isFailure()) {
+      return Either.failure(result.failure)
     }
 
-    if (hasStart && hasEnd) {
-      const diff = endDate!.getTime() - startDate!.getTime()
-      if (diff < 0) {
-        return Either.failure(
-          ValidationError.danger('DATA_INVALIDA', {
-            endDate: ['Data de término não pode ser anterior à de início'],
-          }),
-        )
-      }
-      const computed = Math.floor(diff / 1000)
-      if (hasTime && computed !== timeSpent) {
-        return Either.failure(
-          ValidationError.danger('TEMPO_INCONSISTENTE', {
-            timeSpent: [
-              'timeSpent não corresponde ao intervalo entre as datas',
-            ],
-          }),
-        )
-      }
-      this._startDate = startDate
-      this._endDate = endDate
-      this._timeSpent = computed
-      this.touch()
-      return Either.success(this)
-    }
+    const hours = result.success
 
-    if (!hasTime) {
-      return Either.failure(
-        ValidationError.danger('TEMPO_FALTANDO', {
-          timeSpent: ['timeSpent é obrigatório se não fornecer datas'],
-        }),
-      )
-    }
+    this._startDate = hours.startDate
+    this._endDate = hours.endDate
+    this._timeSpent = hours.timeSpent
 
-    this._startDate = undefined
-    this._endDate = undefined
-    this._timeSpent = timeSpent
     this.touch()
     return Either.success(this)
   }
@@ -218,4 +195,92 @@ export class TimeEntry extends Entity {
   private touch() {
     this._updatedAt = new Date()
   }
+}
+
+// ===== Helpers =====
+
+function mapZodErrors(error: z.ZodError): FieldErrors {
+  const result: FieldErrors = {}
+
+  for (const issue of error.issues) {
+    const key = issue.path.join('.') || 'root'
+    if (!result[key]) result[key] = []
+    result[key].push(issue.message)
+  }
+
+  return result
+}
+
+function validateHours(
+  startDate?: Date,
+  endDate?: Date,
+  timeSpent?: number,
+): Either<
+  AppError,
+  {
+    startDate?: Date
+    endDate?: Date
+    timeSpent: number
+  }
+> {
+  const hasStart = startDate !== undefined
+  const hasEnd = endDate !== undefined
+  const hasTime = timeSpent !== undefined
+
+  if ((hasStart && !hasEnd) || (!hasStart && hasEnd)) {
+    return Either.failure(
+      AppError.ValidationError('DATAS_INCOMPLETAS', {
+        ...(hasStart &&
+          !hasEnd && {
+            endDate: ['endDate é obrigatório quando startDate é fornecida'],
+          }),
+        ...(!hasStart &&
+          hasEnd && {
+            startDate: ['startDate é obrigatório quando endDate é fornecida'],
+          }),
+      }),
+    )
+  }
+
+  if (hasStart && hasEnd) {
+    const diff = endDate!.getTime() - startDate!.getTime()
+
+    if (diff < 0) {
+      return Either.failure(
+        AppError.ValidationError('DATA_INVALIDA', {
+          endDate: ['Data de término não pode ser anterior à de início'],
+        }),
+      )
+    }
+
+    const computed = Math.floor(diff / 1000)
+
+    if (hasTime && computed !== timeSpent) {
+      return Either.failure(
+        AppError.ValidationError('TEMPO_INCONSISTENTE', {
+          timeSpent: ['timeSpent não corresponde ao intervalo entre as datas'],
+        }),
+      )
+    }
+
+    return Either.success({
+      startDate,
+      endDate,
+      timeSpent: computed,
+    })
+  }
+
+  if (!hasTime) {
+    return Either.failure(
+      AppError.ValidationError('TEMPO_FALTANDO', {
+        timeSpent: ['timeSpent é obrigatório se não fornecer datas'],
+      }),
+    )
+  }
+
+  return Either.success({
+    startDate: undefined,
+    endDate: undefined,
+    timeSpent: timeSpent!,
+  })
 }

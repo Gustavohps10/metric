@@ -1,13 +1,29 @@
+import {
+  AppError,
+  Either,
+  FieldErrors,
+} from '@metric-org/cross-cutting/helpers'
+import z from 'zod'
+
 import { Entity } from '@/entities/Entity'
 
-export type TaskProps = {
-  title: string
-  description: string
-  workspaceId: string
-  isFallback?: boolean
-  externalId?: string
-  externalType?: string
-}
+// ===== Schema =====
+
+const TaskSchema = z.object({
+  title: z
+    .string()
+    .min(1, 'title é obrigatório')
+    .min(3, 'title deve ter no mínimo 3 caracteres'),
+  description: z.string().min(1, 'description é obrigatório'),
+  workspaceId: z.string().min(1, 'workspaceId é obrigatório'),
+  isFallback: z.boolean().optional(),
+  externalId: z.string().optional(),
+  externalType: z.string().optional(),
+})
+
+export type TaskProps = z.infer<typeof TaskSchema>
+
+// ===== Entity =====
 
 export class Task extends Entity {
   private _id: string
@@ -38,12 +54,28 @@ export class Task extends Entity {
     this._updatedAt = updatedAt
   }
 
-  static create(props: TaskProps): Task {
+  // ===== Factory =====
+
+  static create(props: TaskProps): Either<AppError, Task> {
+    const parsed = TaskSchema.safeParse(props)
+
+    if (!parsed.success) {
+      return Either.failure(
+        AppError.ValidationError(
+          'CAMPOS_INVALIDOS',
+          mapZodErrors(parsed.error),
+        ),
+      )
+    }
+
     const now = new Date()
-    return new Task(props, crypto.randomUUID(), now, now)
+
+    const instance = new Task(parsed.data, crypto.randomUUID(), now, now)
+
+    return Either.success(instance)
   }
 
-  static createFallback(workspaceId: string): Task {
+  static createFallback(workspaceId: string): Either<AppError, Task> {
     return Task.create({
       title: 'General Task',
       description: 'Fallback task for time entries without specific tasks',
@@ -51,6 +83,8 @@ export class Task extends Entity {
       isFallback: true,
     })
   }
+
+  // ===== Getters =====
 
   get id(): string {
     return this._id
@@ -60,18 +94,8 @@ export class Task extends Entity {
     return this._title
   }
 
-  set title(newTitle: string) {
-    this._title = newTitle
-    this._updatedAt = new Date()
-  }
-
   get description(): string {
     return this._description
-  }
-
-  set description(newDescription: string) {
-    this._description = newDescription
-    this._updatedAt = new Date()
   }
 
   get workspaceId(): string {
@@ -97,4 +121,56 @@ export class Task extends Entity {
   get updatedAt(): Date {
     return this._updatedAt
   }
+
+  // ===== Mutations =====
+
+  updateTitle(title: string): Either<AppError, Task> {
+    const parsed = TaskSchema.shape.title.safeParse(title)
+
+    if (!parsed.success) {
+      return Either.failure(
+        AppError.ValidationError('TITULO_INVALIDO', {
+          title: parsed.error.errors.map((e) => e.message),
+        }),
+      )
+    }
+
+    this._title = parsed.data
+    this.touch()
+    return Either.success(this)
+  }
+
+  updateDescription(description: string): Either<AppError, Task> {
+    const parsed = TaskSchema.shape.description.safeParse(description)
+
+    if (!parsed.success) {
+      return Either.failure(
+        AppError.ValidationError('DESCRICAO_INVALIDA', {
+          description: parsed.error.errors.map((e) => e.message),
+        }),
+      )
+    }
+
+    this._description = parsed.data
+    this.touch()
+    return Either.success(this)
+  }
+
+  private touch() {
+    this._updatedAt = new Date()
+  }
+}
+
+// ===== Helpers =====
+
+function mapZodErrors(error: z.ZodError): FieldErrors {
+  const result: FieldErrors = {}
+
+  for (const issue of error.issues) {
+    const key = issue.path.join('.') || 'root'
+    if (!result[key]) result[key] = []
+    result[key].push(issue.message)
+  }
+
+  return result
 }
