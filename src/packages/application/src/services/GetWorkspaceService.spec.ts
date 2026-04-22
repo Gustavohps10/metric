@@ -1,4 +1,4 @@
-import { NotFoundError } from '@metric-org/cross-cutting/helpers'
+import { AppError } from '@metric-org/cross-cutting/helpers'
 import { Workspace } from '@metric-org/domain'
 import type { Mocked } from 'vitest'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
@@ -71,9 +71,7 @@ describe('GetWorkspaceService', () => {
 
     // Assert
     expect(result.isFailure()).toBe(true)
-    expect(result.failure).toBeInstanceOf(NotFoundError)
-    expect((result.failure as NotFoundError).messageKey).toBe(
-      'WORKSPACE_NAO_ENCONTRADO',
-    )
+    expect(result.failure).toBeInstanceOf(AppError)
+    expect(result.failure.messageKey).toBe('WORKSPACE_NAO_ENCONTRADO')
   })
 })

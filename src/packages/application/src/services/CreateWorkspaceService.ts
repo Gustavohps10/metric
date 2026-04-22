@@ -1,42 +1,74 @@
-import {
-  AppError,
-  Either,
-  InternalServerError,
-} from '@metric-org/cross-cutting/helpers'
+import { AppError, Either } from '@metric-org/cross-cutting/helpers'
 import { Workspace } from '@metric-org/domain'
 
 import {
   CreateWorkspaceInput,
   ICreateWorkspaceUseCase,
+  IFileManager,
+  IFileStorage,
   IWorkspacesRepository,
 } from '@/contracts'
 import { toWorkspaceConnectionDTO, WorkspaceDTO } from '@/dtos'
 
 export class CreateWorkspaceService implements ICreateWorkspaceUseCase {
-  constructor(private readonly workspacesRepository: IWorkspacesRepository) {}
+  constructor(
+    private readonly workspacesRepository: IWorkspacesRepository,
+    private readonly fileStorage: IFileStorage,
+    private readonly fileManager: IFileManager,
+  ) {}
 
   public async execute({
     name,
+    description,
+    avatarFile,
   }: CreateWorkspaceInput): Promise<Either<AppError, WorkspaceDTO>> {
+    let avatarPath: string | undefined
+
     try {
-      const workspace = Workspace.create(name)
+      const result = Workspace.create({ name, description })
+      if (result.isFailure()) return result.forwardFailure()
 
-      await this.workspacesRepository.create(workspace)
+      const workspace = result.success
 
-      const workspaceDTO: WorkspaceDTO = {
+      if (avatarFile) {
+        const mimeResult = await this.fileManager.getMimeType(avatarFile)
+        if (mimeResult.isFailure()) return mimeResult.forwardFailure()
+
+        const { ext } = mimeResult.success
+        avatarPath = `workspaces/avatars/${workspace.id}.${ext}`
+        await this.fileStorage.write(avatarPath, avatarFile)
+
+        const publicUrl = this.fileStorage.getPublicUrl(avatarPath)
+
+        const avatarResult = workspace.updateAvatarUrl(publicUrl)
+        if (avatarResult.isFailure()) {
+          await this.fileStorage.delete(avatarPath, true)
+          return avatarResult.forwardFailure()
+        }
+      }
+
+      try {
+        await this.workspacesRepository.create(workspace)
+      } catch (repoError) {
+        if (avatarPath) await this.fileStorage.delete(avatarPath, true)
+        throw repoError
+      }
+
+      return Either.success({
         id: workspace.id,
         name: workspace.name,
+        status: workspace.status,
+        avatarUrl: workspace.avatarUrl,
+        description: workspace.description,
         dataSourceConnections: workspace.dataSourceConnections.map(
           toWorkspaceConnectionDTO,
         ),
         createdAt: workspace.createdAt,
         updatedAt: workspace.updatedAt,
-      }
-
-      return Either.success(workspaceDTO)
-    } catch (error: unknown) {
+      })
+    } catch (err) {
       return Either.failure(
-        InternalServerError.danger('ALGO DEU ERRADO AO CRIAR WORKSPACE'),
+        AppError.Internal('ALGO DEU ERRADO AO CRIAR WORKSPACE'),
       )
     }
   }

@@ -1,9 +1,4 @@
-import {
-  AppError,
-  Either,
-  InternalServerError,
-  NotFoundError,
-} from '@metric-org/cross-cutting/helpers'
+import { AppError, Either } from '@metric-org/cross-cutting/helpers'
 
 import {
   ICredentialsStorage,
@@ -29,7 +24,7 @@ export class UnlinkDataSourceService implements IUnlinkDataSourceUseCase {
       )
 
       if (!workspace) {
-        return Either.failure(NotFoundError.danger('WORKSPACE_NAO_ENCONTRADO'))
+        return Either.failure(AppError.NotFound('WORKSPACE_NAO_ENCONTRADO'))
       }
 
       if (input.connectionInstanceId) {
@@ -52,6 +47,7 @@ export class UnlinkDataSourceService implements IUnlinkDataSourceUseCase {
       const workspaceDTO: WorkspaceDTO = {
         id: workspace.id,
         name: workspace.name,
+        status: workspace.status,
         dataSourceConnections: workspace.dataSourceConnections.map(
           toWorkspaceConnectionDTO,
         ),
@@ -61,7 +57,7 @@ export class UnlinkDataSourceService implements IUnlinkDataSourceUseCase {
 
       return Either.success(workspaceDTO)
     } catch (error) {
-      return Either.failure(InternalServerError.danger('ERRO_INESPERADO'))
+      return Either.failure(AppError.Internal('ERRO_INESPERADO'))
     }
   }
 

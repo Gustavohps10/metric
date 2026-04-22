@@ -1,106 +1,228 @@
-import { InternalServerError } from '@metric-org/cross-cutting/helpers'
+import { AppError, Either } from '@metric-org/cross-cutting/helpers'
 import { Workspace } from '@metric-org/domain'
 import type { Mocked } from 'vitest'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
-import type { CreateWorkspaceInput, IWorkspacesRepository } from '@/contracts'
+import {
+  CreateWorkspaceInput,
+  IFileManager,
+  IFileStorage,
+  IWorkspacesRepository,
+} from '@/contracts'
 
 import { CreateWorkspaceService } from './CreateWorkspaceService'
 
 describe('CreateWorkspaceService', () => {
   let sut: CreateWorkspaceService
-
   let workspacesRepositoryMock: Mocked<IWorkspacesRepository>
-  let fakeWorkspace: Mocked<Workspace>
+  let fileStorageMock: Mocked<IFileStorage>
+  let fileManagerMock: Mocked<IFileManager>
 
-  const fakeDate = new Date('2026-04-17T00:00:00.000Z')
+  const makeInput = (
+    overrides?: Partial<CreateWorkspaceInput>,
+  ): CreateWorkspaceInput => ({
+    name: 'New Workspace',
+    description: 'Workspace description',
+    ...overrides,
+  })
 
-  const makeInput = (): CreateWorkspaceInput => ({
-    name: 'Metric Workspace',
+  const makeInputWithAvatar = (): CreateWorkspaceInput => ({
+    ...makeInput(),
+    avatarFile: Buffer.from('fake-image'),
   })
 
   beforeEach(() => {
     vi.clearAllMocks()
+    vi.restoreAllMocks()
 
     workspacesRepositoryMock = {
       findById: vi.fn(),
       create: vi.fn(),
       update: vi.fn(),
       delete: vi.fn(),
-    } as Partial<IWorkspacesRepository> as Mocked<IWorkspacesRepository>
+    } as unknown as Mocked<IWorkspacesRepository>
 
-    fakeWorkspace = {
-      id: 'workspace-123',
-      name: 'Metric Workspace',
-      dataSourceConnections: [],
-      createdAt: fakeDate,
-      updatedAt: fakeDate,
-    } as Partial<Workspace> as Mocked<Workspace>
+    fileStorageMock = {
+      write: vi.fn(),
+      getPublicUrl: vi.fn(),
+      delete: vi.fn(),
+      read: vi.fn(),
+    } as unknown as Mocked<IFileStorage>
 
-    vi.spyOn(Workspace, 'create').mockReturnValue(fakeWorkspace)
+    fileManagerMock = {
+      zip: vi.fn(),
+      unzipInMemory: vi.fn(),
+      getMimeType: vi.fn(),
+    } as unknown as Mocked<IFileManager>
 
-    sut = new CreateWorkspaceService(workspacesRepositoryMock)
+    sut = new CreateWorkspaceService(
+      workspacesRepositoryMock,
+      fileStorageMock,
+      fileManagerMock,
+    )
   })
 
-  it('should create a workspace, save it to the repository, and return a WorkspaceDTO successfully', async () => {
-    // Arrange
+  it('should create a workspace without avatar successfully', async () => {
     const input = makeInput()
-    workspacesRepositoryMock.create.mockResolvedValue(undefined)
 
-    // Act
     const result = await sut.execute(input)
-
-    // Assert
-    expect(Workspace.create).toHaveBeenCalledWith(input.name)
-    expect(workspacesRepositoryMock.create).toHaveBeenCalledWith(fakeWorkspace)
 
     expect(result.isSuccess()).toBe(true)
-    expect(result.success).toEqual({
-      id: fakeWorkspace.id,
-      name: fakeWorkspace.name,
-      dataSourceConnections: [],
-      createdAt: fakeWorkspace.createdAt,
-      updatedAt: fakeWorkspace.updatedAt,
-    })
+    expect(result.success.name).toBe(input.name)
+    expect(result.success.avatarUrl).toBeUndefined()
+    expect(fileStorageMock.write).not.toHaveBeenCalled()
+    expect(fileManagerMock.getMimeType).not.toHaveBeenCalled()
+    expect(workspacesRepositoryMock.create).toHaveBeenCalledOnce()
   })
 
-  it('should return InternalServerError when the repository throws an exception', async () => {
-    // Arrange
-    const input = makeInput()
-    const error = new Error('Database connection lost')
+  it('should create a workspace without description successfully', async () => {
+    const input = makeInput({ description: undefined })
 
-    workspacesRepositoryMock.create.mockRejectedValue(error)
-
-    // Act
     const result = await sut.execute(input)
 
-    // Assert
-    expect(result.isFailure()).toBe(true)
-    expect(result.failure).toBeInstanceOf(InternalServerError)
-    expect((result.failure as InternalServerError).messageKey).toBe(
-      'ALGO DEU ERRADO AO CRIAR WORKSPACE',
+    expect(result.isSuccess()).toBe(true)
+    expect(result.success.description).toBeUndefined()
+  })
+
+  it('should create a workspace with avatar successfully', async () => {
+    const input = makeInputWithAvatar()
+    const publicUrl = 'https://storage.com/avatar.png'
+    const workspace = Workspace.create({ name: input.name }).success
+
+    vi.spyOn(Workspace, 'create').mockReturnValue(Either.success(workspace))
+    vi.spyOn(workspace, 'updateAvatarUrl').mockReturnValue(Either.success())
+    fileManagerMock.getMimeType.mockResolvedValue(
+      Either.success({ mime: 'image/png', ext: 'png' }),
+    )
+    fileStorageMock.getPublicUrl.mockReturnValue(publicUrl)
+
+    const result = await sut.execute(input)
+
+    expect(result.isSuccess()).toBe(true)
+    expect(fileStorageMock.write).toHaveBeenCalledWith(
+      `workspaces/avatars/${workspace.id}.png`,
+      input.avatarFile,
+    )
+    expect(fileStorageMock.getPublicUrl).toHaveBeenCalledWith(
+      `workspaces/avatars/${workspace.id}.png`,
+    )
+    expect(fileStorageMock.delete).not.toHaveBeenCalled()
+    expect(workspacesRepositoryMock.create).toHaveBeenCalledOnce()
+  })
+
+  it('should use correct extension from getMimeType', async () => {
+    const input = makeInputWithAvatar()
+    const workspace = Workspace.create({ name: input.name }).success
+
+    vi.spyOn(Workspace, 'create').mockReturnValue(Either.success(workspace))
+    vi.spyOn(workspace, 'updateAvatarUrl').mockReturnValue(Either.success())
+    fileManagerMock.getMimeType.mockResolvedValue(
+      Either.success({ mime: 'image/webp', ext: 'webp' }),
+    )
+    fileStorageMock.getPublicUrl.mockReturnValue(
+      'https://storage.com/avatar.webp',
+    )
+
+    await sut.execute(input)
+
+    expect(fileStorageMock.write).toHaveBeenCalledWith(
+      `workspaces/avatars/${workspace.id}.webp`,
+      input.avatarFile,
     )
   })
 
-  it('should return InternalServerError when the domain entity throws a validation error', async () => {
-    // Arrange
+  it('should return failure if Workspace.create fails', async () => {
     const input = makeInput()
-    const domainError = new Error('Invalid workspace name')
+    const domainError = AppError.ValidationError('NOME_INVALIDO')
 
-    vi.spyOn(Workspace, 'create').mockImplementationOnce(() => {
-      throw domainError
-    })
+    vi.spyOn(Workspace, 'create').mockReturnValue(Either.failure(domainError))
 
-    // Act
     const result = await sut.execute(input)
 
-    // Assert
     expect(result.isFailure()).toBe(true)
+    expect(result.failure).toBe(domainError)
     expect(workspacesRepositoryMock.create).not.toHaveBeenCalled()
+    expect(fileStorageMock.write).not.toHaveBeenCalled()
+  })
 
-    expect(result.failure).toBeInstanceOf(InternalServerError)
-    expect((result.failure as InternalServerError).messageKey).toBe(
-      'ALGO DEU ERRADO AO CRIAR WORKSPACE',
+  it('should return failure if getMimeType fails', async () => {
+    const input = makeInputWithAvatar()
+    const workspace = Workspace.create({ name: input.name }).success
+
+    vi.spyOn(Workspace, 'create').mockReturnValue(Either.success(workspace))
+    fileManagerMock.getMimeType.mockResolvedValue(
+      Either.failure(
+        AppError.ValidationError('Formato de arquivo não suportado.'),
+      ),
     )
+
+    const result = await sut.execute(input)
+
+    expect(result.isFailure()).toBe(true)
+    expect(fileStorageMock.write).not.toHaveBeenCalled()
+    expect(workspacesRepositoryMock.create).not.toHaveBeenCalled()
+  })
+
+  it('should delete uploaded image and return failure if updateAvatarUrl fails', async () => {
+    const input = makeInputWithAvatar()
+    const workspace = Workspace.create({ name: input.name }).success
+    const domainError = AppError.ValidationError('URL_INVALIDA')
+
+    vi.spyOn(Workspace, 'create').mockReturnValue(Either.success(workspace))
+    fileManagerMock.getMimeType.mockResolvedValue(
+      Either.success({ mime: 'image/png', ext: 'png' }),
+    )
+    vi.spyOn(workspace, 'updateAvatarUrl').mockReturnValue(
+      Either.failure(domainError),
+    )
+
+    const result = await sut.execute(input)
+
+    expect(result.isFailure()).toBe(true)
+    expect(fileStorageMock.delete).toHaveBeenCalledWith(
+      `workspaces/avatars/${workspace.id}.png`,
+      true,
+    )
+    expect(workspacesRepositoryMock.create).not.toHaveBeenCalled()
+  })
+
+  it('should delete uploaded image and return failure if repository create throws', async () => {
+    const input = makeInputWithAvatar()
+    const workspace = Workspace.create({ name: input.name }).success
+
+    vi.spyOn(Workspace, 'create').mockReturnValue(Either.success(workspace))
+    vi.spyOn(workspace, 'updateAvatarUrl').mockReturnValue(Either.success())
+    fileManagerMock.getMimeType.mockResolvedValue(
+      Either.success({ mime: 'image/png', ext: 'png' }),
+    )
+    fileStorageMock.getPublicUrl.mockReturnValue(
+      'https://storage.com/avatar.png',
+    )
+    workspacesRepositoryMock.create.mockRejectedValue(new Error('DB Error'))
+
+    const result = await sut.execute(input)
+
+    expect(result.isFailure()).toBe(true)
+    expect(fileStorageMock.delete).toHaveBeenCalledWith(
+      `workspaces/avatars/${workspace.id}.png`,
+      true,
+    )
+  })
+
+  it('should return internal failure if fileStorage.write throws', async () => {
+    const input = makeInputWithAvatar()
+    const workspace = Workspace.create({ name: input.name }).success
+
+    vi.spyOn(Workspace, 'create').mockReturnValue(Either.success(workspace))
+    fileManagerMock.getMimeType.mockResolvedValue(
+      Either.success({ mime: 'image/png', ext: 'png' }),
+    )
+    fileStorageMock.write.mockRejectedValue(new Error('Storage Error'))
+
+    const result = await sut.execute(input)
+
+    expect(result.isFailure()).toBe(true)
+    expect(result.failure.statusCode).toBe(500)
+    expect(workspacesRepositoryMock.create).not.toHaveBeenCalled()
   })
 })

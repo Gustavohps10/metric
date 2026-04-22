@@ -1,9 +1,4 @@
-import {
-  AppError,
-  Either,
-  InternalServerError,
-  NotFoundError,
-} from '@metric-org/cross-cutting/helpers'
+import { AppError, Either } from '@metric-org/cross-cutting/helpers'
 
 import {
   ConnectDataSourceInput,
@@ -37,7 +32,7 @@ export class ConnectDataSourceService implements IConnectDataSourceUseCase {
       )
 
       if (!workspace) {
-        return Either.failure(NotFoundError.danger('WORKSPACE_NAO_ENCONTRADO'))
+        return Either.failure(AppError.NotFound('WORKSPACE_NAO_ENCONTRADO'))
       }
 
       const adapter = await this.dataSourceResolver.getDataSource(
@@ -109,9 +104,7 @@ export class ConnectDataSourceService implements IConnectDataSourceUseCase {
       await this.credentialsStorage.deleteToken('metric', storageKey)
       await this.credentialsStorage.deleteToken('metric', memberKey)
 
-      return Either.failure(
-        InternalServerError.danger('ERRO_AO_CONECTAR_DATA_SOURCE'),
-      )
+      return Either.failure(AppError.Internal('ERRO_AO_CONECTAR_DATA_SOURCE'))
     }
   }
 }

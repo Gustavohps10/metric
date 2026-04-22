@@ -1,9 +1,4 @@
-import {
-  AppError,
-  Either,
-  InternalServerError,
-  NotFoundError,
-} from '@metric-org/cross-cutting/helpers'
+import { AppError, Either } from '@metric-org/cross-cutting/helpers'
 
 import { IWorkspacesRepository } from '@/contracts'
 import {
@@ -24,7 +19,7 @@ export class LinkDataSourceService implements ILinkDataSourceUseCase {
       )
 
       if (!workspace) {
-        return Either.failure(NotFoundError.danger('WORKSPACE_NAO_ENCONTRADO'))
+        return Either.failure(AppError.NotFound('WORKSPACE_NAO_ENCONTRADO'))
       }
 
       const linkResult = workspace.linkDataSource(
@@ -39,6 +34,9 @@ export class LinkDataSourceService implements ILinkDataSourceUseCase {
       const workspaceDTO: WorkspaceDTO = {
         id: workspace.id,
         name: workspace.name,
+        avatarUrl: workspace.avatarUrl,
+        status: workspace.status,
+        description: workspace.description,
         dataSourceConnections: workspace.dataSourceConnections.map(
           toWorkspaceConnectionDTO,
         ),
@@ -48,7 +46,7 @@ export class LinkDataSourceService implements ILinkDataSourceUseCase {
 
       return Either.success(workspaceDTO)
     } catch {
-      return Either.failure(InternalServerError.danger('ERRO_INESPERADO'))
+      return Either.failure(AppError.NotFound('ERRO_INESPERADO'))
     }
   }
 }
