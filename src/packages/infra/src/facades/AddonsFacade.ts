@@ -3,20 +3,13 @@ import {
   AddonManifestDTO,
   IAddonsFacade,
 } from '@metric-org/application'
-import {
-  AppError,
-  Either,
-  InternalServerError,
-  NotFoundError,
-  ValidationError,
-} from '@metric-org/cross-cutting/helpers'
+import { AppError, Either } from '@metric-org/cross-cutting/helpers'
+import { IJobEvent } from '@metric-org/cross-cutting/transport'
 import axios from 'axios'
 import { promises as fs } from 'fs'
 import yaml from 'js-yaml'
 import { join } from 'path'
 
-const GITHUB_REPO = 'Gustavohps10/metric'
-const GITHUB_PATH = 'src/packages/addonDatabase/dataSource'
 const LOCAL_ADDONS_PATH = './addons/datasource'
 
 type RawManifest = {
@@ -49,12 +42,12 @@ export class AddonsFacade implements IAddonsFacade {
   public async listAvailable(): Promise<Either<AppError, AddonManifestDTO[]>> {
     try {
       const indexUrl =
-        'https://gustavohps10.github.io/metric-addons/addonDatabase/dataSource/index.json'
+        'https://metric-org.github.io/addons-manifest/addonDatabase/dataSource/index.json'
       const { data: yamlFiles } = await axios.get<string[]>(indexUrl)
 
       const addons: AddonManifestDTO[] = await Promise.all(
         yamlFiles.map(async (filename) => {
-          const yamlUrl = `https://gustavohps10.github.io/metric-addons/addonDatabase/dataSource/${filename}`
+          const yamlUrl = `https://metric-org.github.io/addons-manifest/addonDatabase/dataSource/${filename}`
           const { data: rawYaml } = await axios.get(yamlUrl)
           const parsed = await this.parseManifest(rawYaml)
           if (parsed.isFailure()) throw parsed.failure
@@ -64,9 +57,7 @@ export class AddonsFacade implements IAddonsFacade {
 
       return Either.success(addons)
     } catch {
-      return Either.failure(
-        InternalServerError.danger('FAILED_TO_FETCH_ADDONS'),
-      )
+      return Either.failure(AppError.NotFound('FAILED_TO_FETCH_ADDONS'))
     }
   }
 
@@ -94,7 +85,7 @@ export class AddonsFacade implements IAddonsFacade {
       return Either.success(installedAddons)
     } catch {
       return Either.failure(
-        InternalServerError.danger('FAILED_TO_LIST_INSTALLED_ADDONS'),
+        AppError.NotFound('FAILED_TO_LIST_INSTALLED_ADDONS'),
       )
     }
   }
@@ -107,7 +98,7 @@ export class AddonsFacade implements IAddonsFacade {
 
     const addon = result.success.find((a) => a.id === addonId)
     if (!addon)
-      return Either.failure(NotFoundError.danger('LOCAL_ADDON_NOT_FOUND'))
+      return Either.failure(AppError.NotFound('LOCAL_ADDON_NOT_FOUND'))
 
     const base64Logo = await this.getLocalIconBase64(addonId)
     if (base64Logo) addon.logo = base64Logo
@@ -122,9 +113,7 @@ export class AddonsFacade implements IAddonsFacade {
       const { data: rawYaml } = await axios.get(installerUrl)
       return this.parseInstaller(rawYaml)
     } catch {
-      return Either.failure(
-        InternalServerError.danger('FAILED_TO_FETCH_INSTALLER'),
-      )
+      return Either.failure(AppError.NotFound('FAILED_TO_FETCH_INSTALLER'))
     }
   }
 
@@ -135,7 +124,7 @@ export class AddonsFacade implements IAddonsFacade {
       const doc = yaml.load(fileContent.toString()) as RawManifest
 
       if (!doc.AddonId)
-        return Either.failure(NotFoundError.danger('ADDONID_NOT_FOUND'))
+        return Either.failure(AppError.NotFound('ADDONID_NOT_FOUND'))
 
       const addon: AddonManifestDTO = {
         id: doc.AddonId,
@@ -155,9 +144,7 @@ export class AddonsFacade implements IAddonsFacade {
 
       return Either.success(addon)
     } catch {
-      return Either.failure(
-        InternalServerError.danger('FAILED_TO_PARSE_MANIFEST'),
-      )
+      return Either.failure(AppError.NotFound('FAILED_TO_PARSE_MANIFEST'))
     }
   }
 
@@ -168,7 +155,7 @@ export class AddonsFacade implements IAddonsFacade {
       const doc = yaml.load(fileContent.toString()) as RawInstaller
 
       if (!doc.AddonId)
-        return Either.failure(ValidationError.danger('INSTALLER_INVALID'))
+        return Either.failure(AppError.ValidationError('INSTALLER_INVALID'))
 
       const installer: AddonInstallerDTO = {
         id: doc.AddonId,
@@ -183,30 +170,49 @@ export class AddonsFacade implements IAddonsFacade {
 
       return Either.success(installer)
     } catch {
-      return Either.failure(
-        InternalServerError.danger('FAILED_TO_PARSE_INSTALLER'),
-      )
+      return Either.failure(AppError.NotFound('FAILED_TO_PARSE_INSTALLER'))
     }
   }
 
   public async downloadFile(
     downloadUrl: string,
-    onProgress?: (percent: number) => void,
+    onProgress?: (event: IJobEvent) => void,
   ): Promise<Either<AppError, Uint8Array>> {
     try {
+      // Envia mensagem inicial
+      onProgress?.({
+        status: 'data',
+        data: 'Conectando ao servidor de download...',
+      })
+
+      let lastLoggedPercent = -1
+
       const response = await axios.get<ArrayBuffer>(downloadUrl, {
         responseType: 'arraybuffer',
         onDownloadProgress: (progressEvent) => {
-          if (onProgress && progressEvent.total) {
-            const percent = (progressEvent.loaded / progressEvent.total) * 100
-            onProgress(percent)
+          if (!onProgress || !progressEvent.total) return
+
+          const { loaded, total } = progressEvent
+
+          const percent = Math.floor((loaded / total) * 100)
+          onProgress({ status: 'progress', value: percent })
+          const loadedMB = (loaded / 1024 / 1024).toFixed(2)
+          const totalMB = (total / 1024 / 1024).toFixed(2)
+          if (percent % 10 === 0 && percent !== lastLoggedPercent) {
+            lastLoggedPercent = percent
+
+            onProgress({
+              status: 'data',
+              data: `Baixando: ${loadedMB} MB / ${totalMB} MB (${percent}%)`,
+            })
           }
         },
       })
 
+      onProgress?.({ status: 'data', data: 'Download concluído com sucesso!' })
       return Either.success(new Uint8Array(response.data))
-    } catch {
-      return Either.failure(InternalServerError.danger('DOWNLOAD_FAILED'))
+    } catch (error) {
+      return Either.failure(AppError.NotFound('DOWNLOAD_FAILED'))
     }
   }
 

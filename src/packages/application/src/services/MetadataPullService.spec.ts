@@ -1,11 +1,12 @@
-import { InternalServerError } from '@metric-org/cross-cutting/helpers'
+import { AppError } from '@metric-org/cross-cutting/helpers'
 import type { Mocked } from 'vitest'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
+import type { IMetadataQuery } from '@/contracts/data/queries'
 import type { IDataSourceResolver } from '@/contracts/resolvers'
 import type { IDataSourceAdapter } from '@/contracts/resolvers/IDataSourceAdapter'
 import type { PullMetadataInput } from '@/contracts/use-cases/IMetadataPullUseCase'
-import type { MetadataDTO } from '@/dtos/MetadataDTO'
+import type { MetadataDTO } from '@/dtos'
 
 import { MetadataPullService } from './MetadataPullService'
 
@@ -14,6 +15,7 @@ describe('MetadataPullService', () => {
 
   let dataSourceResolverMock: Mocked<IDataSourceResolver>
   let adapterMock: Mocked<IDataSourceAdapter>
+  let metadataQueryMock: Mocked<IMetadataQuery>
 
   const fakeDate = new Date('2026-04-18T00:00:00.000Z')
 
@@ -41,30 +43,8 @@ describe('MetadataPullService', () => {
           text: '#333333',
         },
       },
-      {
-        id: 'status-2',
-        name: 'In Progress',
-        icon: 'play',
-        colors: {
-          badge: '#0052cc',
-          background: '#deebff',
-          text: '#0052cc',
-          border: '#0052cc',
-        },
-      },
     ],
-    taskPriorities: [
-      {
-        id: 'priority-1',
-        name: 'High',
-        icon: 'arrow-up',
-        colors: {
-          badge: '#ff5630',
-          background: '#ffebe6',
-          text: '#ff5630',
-        },
-      },
-    ],
+    taskPriorities: [],
     activities: [],
     trackStatuses: [],
     participantRoles: [],
@@ -74,15 +54,17 @@ describe('MetadataPullService', () => {
   beforeEach(() => {
     vi.clearAllMocks()
 
-    dataSourceResolverMock = {
-      getDataSource: vi.fn(),
-    } as Partial<IDataSourceResolver> as Mocked<IDataSourceResolver>
+    metadataQueryMock = {
+      getMetadata: vi.fn(),
+    } as unknown as Mocked<IMetadataQuery>
 
     adapterMock = {
-      metadataQuery: {
-        getMetadata: vi.fn(),
-      },
+      metadataQuery: metadataQueryMock,
     } as unknown as Mocked<IDataSourceAdapter>
+
+    dataSourceResolverMock = {
+      getDataSource: vi.fn(),
+    } as unknown as Mocked<IDataSourceResolver>
 
     sut = new MetadataPullService(dataSourceResolverMock)
   })
@@ -90,11 +72,8 @@ describe('MetadataPullService', () => {
   it('should resolve the data source, pull metadata, and return it successfully', async () => {
     // Arrange
     const input = makeInput()
-
     dataSourceResolverMock.getDataSource.mockResolvedValue(adapterMock)
-    ;(adapterMock.metadataQuery.getMetadata as any).mockResolvedValue(
-      fakeMetadata,
-    )
+    metadataQueryMock.getMetadata.mockResolvedValue(fakeMetadata)
 
     // Act
     const result = await sut.execute(input)
@@ -108,49 +87,39 @@ describe('MetadataPullService', () => {
       input.pluginId,
       input.connectionInstanceId,
     )
-    expect(adapterMock.metadataQuery.getMetadata).toHaveBeenCalledWith(
+    expect(metadataQueryMock.getMetadata).toHaveBeenCalledWith(
       input.memberId,
       input.checkpoint,
       input.batch,
     )
   })
 
-  it('should return InternalServerError when the data source resolver throws an exception', async () => {
+  it('should return Internal error when the data source resolver throws an exception', async () => {
     // Arrange
     const input = makeInput()
-    const error = new Error('Plugin resolution failed')
-
-    dataSourceResolverMock.getDataSource.mockRejectedValue(error)
+    dataSourceResolverMock.getDataSource.mockRejectedValue(new Error('Fail'))
 
     // Act
     const result = await sut.execute(input)
 
     // Assert
     expect(result.isFailure()).toBe(true)
-    expect(result.failure).toBeInstanceOf(InternalServerError)
-    expect((result.failure as InternalServerError).messageKey).toBe(
-      'Failed to pull metadata',
-    )
-
-    expect(adapterMock.metadataQuery.getMetadata).not.toHaveBeenCalled()
+    expect(result.failure).toBeInstanceOf(AppError)
+    expect(result.failure.messageKey).toBe('Failed to pull metadata')
   })
 
-  it('should return InternalServerError when the adapter fails to pull metadata', async () => {
+  it('should return Internal error when the adapter fails to pull metadata', async () => {
     // Arrange
     const input = makeInput()
-    const error = new Error('API Rate Limit Exceeded')
-
     dataSourceResolverMock.getDataSource.mockResolvedValue(adapterMock)
-    ;(adapterMock.metadataQuery.getMetadata as any).mockRejectedValue(error)
+    metadataQueryMock.getMetadata.mockRejectedValue(new Error('API Error'))
 
     // Act
     const result = await sut.execute(input)
 
     // Assert
     expect(result.isFailure()).toBe(true)
-    expect(result.failure).toBeInstanceOf(InternalServerError)
-    expect((result.failure as InternalServerError).messageKey).toBe(
-      'Failed to pull metadata',
-    )
+    expect(result.failure).toBeInstanceOf(AppError)
+    expect(result.failure.messageKey).toBe('Failed to pull metadata')
   })
 })

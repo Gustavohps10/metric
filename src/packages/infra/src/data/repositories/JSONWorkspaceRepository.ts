@@ -6,6 +6,9 @@ import path from 'path'
 type PlainWorkspace = {
   id: string
   name: string
+  avatarUrl?: string
+  status: 'draft' | 'configured'
+  description?: string
   dataSourceConnections: {
     id: string
     dataSourceId: string
@@ -30,6 +33,9 @@ export class JSONWorkspacesRepository implements IWorkspacesRepository {
       return plain.map((p) =>
         Workspace.hydrate({
           id: p.id,
+          avatarUrl: p.avatarUrl,
+          status: p.status,
+          description: p.description,
           name: p.name,
           dataSourceConnections: p.dataSourceConnections ?? [],
           createdAt: new Date(p.createdAt),
@@ -46,6 +52,9 @@ export class JSONWorkspacesRepository implements IWorkspacesRepository {
     const plain: PlainWorkspace[] = workspaces.map((ws) => ({
       id: ws.id,
       name: ws.name,
+      avatarUrl: ws.avatarUrl,
+      status: ws.status,
+      description: ws.description,
       dataSourceConnections: ws.dataSourceConnections.map((c) => ({
         id: c.id,
         dataSourceId: c.dataSourceId,

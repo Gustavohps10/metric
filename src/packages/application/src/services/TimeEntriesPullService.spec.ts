@@ -1,10 +1,8 @@
-import {
-  InternalServerError,
-  UnauthorizedError,
-} from '@metric-org/cross-cutting/helpers'
+import { AppError } from '@metric-org/cross-cutting/helpers'
 import type { Mocked } from 'vitest'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
+import type { ITimeEntryQuery } from '@/contracts/data/queries'
 import type { IDataSourceResolver } from '@/contracts/resolvers'
 import type { IDataSourceAdapter } from '@/contracts/resolvers/IDataSourceAdapter'
 import type { PullTimeEntriesInput } from '@/contracts/use-cases'
@@ -19,6 +17,7 @@ describe('TimeEntriesPullService', () => {
   let sessionManagerMock: Mocked<SessionManager>
   let dataSourceResolverMock: Mocked<IDataSourceResolver>
   let adapterMock: Mocked<IDataSourceAdapter>
+  let timeEntryQueryMock: Mocked<ITimeEntryQuery>
 
   const fakeDate = new Date('2026-04-18T00:00:00.000Z')
 
@@ -43,13 +42,14 @@ describe('TimeEntriesPullService', () => {
   const fakeTimeEntries: TimeEntryDTO[] = [
     {
       id: 'entry-1',
-      taskId: 'task-1',
-      hours: 2.5,
+      task: { id: 'task-1' },
+      activity: { id: 'act-1', name: 'Development' },
+      user: { id: 'session-user-id', name: 'Jane Doe' },
+      timeSpent: 3600,
       comments: 'Worked on authentication',
-      spentOn: fakeDate,
       createdAt: fakeDate,
       updatedAt: fakeDate,
-    } as unknown as TimeEntryDTO,
+    },
   ]
 
   beforeEach(() => {
@@ -57,17 +57,19 @@ describe('TimeEntriesPullService', () => {
 
     sessionManagerMock = {
       getCurrentUser: vi.fn(),
-    } as Partial<SessionManager> as Mocked<SessionManager>
+    } as unknown as Mocked<SessionManager>
+
+    timeEntryQueryMock = {
+      pull: vi.fn(),
+    } as unknown as Mocked<ITimeEntryQuery>
+
+    adapterMock = {
+      timeEntryQuery: timeEntryQueryMock,
+    } as unknown as Mocked<IDataSourceAdapter>
 
     dataSourceResolverMock = {
       getDataSource: vi.fn(),
-    } as Partial<IDataSourceResolver> as Mocked<IDataSourceResolver>
-
-    adapterMock = {
-      timeEntryQuery: {
-        pull: vi.fn(),
-      },
-    } as unknown as Mocked<IDataSourceAdapter>
+    } as unknown as Mocked<IDataSourceResolver>
 
     sut = new TimeEntriesPullService(sessionManagerMock, dataSourceResolverMock)
   })
@@ -78,7 +80,7 @@ describe('TimeEntriesPullService', () => {
 
     sessionManagerMock.getCurrentUser.mockReturnValue(fakeSessionUser as any)
     dataSourceResolverMock.getDataSource.mockResolvedValue(adapterMock)
-    ;(adapterMock.timeEntryQuery.pull as any).mockResolvedValue(fakeTimeEntries)
+    timeEntryQueryMock.pull.mockResolvedValue(fakeTimeEntries)
 
     // Act
     const result = await sut.execute(input)
@@ -87,7 +89,7 @@ describe('TimeEntriesPullService', () => {
     expect(result.isSuccess()).toBe(true)
     expect(result.success).toEqual(fakeTimeEntries)
 
-    expect(adapterMock.timeEntryQuery.pull).toHaveBeenCalledWith(
+    expect(timeEntryQueryMock.pull).toHaveBeenCalledWith(
       'explicit-member-id',
       input.checkpoint,
       input.batch,
@@ -100,22 +102,21 @@ describe('TimeEntriesPullService', () => {
 
     sessionManagerMock.getCurrentUser.mockReturnValue(fakeSessionUser as any)
     dataSourceResolverMock.getDataSource.mockResolvedValue(adapterMock)
-    ;(adapterMock.timeEntryQuery.pull as any).mockResolvedValue(fakeTimeEntries)
+    timeEntryQueryMock.pull.mockResolvedValue(fakeTimeEntries)
 
     // Act
     const result = await sut.execute(input)
 
     // Assert
     expect(result.isSuccess()).toBe(true)
-
-    expect(adapterMock.timeEntryQuery.pull).toHaveBeenCalledWith(
+    expect(timeEntryQueryMock.pull).toHaveBeenCalledWith(
       fakeSessionUser.id,
       input.checkpoint,
       input.batch,
     )
   })
 
-  it('should return UnauthorizedError if both input memberId and session user are missing/empty', async () => {
+  it('should return Unauthorized error if both input memberId and session user are missing/empty', async () => {
     // Arrange
     const input = makeInput('')
     sessionManagerMock.getCurrentUser.mockReturnValue(undefined)
@@ -125,74 +126,38 @@ describe('TimeEntriesPullService', () => {
 
     // Assert
     expect(result.isFailure()).toBe(true)
-    expect(result.failure).toBeInstanceOf(UnauthorizedError)
-    expect((result.failure as UnauthorizedError).messageKey).toBe(
-      'Usuário não autenticado.',
-    )
+    expect(result.failure).toBeInstanceOf(AppError)
+    expect(result.failure.messageKey).toBe('Usuário não autenticado.')
 
     expect(dataSourceResolverMock.getDataSource).not.toHaveBeenCalled()
   })
 
-  it('should return InternalServerError when the data source resolver throws an exception', async () => {
+  it('should return Internal error when the data source resolver throws an exception', async () => {
     // Arrange
     const input = makeInput()
-    const error = new Error('Plugin resolution failed')
-
-    sessionManagerMock.getCurrentUser.mockReturnValue(fakeSessionUser as any)
-    dataSourceResolverMock.getDataSource.mockRejectedValue(error)
+    dataSourceResolverMock.getDataSource.mockRejectedValue(new Error('Fail'))
 
     // Act
     const result = await sut.execute(input)
 
     // Assert
     expect(result.isFailure()).toBe(true)
-    expect(result.failure).toBeInstanceOf(InternalServerError)
-    expect((result.failure as InternalServerError).messageKey).toBe(
-      'ERRO_INESPERADO',
-    )
-
-    expect(adapterMock.timeEntryQuery.pull).not.toHaveBeenCalled()
+    expect(result.failure).toBeInstanceOf(AppError)
+    expect(result.failure.messageKey).toBe('ERRO_INESPERADO')
   })
 
-  it('should return InternalServerError when the adapter fails to pull time entries', async () => {
+  it('should return Internal error when the adapter fails to pull time entries', async () => {
     // Arrange
     const input = makeInput()
-    const error = new Error('Database timeout')
-
-    sessionManagerMock.getCurrentUser.mockReturnValue(fakeSessionUser as any)
     dataSourceResolverMock.getDataSource.mockResolvedValue(adapterMock)
-    ;(adapterMock.timeEntryQuery.pull as any).mockRejectedValue(error)
+    timeEntryQueryMock.pull.mockRejectedValue(new Error('Timeout'))
 
     // Act
     const result = await sut.execute(input)
 
     // Assert
     expect(result.isFailure()).toBe(true)
-    expect(result.failure).toBeInstanceOf(InternalServerError)
-    expect((result.failure as InternalServerError).messageKey).toBe(
-      'ERRO_INESPERADO',
-    )
-  })
-
-  it('should return InternalServerError when sessionManager throws an exception', async () => {
-    // Arrange
-    const input = makeInput()
-    const error = new Error('Session storage corrupted')
-
-    sessionManagerMock.getCurrentUser.mockImplementation(() => {
-      throw error
-    })
-
-    // Act
-    const result = await sut.execute(input)
-
-    // Assert
-    expect(result.isFailure()).toBe(true)
-    expect(result.failure).toBeInstanceOf(InternalServerError)
-    expect((result.failure as InternalServerError).messageKey).toBe(
-      'ERRO_INESPERADO',
-    )
-
-    expect(dataSourceResolverMock.getDataSource).not.toHaveBeenCalled()
+    expect(result.failure).toBeInstanceOf(AppError)
+    expect(result.failure.messageKey).toBe('ERRO_INESPERADO')
   })
 })

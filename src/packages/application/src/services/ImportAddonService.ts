@@ -1,82 +1,80 @@
-import {
-  AppError,
-  Either,
-  InternalServerError,
-  NotFoundError,
-} from '@metric-org/cross-cutting/helpers'
+import { AppError, Either } from '@metric-org/cross-cutting/helpers'
+import { IJobEvent } from '@metric-org/cross-cutting/transport'
 
-import { FileData, IFileManager } from '@/contracts'
+import { FileData, IFileManager, IFileStorage } from '@/contracts'
 import { IAddonsFacade } from '@/contracts/facades'
 import { IImportAddonUseCase } from '@/contracts/use-cases'
 
 export class ImportAddonService implements IImportAddonUseCase {
   constructor(
-    private fileManager: IFileManager,
-    private addonsFacade: IAddonsFacade,
+    private readonly fileStorage: IFileStorage,
+    private readonly fileManager: IFileManager,
+    private readonly addonsFacade: IAddonsFacade,
   ) {}
 
-  async execute(fileData: FileData): Promise<Either<AppError, void>> {
-    const tempDir = `./temp/${Date.now()}-addon`
-    const tempPath = `${tempDir}/addon.zip`
+  async execute(
+    fileData: FileData,
+    onProgress?: (event: IJobEvent) => void,
+  ): Promise<Either<AppError, void>> {
+    try {
+      onProgress?.({
+        status: 'data',
+        data: 'Descompactando pacote do addon...',
+      })
+      onProgress?.({ status: 'progress', value: 10 })
 
-    const writeResult = await this.fileManager
-      .writeFile(tempPath, fileData)
-      .then(() => Either.success(undefined))
-      .catch(() =>
-        Either.failure(
-          InternalServerError.danger('NAO_FOI_POSSIVEL_SALVAR_TEMP'),
-        ),
+      const extractedFiles = await this.fileManager.unzipInMemory(fileData)
+
+      onProgress?.({
+        status: 'data',
+        data: 'Validando arquivo de manifesto - manifest.yaml',
+      })
+      onProgress?.({ status: 'progress', value: 20 })
+
+      const manifestFile = extractedFiles.find(
+        (e) => e.name === 'manifest.yaml' || e.name === 'manifest.yml',
       )
-    if (writeResult.isFailure()) return writeResult
 
-    const readResult = await this.fileManager
-      .readFile(tempPath)
-      .then((data) => Either.success(data))
-      .catch(() =>
-        Either.failure(InternalServerError.danger('NAO_FOI_POSSIVEL_LER_TEMP')),
+      if (!manifestFile) {
+        return Either.failure(AppError.NotFound('MANIFEST_NAO_ENCONTRADO'))
+      }
+
+      const manifestContentResult = await this.addonsFacade.parseManifest(
+        manifestFile.content,
       )
-    if (readResult.isFailure()) return readResult.forwardFailure()
-    const zipData = readResult.success
 
-    const unzipResult = await this.fileManager
-      .unzipInMemory(zipData)
-      .then((files) => Either.success(files))
-      .catch(() =>
-        Either.failure(
-          InternalServerError.danger('NAO_FOI_POSSIVEL_DESCOMPACTAR'),
-        ),
-      )
-    if (unzipResult.isFailure()) return unzipResult.forwardFailure()
-    const extractedFiles = unzipResult.success
+      if (manifestContentResult.isFailure()) {
+        return manifestContentResult.forwardFailure()
+      }
 
-    const manifestFile = extractedFiles.find((e) => e.name === 'manifest.yaml')
-    if (!manifestFile)
-      return Either.failure(NotFoundError.danger('MANIFEST_NAO_ENCONTRADO'))
+      const addonId = manifestContentResult.success.id
+      if (!addonId) {
+        return Either.failure(AppError.NotFound('ADDONID_NAO_ENCONTRADO'))
+      }
 
-    const manifestContentResult = await this.addonsFacade.parseManifest(
-      manifestFile.content,
-    )
-    if (manifestContentResult.isFailure())
-      return manifestContentResult.forwardFailure()
-    const addonId = manifestContentResult.success.id
-    if (!addonId)
-      return Either.failure(NotFoundError.danger('ADDONID_NAO_ENCONTRADO'))
+      onProgress?.({
+        status: 'data',
+        data: `Instalando arquivos em /addons/${addonId}...`,
+      })
 
-    for (const file of extractedFiles) {
-      const finalPath = `./addons/datasource/${addonId}/${file.name}`
-      const saveResult = await this.fileManager
-        .writeFile(finalPath, file.content)
-        .then(() => Either.success(undefined))
-        .catch(() =>
-          Either.failure(
-            InternalServerError.danger('NAO_FOI_POSSIVEL_SALVAR_ARQUIVO'),
-          ),
-        )
-      if (saveResult.isFailure()) return saveResult
+      const totalFiles = extractedFiles.length
+
+      for (let i = 0; i < totalFiles; i++) {
+        const file = extractedFiles[i]
+        const finalPath = `./addons/datasource/${addonId}/${file.name}`
+
+        await this.fileStorage.write(finalPath, file.content)
+
+        const fileProgress = 20 + Math.floor(((i + 1) / totalFiles) * 75)
+        onProgress?.({ status: 'progress', value: fileProgress })
+      }
+
+      onProgress?.({ status: 'data', data: 'Instalação concluída.' })
+      onProgress?.({ status: 'progress', value: 100 })
+
+      return Either.success()
+    } catch (error: unknown) {
+      return Either.failure(AppError.NotFound('ERRO_AO_IMPORTAR_ADDON'))
     }
-
-    await this.fileManager.delete(tempPath).catch(() => {})
-
-    return Either.success(undefined)
   }
 }

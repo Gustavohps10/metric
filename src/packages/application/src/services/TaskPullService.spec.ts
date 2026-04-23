@@ -1,7 +1,8 @@
-import { InternalServerError } from '@metric-org/cross-cutting/helpers'
+import { AppError } from '@metric-org/cross-cutting/helpers'
 import type { Mocked } from 'vitest'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
+import type { ITaskQuery } from '@/contracts/data/queries'
 import type { IDataSourceResolver } from '@/contracts/resolvers'
 import type { IDataSourceAdapter } from '@/contracts/resolvers/IDataSourceAdapter'
 import type { PullTasksInput } from '@/contracts/use-cases'
@@ -16,6 +17,7 @@ describe('TaskPullService', () => {
   let sessionManagerMock: Mocked<SessionManager>
   let dataSourceResolverMock: Mocked<IDataSourceResolver>
   let adapterMock: Mocked<IDataSourceAdapter>
+  let taskQueryMock: Mocked<ITaskQuery>
 
   const fakeDate = new Date('2026-04-18T00:00:00.000Z')
 
@@ -58,17 +60,19 @@ describe('TaskPullService', () => {
 
     sessionManagerMock = {
       getCurrentUser: vi.fn(),
-    } as Partial<SessionManager> as Mocked<SessionManager>
+    } as unknown as Mocked<SessionManager>
+
+    taskQueryMock = {
+      pull: vi.fn(),
+    } as unknown as Mocked<ITaskQuery>
+
+    adapterMock = {
+      taskQuery: taskQueryMock,
+    } as unknown as Mocked<IDataSourceAdapter>
 
     dataSourceResolverMock = {
       getDataSource: vi.fn(),
-    } as Partial<IDataSourceResolver> as Mocked<IDataSourceResolver>
-
-    adapterMock = {
-      taskQuery: {
-        pull: vi.fn(),
-      },
-    } as unknown as Mocked<IDataSourceAdapter>
+    } as unknown as Mocked<IDataSourceResolver>
 
     sut = new TaskPullService(sessionManagerMock, dataSourceResolverMock)
   })
@@ -79,7 +83,7 @@ describe('TaskPullService', () => {
 
     sessionManagerMock.getCurrentUser.mockReturnValue(fakeSessionUser as any)
     dataSourceResolverMock.getDataSource.mockResolvedValue(adapterMock)
-    ;(adapterMock.taskQuery.pull as any).mockResolvedValue(fakeTasks)
+    taskQueryMock.pull.mockResolvedValue(fakeTasks)
 
     // Act
     const result = await sut.execute(input)
@@ -97,7 +101,7 @@ describe('TaskPullService', () => {
       input.pluginId,
       input.connectionInstanceId,
     )
-    expect(adapterMock.taskQuery.pull).toHaveBeenCalledWith(
+    expect(taskQueryMock.pull).toHaveBeenCalledWith(
       fakeSessionUser.id,
       input.checkpoint,
       input.batch,
@@ -110,7 +114,7 @@ describe('TaskPullService', () => {
 
     sessionManagerMock.getCurrentUser.mockReturnValue(undefined)
     dataSourceResolverMock.getDataSource.mockResolvedValue(adapterMock)
-    ;(adapterMock.taskQuery.pull as any).mockResolvedValue(fakeTasks)
+    taskQueryMock.pull.mockResolvedValue(fakeTasks)
 
     // Act
     const result = await sut.execute(input)
@@ -119,14 +123,14 @@ describe('TaskPullService', () => {
     expect(result.isSuccess()).toBe(true)
     expect(result.success).toEqual(fakeTasks)
 
-    expect(adapterMock.taskQuery.pull).toHaveBeenCalledWith(
+    expect(taskQueryMock.pull).toHaveBeenCalledWith(
       input.memberId,
       input.checkpoint,
       input.batch,
     )
   })
 
-  it('should return InternalServerError when the data source resolver throws an exception', async () => {
+  it('should return Internal error when the data source resolver throws an exception', async () => {
     // Arrange
     const input = makeInput()
     const error = new Error('Plugin not found')
@@ -139,35 +143,31 @@ describe('TaskPullService', () => {
 
     // Assert
     expect(result.isFailure()).toBe(true)
-    expect(result.failure).toBeInstanceOf(InternalServerError)
-    expect((result.failure as InternalServerError).messageKey).toBe(
-      'ERRO_INESPERADO',
-    )
+    expect(result.failure).toBeInstanceOf(AppError)
+    expect(result.failure.messageKey).toBe('ERRO_INESPERADO')
 
-    expect(adapterMock.taskQuery.pull).not.toHaveBeenCalled()
+    expect(taskQueryMock.pull).not.toHaveBeenCalled()
   })
 
-  it('should return InternalServerError when the adapter fails to pull tasks', async () => {
+  it('should return Internal error when the adapter fails to pull tasks', async () => {
     // Arrange
     const input = makeInput()
     const error = new Error('API Rate Limit Exceeded')
 
     sessionManagerMock.getCurrentUser.mockReturnValue(fakeSessionUser as any)
     dataSourceResolverMock.getDataSource.mockResolvedValue(adapterMock)
-    ;(adapterMock.taskQuery.pull as any).mockRejectedValue(error)
+    taskQueryMock.pull.mockRejectedValue(error)
 
     // Act
     const result = await sut.execute(input)
 
     // Assert
     expect(result.isFailure()).toBe(true)
-    expect(result.failure).toBeInstanceOf(InternalServerError)
-    expect((result.failure as InternalServerError).messageKey).toBe(
-      'ERRO_INESPERADO',
-    )
+    expect(result.failure).toBeInstanceOf(AppError)
+    expect(result.failure.messageKey).toBe('ERRO_INESPERADO')
   })
 
-  it('should return InternalServerError when sessionManager throws an exception', async () => {
+  it('should return Internal error when sessionManager throws an exception', async () => {
     // Arrange
     const input = makeInput()
     const error = new Error('Session storage corrupted')
@@ -181,10 +181,8 @@ describe('TaskPullService', () => {
 
     // Assert
     expect(result.isFailure()).toBe(true)
-    expect(result.failure).toBeInstanceOf(InternalServerError)
-    expect((result.failure as InternalServerError).messageKey).toBe(
-      'ERRO_INESPERADO',
-    )
+    expect(result.failure).toBeInstanceOf(AppError)
+    expect(result.failure.messageKey).toBe('ERRO_INESPERADO')
 
     expect(dataSourceResolverMock.getDataSource).not.toHaveBeenCalled()
   })

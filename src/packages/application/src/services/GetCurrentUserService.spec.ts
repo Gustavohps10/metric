@@ -1,8 +1,4 @@
-import {
-  InternalServerError,
-  NotFoundError,
-  UnauthorizedError,
-} from '@metric-org/cross-cutting/helpers'
+import { AppError } from '@metric-org/cross-cutting/helpers'
 import { Workspace } from '@metric-org/domain'
 import type { Mocked } from 'vitest'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
@@ -131,10 +127,8 @@ describe('GetCurrentUserService', () => {
 
     // Assert
     expect(result.isFailure()).toBe(true)
-    expect(result.failure).toBeInstanceOf(UnauthorizedError)
-    expect((result.failure as UnauthorizedError).messageKey).toBe(
-      'USUARIO_NAO_LOGADO',
-    )
+    expect(result.failure).toBeInstanceOf(AppError)
+    expect(result.failure.messageKey).toBe('USUARIO_NAO_LOGADO')
 
     expect(workspacesRepositoryMock.findById).not.toHaveBeenCalled()
   })
@@ -150,10 +144,8 @@ describe('GetCurrentUserService', () => {
 
     // Assert
     expect(result.isFailure()).toBe(true)
-    expect(result.failure).toBeInstanceOf(NotFoundError)
-    expect((result.failure as NotFoundError).messageKey).toBe(
-      'WORKSPACE_NAO_ENCONTRADO',
-    )
+    expect(result.failure).toBeInstanceOf(AppError)
+    expect(result.failure.messageKey).toBe('WORKSPACE_NAO_ENCONTRADO')
   })
 
   it('should return NotFoundError when connection instance is not found in workspace', async () => {
@@ -176,10 +168,8 @@ describe('GetCurrentUserService', () => {
 
     // Assert
     expect(result.isFailure()).toBe(true)
-    expect(result.failure).toBeInstanceOf(NotFoundError)
-    expect((result.failure as NotFoundError).messageKey).toBe(
-      'CONEXAO_NAO_ENCONTRADA_OU_INVALIDA',
-    )
+    expect(result.failure).toBeInstanceOf(AppError)
+    expect(result.failure.messageKey).toBe('CONEXAO_NAO_ENCONTRADA_OU_INVALIDA')
 
     expect(dataSourceResolverMock.getDataSource).not.toHaveBeenCalled()
   })
@@ -198,10 +188,8 @@ describe('GetCurrentUserService', () => {
 
     // Assert
     expect(result.isFailure()).toBe(true)
-    expect(result.failure).toBeInstanceOf(NotFoundError)
-    expect((result.failure as NotFoundError).messageKey).toBe(
-      'USUARIO_NAO_ENCONTRADO',
-    )
+    expect(result.failure).toBeInstanceOf(AppError)
+    expect(result.failure.messageKey).toBe('USUARIO_NAO_ENCONTRADO')
   })
 
   it('should return InternalServerError when an exception is thrown', async () => {
@@ -218,9 +206,7 @@ describe('GetCurrentUserService', () => {
 
     // Assert
     expect(result.isFailure()).toBe(true)
-    expect(result.failure).toBeInstanceOf(InternalServerError)
-    expect((result.failure as InternalServerError).messageKey).toBe(
-      'ERRO_AO_OBTER_USUARIO',
-    )
+    expect(result.failure).toBeInstanceOf(AppError)
+    expect(result.failure.messageKey).toBe('ERRO_AO_OBTER_USUARIO')
   })
 })

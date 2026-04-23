@@ -1,10 +1,4 @@
-import {
-  AppError,
-  Either,
-  InternalServerError,
-  UnauthorizedError,
-  ValidationError,
-} from '@metric-org/cross-cutting/helpers'
+import { AppError, Either } from '@metric-org/cross-cutting/helpers'
 import { TimeEntry } from '@metric-org/domain'
 
 import {
@@ -35,18 +29,14 @@ export class TimeEntriesPushService implements ITimeEntriesPushUseCase {
         input.connectionInstanceId,
       )
       if (!sessionUser) {
-        return Either.failure(
-          UnauthorizedError.danger('USUARIO_NAO_ENCONTRADO'),
-        )
+        return Either.failure(AppError.Unauthorized('USUARIO_NAO_ENCONTRADO'))
       }
 
       const workspace = await this.workspacesRepository.findById(
         input.workspaceId,
       )
       if (!workspace) {
-        return Either.failure(
-          UnauthorizedError.danger('WORKSPACE_NAO_ENCONTRADO'),
-        )
+        return Either.failure(AppError.Unauthorized('WORKSPACE_NAO_ENCONTRADO'))
       }
 
       const adapter = await this.dataSourceResolver.getDataSource(
@@ -64,7 +54,7 @@ export class TimeEntriesPushService implements ITimeEntriesPushUseCase {
 
       return Either.success(results)
     } catch {
-      return Either.failure(InternalServerError.danger('ERRO_INESPERADO'))
+      return Either.failure(AppError.Internal('ERRO_INESPERADO'))
     }
   }
 
@@ -89,16 +79,18 @@ export class TimeEntriesPushService implements ITimeEntriesPushUseCase {
     } catch {
       return {
         ...entry,
-        validationError: ValidationError.danger('ERRO_PROCESSAMENTO_DOCUMENTO'),
+        validationError: AppError.ValidationError(
+          'ERRO_PROCESSAMENTO_DOCUMENTO',
+        ),
       }
     }
   }
 
-  private validateDocument(entry: SyncTimeEntryDTO): ValidationError | null {
+  private validateDocument(entry: SyncTimeEntryDTO): AppError | null {
     const { id, updatedAt, _deleted } = entry
-    if (!id) return ValidationError.danger('DOCUMENT_ID_MISSING')
+    if (!id) return AppError.ValidationError('DOCUMENT_ID_MISSING')
     if (!_deleted && !updatedAt)
-      return ValidationError.danger('DOCUMENT_UPDATED_AT_MISSING')
+      return AppError.ValidationError('DOCUMENT_UPDATED_AT_MISSING')
     return null
   }
 
@@ -164,7 +156,7 @@ export class TimeEntriesPushService implements ITimeEntriesPushUseCase {
     if (result.isFailure())
       return {
         ...entry,
-        validationError: ValidationError.danger('TIME_ENTRY_INVALID'),
+        validationError: AppError.ValidationError('TIME_ENTRY_INVALID'),
       }
 
     await timeEntryRepository.create(result.success)

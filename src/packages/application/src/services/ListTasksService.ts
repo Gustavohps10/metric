@@ -1,8 +1,4 @@
-import {
-  AppError,
-  Either,
-  InternalServerError,
-} from '@metric-org/cross-cutting/helpers'
+import { AppError, Either } from '@metric-org/cross-cutting/helpers'
 
 import { IDataSourceResolver } from '@/contracts/resolvers'
 import {
@@ -29,7 +25,7 @@ export class ListTaskService implements IListTasksUseCase {
 
       return Either.success(tasks)
     } catch (error: unknown) {
-      return Either.failure(InternalServerError.danger('ERRO_INESPERADO'))
+      return Either.failure(AppError.NotFound('ERRO_INESPERADO'))
     }
   }
 }
