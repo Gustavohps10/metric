@@ -4,13 +4,25 @@ import {
   JSONWorkspacesQuery,
   JSONWorkspacesRepository,
 } from '@metric-org/infra/data'
-import { KeytarTokenStorage } from '@metric-org/infra/storage'
-import { app, BrowserWindow, Menu, screen, shell, Tray } from 'electron'
+import { KeytarTokenStorage } from '@metric-org/infra/tools'
+import { NodeFileStorage } from '@metric-org/infra/tools'
+import {
+  app,
+  BrowserWindow,
+  Menu,
+  net,
+  protocol,
+  screen,
+  shell,
+  Tray,
+} from 'electron'
 import installExtension, {
   REACT_DEVELOPER_TOOLS,
 } from 'electron-devtools-installer'
 import { join } from 'path'
+import { pathToFileURL } from 'url'
 
+import { ElectronJobEventEmitter } from '@/main/adapters/ElectronJobEventEmitter'
 import {
   ConnectionHandler,
   SessionHandler,
@@ -27,6 +39,13 @@ import { openIpcRoutes } from '@/main/routes/openIpcRoutes'
 let mainWindow: BrowserWindow | null = null
 let tray: Tray | null = null
 let secondaryWindow: BrowserWindow | null = null
+
+protocol.registerSchemesAsPrivileged([
+  {
+    scheme: 'metric-app',
+    privileges: { standard: true, secure: true, supportFetchAPI: true },
+  },
+])
 
 const createWindow = () => {
   mainWindow = new BrowserWindow({
@@ -148,24 +167,53 @@ const createTray = () => {
   })
 }
 
+function handleProtocol() {
+  protocol.handle('metric-app', async (request) => {
+    try {
+      let filePath = request.url.replace('metric-app://', '')
+
+      filePath = filePath.replace(/[?&]buster=[^&]*/g, '').replace(/[?&]$/, '')
+
+      filePath = decodeURIComponent(filePath)
+
+      if (process.platform === 'win32' && /^[a-zA-Z]\//.test(filePath)) {
+        filePath = filePath[0].toUpperCase() + ':' + filePath.slice(1)
+      }
+
+      const fileUrl = pathToFileURL(filePath).toString()
+
+      return net.fetch(fileUrl)
+    } catch (error) {
+      console.error('Erro no protocolo metric-app:', error)
+      return new Response('Resource not found', { status: 404 })
+    }
+  })
+}
+
 app.whenReady().then(async () => {
+  handleProtocol()
   const userDataPath = app.getPath('userData')
   const credentialsStorage = new KeytarTokenStorage()
   const workspacesRepository = new JSONWorkspacesRepository(userDataPath)
   const workspacesQuery = new JSONWorkspacesQuery(userDataPath)
+  const eventEmitter = new ElectronJobEventEmitter(() => mainWindow)
+  const nodeFileStorage = new NodeFileStorage(userDataPath, 'metric-app://')
+  const localDataSourceResolver = new DataSourceResolver(
+    workspacesRepository,
+    credentialsStorage,
+    {
+      addonsBasePath: join(__dirname, '../addons/datasource'),
+      isDevelopment: !app.isPackaged,
+    },
+  )
 
   const platformDeps: PlatformDependencies = {
+    jobEmitter: eventEmitter,
     credentialsStorage,
     workspacesRepository,
     workspacesQuery,
-    dataSourceResolver: new DataSourceResolver(
-      workspacesRepository,
-      credentialsStorage,
-      {
-        addonsBasePath: join(__dirname, '../addons/datasource'),
-        isDevelopment: !app.isPackaged,
-      },
-    ),
+    fileStorage: nodeFileStorage,
+    dataSourceResolver: localDataSourceResolver,
   }
 
   const serviceProvider = new ContainerBuilder()

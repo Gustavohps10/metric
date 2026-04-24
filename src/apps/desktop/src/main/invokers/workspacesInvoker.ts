@@ -26,4 +26,10 @@ export const workspacesInvoker: IWorkspacesAPI = {
 
   getConnectionMember: (request) =>
     IpcInvoker.invoke('GET_CURRENT_USER', request),
+  markAsConfigured: (request) =>
+    IpcInvoker.invoke('WORKSPACES_MARK_AS_CONFIGURED', request),
+  updateIdentity: (request) =>
+    IpcInvoker.invoke('WORKSPACES_UPDATE_IDENTITY', request),
+
+  delete: (request) => IpcInvoker.invoke('WORKSPACES_DELETE', request),
 }

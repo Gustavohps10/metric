@@ -32,6 +32,18 @@ const api: IApplicationAPI = {
     discord: discordInvoker,
     addons: addonsInvoker,
   },
+  events: {
+    on: <T = unknown>(channel: string, handler: (data: T) => void) => {
+      const unsubscribe = electronAPI.ipcRenderer.on(
+        channel,
+        (_event, data: T) => {
+          handler(data)
+        },
+      )
+
+      return unsubscribe
+    },
+  },
 }
 
 if (process.contextIsolated) {

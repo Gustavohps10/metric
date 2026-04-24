@@ -49,6 +49,9 @@ export function openIpcRoutes(serviceProvider: IServiceProvider): void {
   )
 
   // --- WORKSPACES & CONNECTIONS ---
+  IpcHandler.register('WORKSPACES_MARK_AS_CONFIGURED', (e, req) =>
+    workspacesHandler.markWorkspaceAsConfigured(e, req),
+  )
   IpcHandler.register('WORKSPACES_CREATE', (e, req) =>
     workspacesHandler.create(e, req),
   )
@@ -67,6 +70,12 @@ export function openIpcRoutes(serviceProvider: IServiceProvider): void {
   )
   IpcHandler.register('WORKSPACES_DISCONNECT_DATASOURCE', (e, req) =>
     workspacesHandler.disconnectDataSource(e, req),
+  )
+  IpcHandler.register('WORKSPACES_UPDATE_IDENTITY', (e, req) =>
+    workspacesHandler.updateIdentity(e, req),
+  )
+  IpcHandler.register('WORKSPACES_DELETE', (e, req) =>
+    workspacesHandler.delete(e, req),
   )
 
   // --- SESSION ---

@@ -1,13 +1,22 @@
 import {
+  CreateWorkspaceInput,
+  DeleteWorkspaceInput,
   IConnectDataSourceUseCase,
   ICreateWorkspaceUseCase,
+  IDeleteWorkspaceUseCase,
   IDisconnectDataSourceUseCase,
   IGetCurrentUserUseCase,
   IGetWorkspaceUseCase,
   ILinkDataSourceUseCase,
   IListWorkspacesUseCase,
   IUnlinkDataSourceUseCase,
+  IUpdateWorkspaceIdentityUseCase,
+  UpdateWorkspaceIdentityInput,
 } from '@metric-org/application'
+import {
+  IMarkWorkspaceAsConfiguredUseCase,
+  MarkWorkspaceAsConfiguredInput,
+} from '@metric-org/application/contracts/use-cases/IMarkWorkspaceAsConfiguredUseCase'
 import { IRequest } from '@metric-org/cross-cutting/transport'
 import {
   AuthenticationViewModel,
@@ -17,10 +26,6 @@ import {
   WorkspaceViewModel,
 } from '@metric-org/presentation/view-models'
 import { IpcMainInvokeEvent } from 'electron'
-
-export interface CreateWorkspaceRequest {
-  name: string
-}
 
 export interface GetWorkspaceByIdRequest {
   workspaceId: string
@@ -65,13 +70,42 @@ export class WorkspacesHandler {
     private readonly connectDataSourceService: IConnectDataSourceUseCase,
     private readonly disconnectDataSourceService: IDisconnectDataSourceUseCase,
     private readonly getCurrentUserService: IGetCurrentUserUseCase,
+    private readonly markWorkspaceAsConfiguredService: IMarkWorkspaceAsConfiguredUseCase,
+    private readonly updateWorkspaceIdentityService: IUpdateWorkspaceIdentityUseCase,
+    private readonly deleteWorkspaceService: IDeleteWorkspaceUseCase,
   ) {}
+
+  public async markWorkspaceAsConfigured(
+    _event: IpcMainInvokeEvent,
+    { body: { workspaceId } }: IRequest<MarkWorkspaceAsConfiguredInput>,
+  ): Promise<ViewModel<ViewModel>> {
+    const result = await this.markWorkspaceAsConfiguredService.execute({
+      workspaceId,
+    })
+
+    if (result.isFailure()) {
+      return {
+        isSuccess: false,
+        statusCode: result.failure.statusCode || 500,
+        error: result.failure.messageKey,
+      }
+    }
+
+    return {
+      isSuccess: true,
+      statusCode: 200,
+    }
+  }
 
   public async create(
     _event: IpcMainInvokeEvent,
-    { body: { name } }: IRequest<CreateWorkspaceRequest>,
+    { body: { name, avatarFile, description } }: IRequest<CreateWorkspaceInput>,
   ): Promise<ViewModel<WorkspaceViewModel>> {
-    const result = await this.createWorkspaceService.execute({ name })
+    const result = await this.createWorkspaceService.execute({
+      name,
+      avatarFile,
+      description,
+    })
 
     if (result.isFailure()) {
       return {
@@ -85,17 +119,7 @@ export class WorkspacesHandler {
     return {
       isSuccess: true,
       statusCode: 201,
-      data: {
-        id: ws.id,
-        name: ws.name,
-        dataSourceConnections: ws.dataSourceConnections.map((c) => ({
-          id: c.id,
-          dataSourceId: c.dataSourceId,
-          config: c.config,
-        })),
-        createdAt: ws.createdAt,
-        updatedAt: ws.updatedAt,
-      },
+      data: ws,
     }
   }
 
@@ -118,17 +142,7 @@ export class WorkspacesHandler {
     return {
       statusCode: 200,
       isSuccess: true,
-      data: pagedDto.items.map((w) => ({
-        id: w.id,
-        name: w.name,
-        dataSourceConnections: w.dataSourceConnections.map((c) => ({
-          id: c.id,
-          dataSourceId: c.dataSourceId,
-          config: c.config,
-        })),
-        createdAt: w.createdAt,
-        updatedAt: w.updatedAt,
-      })),
+      data: pagedDto.items.map((w) => w),
       totalItems: pagedDto.total,
       totalPages: Math.ceil(pagedDto.total / (pagedDto.pageSize || 1)),
       currentPage: pagedDto.page || 1,
@@ -153,17 +167,7 @@ export class WorkspacesHandler {
     return {
       isSuccess: true,
       statusCode: 200,
-      data: {
-        id: ws.id,
-        name: ws.name,
-        dataSourceConnections: ws.dataSourceConnections.map((c) => ({
-          id: c.id,
-          dataSourceId: c.dataSourceId,
-          config: c.config,
-        })),
-        createdAt: ws.createdAt,
-        updatedAt: ws.updatedAt,
-      },
+      data: ws,
     }
   }
 
@@ -185,17 +189,7 @@ export class WorkspacesHandler {
     return {
       isSuccess: true,
       statusCode: 200,
-      data: {
-        id: ws.id,
-        name: ws.name,
-        dataSourceConnections: ws.dataSourceConnections.map((c) => ({
-          id: c.id,
-          dataSourceId: c.dataSourceId,
-          config: c.config,
-        })),
-        createdAt: ws.createdAt,
-        updatedAt: ws.updatedAt,
-      },
+      data: ws,
     }
   }
 
@@ -217,17 +211,7 @@ export class WorkspacesHandler {
     return {
       isSuccess: true,
       statusCode: 200,
-      data: {
-        id: ws.id,
-        name: ws.name,
-        dataSourceConnections: ws.dataSourceConnections.map((c) => ({
-          id: c.id,
-          dataSourceId: c.dataSourceId,
-          config: c.config,
-        })),
-        createdAt: ws.createdAt,
-        updatedAt: ws.updatedAt,
-      },
+      data: ws,
     }
   }
 
@@ -281,7 +265,7 @@ export class WorkspacesHandler {
     if (result.isFailure()) {
       return {
         isSuccess: false,
-        statusCode: result.failure.statusCode || 404,
+        statusCode: result.failure.statusCode,
         error: result.failure.messageKey,
       }
     }
@@ -290,6 +274,47 @@ export class WorkspacesHandler {
       isSuccess: true,
       statusCode: 200,
       data: result.success,
+    }
+  }
+
+  public async updateIdentity(
+    _event: IpcMainInvokeEvent,
+    { body }: IRequest<UpdateWorkspaceIdentityInput>,
+  ): Promise<ViewModel<WorkspaceViewModel>> {
+    const result = await this.updateWorkspaceIdentityService.execute(body)
+
+    if (result.isFailure()) {
+      return {
+        isSuccess: false,
+        statusCode: result.failure.statusCode || 500,
+        error: result.failure.messageKey,
+      }
+    }
+
+    return {
+      isSuccess: true,
+      statusCode: 200,
+      data: result.success,
+    }
+  }
+
+  public async delete(
+    _event: IpcMainInvokeEvent,
+    { body }: IRequest<DeleteWorkspaceInput>,
+  ): Promise<ViewModel<void>> {
+    const result = await this.deleteWorkspaceService.execute(body)
+
+    if (result.isFailure()) {
+      return {
+        isSuccess: false,
+        statusCode: result.failure.statusCode || 500,
+        error: result.failure.messageKey,
+      }
+    }
+
+    return {
+      isSuccess: true,
+      statusCode: 200,
     }
   }
 }
