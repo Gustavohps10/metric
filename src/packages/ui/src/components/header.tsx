@@ -13,7 +13,7 @@ import {
 } from 'lucide-react'
 import { AiOutlineCloudSync } from 'react-icons/ai'
 
-import logoAtak from '@/assets/logo-atak.png'
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui'
 import { Button } from '@/components/ui/button'
 import {
   Collapsible,
@@ -32,7 +32,7 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from '@/components/ui/tooltip'
-import { useWorkspace } from '@/hooks'
+import { useWorkspace } from '@/contexts/WorkspaceContext'
 import { type ReplicationStatus, useSyncStore } from '@/stores/syncStore'
 
 /**
@@ -126,18 +126,23 @@ export function Header() {
 
   const globalStatus = getGlobalState()
 
+  console.log('WORKSPACE HEAD', workspace)
   return (
     <header className="pointer-events-none absolute top-0 left-0 z-50 flex w-full justify-center bg-transparent pl-[calc(72px+240px)]">
       <div className="p-2">
         <div className="border-border bg-background/80 pointer-events-auto flex items-center justify-between gap-3 rounded-md border px-1 shadow-sm backdrop-blur-xl">
           <div className="flex items-center gap-2">
-            <div className="flex h-5 w-5 items-center justify-center rounded-sm bg-zinc-100 p-1 shadow-sm">
-              <img
-                src={logoAtak}
-                className="h-full w-full object-contain"
-                alt="Logo"
+            <Avatar className="h-5 w-5 rounded-sm">
+              <AvatarImage
+                src={workspace?.avatarUrl || undefined}
+                alt={workspace?.name || 'Logo'}
+                className="h-full w-full object-cover"
               />
-            </div>
+              <AvatarFallback className="flex h-full w-full items-center justify-center text-[10px] font-bold">
+                {workspace?.name?.[0]?.toUpperCase() || '?'}
+              </AvatarFallback>
+            </Avatar>
+
             <div className="flex min-w-max flex-col leading-tight">
               <span className="text-foreground text-[10px] font-bold tracking-tight">
                 {workspace?.name}

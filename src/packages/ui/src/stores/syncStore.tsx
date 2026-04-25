@@ -28,7 +28,8 @@ import { wrappedValidateAjvStorage } from 'rxdb/plugins/validate-ajv'
 import { Subscription } from 'rxjs'
 import { createStore, type StoreApi, useStore } from 'zustand'
 
-import { useEnvironment, useWorkspace } from '@/hooks'
+import { useWorkspace } from '@/contexts/WorkspaceContext'
+import { useEnvironment } from '@/hooks'
 import { useClient } from '@/hooks/use-client'
 import { automationsSchema } from '@/local-db/schemas/automations-schema'
 import { kanbanColumnsSchema } from '@/local-db/schemas/kanban-column-schema'
@@ -79,10 +80,33 @@ export interface SyncState {
 export type SyncStore = SyncState & {
   init: () => Promise<void>
   destroy: () => Promise<void>
+  drop: () => Promise<void>
 }
 export interface DataSourceRef {
   id: string
   dataSourceId: string
+}
+
+const createAppStorage = () =>
+  wrappedValidateAjvStorage({ storage: getRxStorageDexie() })
+
+const dropAppStorage = async (dbName: string) => {
+  const allDbs = await indexedDB.databases()
+
+  console.log('DELETANDO', allDbs)
+  await Promise.all(
+    allDbs
+      .filter((d) => d.name?.includes(dbName))
+      .map(
+        (d) =>
+          new Promise<void>((resolve) => {
+            const req = indexedDB.deleteDatabase(d.name!)
+            req.onsuccess = () => resolve()
+            req.onerror = () => resolve()
+            req.onblocked = () => resolve()
+          }),
+      ),
+  )
 }
 
 // --- HELPERS ---
@@ -398,6 +422,18 @@ export const createSyncStore = (
     db: null,
     statuses: {},
     isInitialized: false,
+    drop: async () => {
+      const { db } = get()
+      if (!db) return
+
+      await Promise.all(engineModules.map((m) => m.destroy()))
+      engineModules.length = 0
+
+      await db.remove()
+      await dropAppStorage(`db-${workspaceId}`)
+
+      set({ db: null, isInitialized: false, statuses: {} })
+    },
     destroy: async () => {
       const { db } = get()
       await Promise.all(engineModules.map((m) => m.destroy()))
@@ -420,7 +456,7 @@ export const createSyncStore = (
 
         const db = await createRxDatabase<AppCollections>({
           name: `db-${workspaceId}`,
-          storage: wrappedValidateAjvStorage({ storage: getRxStorageDexie() }),
+          storage: createAppStorage(),
           ignoreDuplicate: true,
           multiInstance: false,
           eventReduce: true,
@@ -535,9 +571,9 @@ export const createSyncStore = (
 }
 
 // --- PROVIDER ---
-export const SyncProvider: React.FC<{ children: ReactNode }> = ({
-  children,
-}) => {
+export const SyncProvider: React.FC<{
+  children: ReactNode
+}> = ({ children }) => {
   const { isDevelopment } = useEnvironment()
   const { workspace } = useWorkspace()
   const client = useClient()
@@ -628,4 +664,13 @@ export const useSyncStore = <T,>(
 ): T | undefined => {
   const storeApi = useContext(SyncStoreContext)
   return storeApi ? useStore(storeApi, selector) : undefined
+}
+
+export function useSyncDrop() {
+  const storeApi = useContext(SyncStoreContext)
+  return () => storeApi?.getState().drop()
+}
+
+export async function dropWorkspaceStorage(workspaceId: string) {
+  await dropAppStorage(`db-${workspaceId}`)
 }

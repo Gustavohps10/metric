@@ -42,7 +42,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
-import { useWorkspace } from '@/hooks'
+import { useWorkspace } from '@/contexts/WorkspaceContext'
 import { cn } from '@/lib/utils'
 import { SyncMetadataRxDBDTO } from '@/local-db/schemas/metadata-sync-schema'
 import { SyncTaskRxDBDTO } from '@/local-db/schemas/tasks-sync-schema'

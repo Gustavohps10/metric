@@ -219,7 +219,7 @@ function AddonRow({
 
   return (
     <AccordionItem value={addon.id} className="border-border border-b">
-      <AccordionTrigger className="px-0 py-4 hover:no-underline">
+      <AccordionTrigger asChild className="px-0 py-4 hover:no-underline">
         <div className="flex w-full items-center justify-between pr-4">
           <div className="flex items-center gap-4">
             <div className="bg-secondary flex h-10 w-10 items-center justify-center overflow-hidden rounded-lg">

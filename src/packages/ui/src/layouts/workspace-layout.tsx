@@ -1,4 +1,4 @@
-import { Outlet } from 'react-router'
+import { Outlet, useParams } from 'react-router'
 
 import {
   AppSidebar,
@@ -18,8 +18,9 @@ import { SyncProvider } from '@/stores/syncStore'
 import { TimeEntryProvider } from '@/stores/timeEntryStore'
 
 export function WorkspaceLayout() {
+  const { workspaceId } = useParams<{ workspaceId: string }>()
   return (
-    <WorkspaceProvider>
+    <WorkspaceProvider workspaceId={workspaceId}>
       <SyncProvider>
         <TimeEntryProvider>
           <DataSourceConnectionsProvider>
