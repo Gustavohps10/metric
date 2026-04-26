@@ -12,7 +12,8 @@ import React, {
 } from 'react'
 
 import { User } from '@/@types/session/User'
-import { useClient, useWorkspace } from '@/hooks'
+import { useWorkspace } from '@/contexts/WorkspaceContext'
+import { useClient } from '@/hooks'
 
 export type ConnectionInstanceId = string
 

@@ -8,12 +8,14 @@
       "cwd": "${workspaceFolder}/src/apps/desktop",
       "runtimeExecutable": "${workspaceFolder}/src/apps/desktop/node_modules/.bin/electron-vite",
       "windows": {
-        "runtimeExecutable": "${workspaceFolder}/node_modules/.bin/electron-vite.cmd"
+        "runtimeExecutable": "${workspaceFolder}/src/apps/desktop/node_modules/.bin/electron-vite.cmd"
       },
-      "runtimeArgs": ["--sourcemap"],
+      "runtimeArgs": ["dev", "--sourcemap"],
       "env": {
-        "REMOTE_DEBUGGING_PORT": "9222"
-      }
+        "REMOTE_DEBUGGING_PORT": "9222",
+        "NODE_ENV": "development"
+      },
+      "console": "integratedTerminal"
     },
     {
       "name": "Debug Renderer Process",
