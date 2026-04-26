@@ -7,10 +7,10 @@ import {
   FileEditIcon,
   LayoutDashboard,
   ListTodoIcon,
-  MonitorCogIcon,
   PuzzleIcon,
   ReceiptIcon,
   Scale,
+  SettingsIcon,
   Terminal,
   Timer,
   User,
@@ -57,7 +57,7 @@ const extensionItems: NavItem[] = [
 
 // Reajustado: Sem repetição de ícones e com semântica de Workspace/Admin
 const workspaceItems: NavItem[] = [
-  { title: 'Perfil do Workspace', path: 'settings', icon: MonitorCogIcon },
+  { title: 'Configurações', path: 'settings', icon: SettingsIcon },
   { title: 'Moeda & Valores', path: 'billing', icon: ReceiptIcon },
   { title: 'Motor de Sync', path: 'sync', icon: CloudCog },
   { title: 'Logs de Eventos', path: 'logs', icon: Terminal },

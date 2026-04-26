@@ -5,7 +5,12 @@ import {
   IAddonsFacade,
   IImportAddonUseCase,
 } from '@metric-org/application'
-import { IRequest } from '@metric-org/cross-cutting/transport'
+import {
+  IEventEmitter,
+  IJobEvents,
+  IJobResult,
+  IRequest,
+} from '@metric-org/cross-cutting/transport'
 import { ViewModel } from '@metric-org/presentation/view-models'
 import { app, type IpcMainInvokeEvent } from 'electron'
 
@@ -53,6 +58,7 @@ export class AddonsHandler {
   constructor(
     private readonly importAddonService: IImportAddonUseCase,
     private readonly addonsFacade: IAddonsFacade,
+    private readonly jobEmitter: IEventEmitter<IJobEvents>,
   ) {}
 
   public async listAvailable(
@@ -189,47 +195,85 @@ export class AddonsHandler {
 
   public async install(
     _event: IpcMainInvokeEvent,
-    {
-      body,
-    }: IRequest<{
-      downloadUrl: string
-      onProgress?: (progress: number) => void
-    }>,
-  ): Promise<ViewModel> {
+    { body }: IRequest<{ downloadUrl: string }>,
+  ): Promise<ViewModel<IJobResult>> {
+    const jobId = crypto.randomUUID()
+
+    this.runInstallationJob(jobId, body.downloadUrl).catch((err) => {
+      console.error(`[Fatal Job Error ${jobId}]:`, err)
+    })
+
+    return {
+      isSuccess: true,
+      statusCode: 200,
+      data: { jobId },
+    }
+  }
+
+  private async runInstallationJob(
+    jobId: string,
+    downloadUrl: string,
+  ): Promise<void> {
     try {
-      // === DOWNLOAD (70%) ===
+      this.jobEmitter.emit(jobId, { status: 'progress', value: 0 })
+
       const downloadResult = await this.addonsFacade.downloadFile(
-        body.downloadUrl,
-        (p) => body.onProgress?.(p * 0.7), // normaliza para 70%
+        downloadUrl,
+        (event) => {
+          if (event.status !== 'progress') {
+            this.jobEmitter.emit(jobId, event)
+            return
+          }
+          const scaledValue = Math.floor(event.value * 0.7)
+
+          this.jobEmitter.emit(jobId, {
+            status: 'progress',
+            value: scaledValue,
+          })
+        },
       )
 
       if (downloadResult.isFailure()) {
-        return {
-          isSuccess: false,
+        this.jobEmitter.emit(jobId, {
+          status: 'error',
           error: downloadResult.failure.messageKey,
-          statusCode: 500,
-        }
+        })
+        return
       }
 
-      const fileData = downloadResult.success
+      this.jobEmitter.emit(jobId, { status: 'progress', value: 70 })
 
-      // === IMPORTAÇÃO / EXTRAÇÃO (30%) ===
-      body.onProgress?.(70) // início da segunda fase
-      const result = await this.importAddonService.execute(fileData)
-      body.onProgress?.(100) // finalizado
+      const result = await this.importAddonService.execute(
+        downloadResult.success,
+        (event) => {
+          if (event.status !== 'progress') {
+            this.jobEmitter.emit(jobId, event)
+            return
+          }
+
+          const scaledValue = 70 + Math.floor(event.value * 0.3)
+          this.jobEmitter.emit(jobId, {
+            status: 'progress',
+            value: scaledValue,
+          })
+        },
+      )
 
       if (result.isFailure()) {
-        return {
-          isSuccess: false,
+        this.jobEmitter.emit(jobId, {
+          status: 'error',
           error: result.failure.messageKey,
-          statusCode: result.failure.statusCode,
-        }
+        })
+        return
       }
 
-      return { isSuccess: true, statusCode: 200 }
+      this.jobEmitter.emit(jobId, { status: 'progress', value: 100 })
+      this.jobEmitter.emit(jobId, { status: 'done' })
     } catch (err) {
-      console.error('Addon install failed:', err)
-      return { isSuccess: false, error: 'INSTALL_FAILED', statusCode: 500 }
+      this.jobEmitter.emit(jobId, {
+        status: 'error',
+        error: 'INSTALL_FAILED',
+      })
     }
   }
 }

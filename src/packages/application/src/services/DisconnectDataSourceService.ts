@@ -1,9 +1,4 @@
-import {
-  AppError,
-  Either,
-  InternalServerError,
-  NotFoundError,
-} from '@metric-org/cross-cutting/helpers'
+import { AppError, Either } from '@metric-org/cross-cutting/helpers'
 
 import {
   DisconnectDataSourceInput,
@@ -28,7 +23,7 @@ export class DisconnectDataSourceService implements IDisconnectDataSourceUseCase
       )
 
       if (!workspace) {
-        return Either.failure(NotFoundError.danger('WORKSPACE_NAO_ENCONTRADO'))
+        return Either.failure(AppError.NotFound('WORKSPACE_NAO_ENCONTRADO'))
       }
 
       const storageKey = `workspace-session-${input.workspaceId}-${input.connectionInstanceId}`
@@ -50,7 +45,7 @@ export class DisconnectDataSourceService implements IDisconnectDataSourceUseCase
 
       return Either.success(undefined)
     } catch (error: unknown) {
-      return Either.failure(InternalServerError.danger('ERRO_AO_DESCONECTAR'))
+      return Either.failure(AppError.NotFound('ERRO_AO_DESCONECTAR'))
     }
   }
 }

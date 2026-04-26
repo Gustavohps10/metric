@@ -1,26 +1,26 @@
-import { InternalServerError } from '@metric-org/cross-cutting/helpers'
+import { AppError } from '@metric-org/cross-cutting/helpers'
 import type { Mocked } from 'vitest'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
 import type { IWorkspacesQuery } from '@/contracts/data/queries'
 import type { WorkspaceDTO } from '@/dtos'
-import type { PagedResultDTO } from '@/dtos/pagination' // Ajuste o path se necessário
+import type { PagedResultDTO } from '@/dtos/pagination'
 
 import { ListWorkspacesService } from './ListWorkspacesService'
 
 describe('ListWorkspacesService', () => {
   let sut: ListWorkspacesService
-
   let workspacesQueryMock: Mocked<IWorkspacesQuery>
 
   const fakeDate = new Date('2026-04-18T00:00:00.000Z')
 
-  // Estrutura do PagedResultDTO baseada na sua definição
   const fakeWorkspacesPage: PagedResultDTO<WorkspaceDTO> = {
     items: [
       {
         id: 'workspace-1',
         name: 'Metric Development',
+        status: 'configured',
+        description: 'Dev env',
         dataSourceConnections: [],
         createdAt: fakeDate,
         updatedAt: fakeDate,
@@ -28,6 +28,8 @@ describe('ListWorkspacesService', () => {
       {
         id: 'workspace-2',
         name: 'Metric Production',
+        status: 'configured',
+        description: 'Prod env',
         dataSourceConnections: [],
         createdAt: fakeDate,
         updatedAt: fakeDate,
@@ -43,7 +45,7 @@ describe('ListWorkspacesService', () => {
 
     workspacesQueryMock = {
       findAll: vi.fn(),
-    } as Partial<IWorkspacesQuery> as Mocked<IWorkspacesQuery>
+    } as unknown as Mocked<IWorkspacesQuery>
 
     sut = new ListWorkspacesService(workspacesQueryMock)
   })
@@ -58,11 +60,10 @@ describe('ListWorkspacesService', () => {
     // Assert
     expect(result.isSuccess()).toBe(true)
     expect(result.success).toEqual(fakeWorkspacesPage)
-
     expect(workspacesQueryMock.findAll).toHaveBeenCalledTimes(1)
   })
 
-  it('should return InternalServerError when the query throws an exception', async () => {
+  it('should return Internal error when the query throws an exception', async () => {
     // Arrange
     const error = new Error('Database connection timeout')
     workspacesQueryMock.findAll.mockRejectedValue(error)
@@ -72,11 +73,8 @@ describe('ListWorkspacesService', () => {
 
     // Assert
     expect(result.isFailure()).toBe(true)
-    expect(result.failure).toBeInstanceOf(InternalServerError)
-    expect((result.failure as InternalServerError).messageKey).toBe(
-      'ERRO_INESPERADO',
-    )
-
+    expect(result.failure).toBeInstanceOf(AppError)
+    expect(result.failure.messageKey).toBe('ERRO_INESPERADO')
     expect(workspacesQueryMock.findAll).toHaveBeenCalledTimes(1)
   })
 })

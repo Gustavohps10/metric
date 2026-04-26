@@ -1,115 +1,175 @@
+import {
+  AppError,
+  Either,
+  FieldErrors,
+} from '@metric-org/cross-cutting/helpers'
+import z from 'zod'
+
 import { Entity } from '@/entities/Entity'
 
+// ===== Schema =====
+
+const MemberSchema = z.object({
+  id: z.number().positive('id deve ser um número positivo'),
+  login: z.string().min(1, 'login é obrigatório'),
+  firstname: z.string().min(1, 'firstname é obrigatório'),
+  lastname: z.string().min(1, 'lastname é obrigatório'),
+  admin: z.boolean(),
+  customFields: z.array(
+    z.object({
+      id: z.number(),
+      name: z.string(),
+      value: z.string(),
+    }),
+  ),
+})
+
+export type MemberProps = z.infer<typeof MemberSchema>
+
+// ===== Entity =====
+
 export class Member extends Entity {
-  #id: number
-  #login: string
-  #firstname: string
-  #lastname: string
-  #admin: boolean
-  #createdAt: Date
-  #lastLoginOn: Date
-  #redmineApiKey: string
-  #customFields: { id: number; name: string; value: string }[]
+  private _id: number
+  private _login: string
+  private _firstname: string
+  private _lastname: string
+  private _admin: boolean
+  private _createdAt: Date
+  private _lastLoginOn: Date
+  private _customFields: { id: number; name: string; value: string }[]
 
-  private constructor(
-    id: number,
-    login: string,
-    firstname: string,
-    lastname: string,
-    admin: boolean,
-    createdAt: Date,
-    lastLoginOn: Date,
-    redmineApiKey: string,
-    customFields: { id: number; name: string; value: string }[],
-  ) {
+  private constructor(props: MemberProps, createdAt: Date, lastLoginOn: Date) {
     super()
-    this.#id = id
-    this.#login = login
-    this.#firstname = firstname
-    this.#lastname = lastname
-    this.#admin = admin
-    this.#createdAt = createdAt
-    this.#lastLoginOn = lastLoginOn
-    this.#redmineApiKey = redmineApiKey
-    this.#customFields = customFields
+    this._id = props.id
+    this._login = props.login
+    this._firstname = props.firstname
+    this._lastname = props.lastname
+    this._admin = props.admin
+    this._createdAt = createdAt
+    this._lastLoginOn = lastLoginOn
+    this._customFields = props.customFields
   }
 
-  static create(props: {
-    id: number
-    login: string
-    firstname: string
-    lastname: string
-    admin: boolean
-    redmineApiKey: string
-    customFields: { id: number; name: string; value: string }[]
-  }): Member {
+  // ===== Factory =====
+
+  static create(props: MemberProps): Either<AppError, Member> {
+    const parsed = MemberSchema.safeParse(props)
+
+    if (!parsed.success) {
+      return Either.failure(
+        AppError.ValidationError(
+          'CAMPOS_INVALIDOS',
+          mapZodErrors(parsed.error),
+        ),
+      )
+    }
+
     const now = new Date()
-    return new Member(
-      props.id,
-      props.login,
-      props.firstname,
-      props.lastname,
-      props.admin,
-      now,
-      now,
-      props.redmineApiKey,
-      props.customFields,
-    )
+    const instance = new Member(parsed.data, now, now)
+
+    return Either.success(instance)
   }
+
+  // ===== Getters =====
 
   get id(): number {
-    return this.#id
+    return this._id
   }
-
   get login(): string {
-    return this.#login
+    return this._login
   }
-
   get firstname(): string {
-    return this.#firstname
+    return this._firstname
   }
-
   get lastname(): string {
-    return this.#lastname
+    return this._lastname
   }
-
   get admin(): boolean {
-    return this.#admin
+    return this._admin
   }
-
   get createdAt(): Date {
-    return this.#createdAt
+    return this._createdAt
   }
-
   get lastLoginOn(): Date {
-    return this.#lastLoginOn
+    return this._lastLoginOn
+  }
+  get customFields() {
+    return this._customFields
   }
 
-  get redmineApiKey(): string {
-    return this.#redmineApiKey
-  }
+  // ===== Mutations =====
 
-  get customFields(): { id: number; name: string; value: string }[] {
-    return this.#customFields
-  }
+  updateLogin(login: string): Either<AppError, Member> {
+    const parsed = MemberSchema.shape.login.safeParse(login)
 
-  updateLogin(login: string) {
-    this.#login = login
+    if (!parsed.success) {
+      return Either.failure(
+        AppError.ValidationError('LOGIN_INVALIDO', {
+          login: parsed.error.errors.map((e) => e.message),
+        }),
+      )
+    }
+
+    this._login = parsed.data
     this.touch()
+    return Either.success(this)
   }
 
-  updateName(firstname: string, lastname: string) {
-    this.#firstname = firstname
-    this.#lastname = lastname
+  updateName(firstname: string, lastname: string): Either<AppError, Member> {
+    const parsedFirst = MemberSchema.shape.firstname.safeParse(firstname)
+    const parsedLast = MemberSchema.shape.lastname.safeParse(lastname)
+
+    if (!parsedFirst.success || !parsedLast.success) {
+      return Either.failure(
+        AppError.ValidationError('NOME_INVALIDO', {
+          firstname: parsedFirst.success
+            ? []
+            : parsedFirst.error.errors.map((e) => e.message),
+          lastname: parsedLast.success
+            ? []
+            : parsedLast.error.errors.map((e) => e.message),
+        }),
+      )
+    }
+
+    this._firstname = parsedFirst.data
+    this._lastname = parsedLast.data
     this.touch()
+    return Either.success(this)
   }
 
-  updateCustomFields(fields: { id: number; name: string; value: string }[]) {
-    this.#customFields = fields
+  updateCustomFields(
+    fields: { id: number; name: string; value: string }[],
+  ): Either<AppError, Member> {
+    const parsed = MemberSchema.shape.customFields.safeParse(fields)
+
+    if (!parsed.success) {
+      return Either.failure(
+        AppError.ValidationError(
+          'CAMPOS_CUSTOMIZADOS_INVALIDOS',
+          mapZodErrors(parsed.error),
+        ),
+      )
+    }
+
+    this._customFields = parsed.data
     this.touch()
+    return Either.success(this)
   }
 
   private touch() {
-    this.#lastLoginOn = new Date()
+    this._lastLoginOn = new Date()
   }
+}
+
+// ===== Helpers =====
+
+function mapZodErrors(error: z.ZodError): FieldErrors {
+  const result: FieldErrors = {}
+  for (const issue of error.issues) {
+    const key = issue.path.join('.') || 'root'
+    if (!result[key]) result[key] = []
+    result[key].push(issue.message)
+  }
+  return result
 }

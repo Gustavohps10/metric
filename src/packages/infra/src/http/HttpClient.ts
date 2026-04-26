@@ -1,8 +1,4 @@
-import {
-  AppError,
-  Either,
-  InternalServerError,
-} from '@metric-org/cross-cutting/helpers'
+import { AppError, Either } from '@metric-org/cross-cutting/helpers'
 import axios, { AxiosError, AxiosInstance, AxiosRequestConfig } from 'axios'
 
 import { IHttpClient } from '@/contracts/IHttpClient'
@@ -119,11 +115,11 @@ export class HttpClient implements IHttpClient {
 
   private handleError(error: unknown): Either<AppError, never> {
     if (error instanceof AxiosError) {
-      const appError = InternalServerError.danger(error.message)
+      const appError = AppError.NotFound(error.message)
       return Either.failure(appError)
     }
 
-    const appError = InternalServerError.danger('An unknown error occurred')
+    const appError = AppError.NotFound('An unknown error occurred')
     return Either.failure(appError)
   }
 }

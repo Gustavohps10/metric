@@ -1,8 +1,4 @@
-import {
-  AppError,
-  Either,
-  InternalServerError,
-} from '@metric-org/cross-cutting/helpers'
+import { AppError, Either } from '@metric-org/cross-cutting/helpers'
 
 import { IDataSourceResolver } from '@/contracts/resolvers'
 import {
@@ -34,7 +30,7 @@ export class ListTimeEntriesService implements IListTimeEntriesUseCase {
 
       return Either.success(timeEntries)
     } catch (error) {
-      return Either.failure(InternalServerError.danger('ERRO_INESPERADO'))
+      return Either.failure(AppError.NotFound('ERRO_INESPERADO'))
     }
   }
 }

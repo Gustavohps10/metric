@@ -1,9 +1,4 @@
-import {
-  AppError,
-  Either,
-  InternalServerError,
-  UnauthorizedError,
-} from '@metric-org/cross-cutting/helpers'
+import { AppError, Either } from '@metric-org/cross-cutting/helpers'
 
 import { IDataSourceResolver } from '@/contracts/resolvers'
 import {
@@ -31,9 +26,7 @@ export class TimeEntriesPullService implements ITimeEntriesPullUseCase {
         (input.memberId && String(input.memberId).trim()) || sessionUser?.id
 
       if (!memberId) {
-        return Either.failure(
-          UnauthorizedError.danger('Usuário não autenticado.'),
-        )
+        return Either.failure(AppError.Unauthorized('Usuário não autenticado.'))
       }
 
       const adapter = await this.dataSourceResolver.getDataSource(
@@ -50,7 +43,7 @@ export class TimeEntriesPullService implements ITimeEntriesPullUseCase {
 
       return Either.success(timeEntries)
     } catch (error) {
-      return Either.failure(InternalServerError.danger('ERRO_INESPERADO'))
+      return Either.failure(AppError.NotFound('ERRO_INESPERADO'))
     }
   }
 }

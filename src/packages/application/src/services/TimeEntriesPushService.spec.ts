@@ -1,9 +1,4 @@
-import {
-  Either,
-  InternalServerError,
-  UnauthorizedError,
-  ValidationError,
-} from '@metric-org/cross-cutting/helpers'
+import { AppError, Either } from '@metric-org/cross-cutting/helpers'
 import { TimeEntry } from '@metric-org/domain'
 import type { Mocked } from 'vitest'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
@@ -43,18 +38,21 @@ describe('TimeEntriesPushService', () => {
 
     sessionManagerMock = {
       getCurrentUser: vi.fn(),
-    } as Partial<SessionManager> as Mocked<SessionManager>
+    } as unknown as Mocked<SessionManager>
 
     workspacesRepositoryMock = {
       findById: vi.fn(),
-    } as Partial<IWorkspacesRepository> as Mocked<IWorkspacesRepository>
+      create: vi.fn(),
+      update: vi.fn(),
+      delete: vi.fn(),
+    } as unknown as Mocked<IWorkspacesRepository>
 
     timeEntryRepositoryMock = {
       findById: vi.fn(),
       create: vi.fn(),
       update: vi.fn(),
       delete: vi.fn(),
-    } as Partial<ITimeEntryRepository> as Mocked<ITimeEntryRepository>
+    } as unknown as Mocked<ITimeEntryRepository>
 
     adapterMock = {
       timeEntryRepository: timeEntryRepositoryMock,
@@ -62,13 +60,13 @@ describe('TimeEntriesPushService', () => {
 
     dataSourceResolverMock = {
       getDataSource: vi.fn(),
-    } as Partial<IDataSourceResolver> as Mocked<IDataSourceResolver>
+    } as unknown as Mocked<IDataSourceResolver>
 
     fakeDomainTimeEntry = {
       id: 'existing-id',
       updatedAt: fakeCurrentTime,
-      updateHours: vi.fn().mockReturnValue(Either.success(undefined)),
-      updateComments: vi.fn(),
+      updateHours: vi.fn().mockReturnValue(Either.success()),
+      updateComments: vi.fn().mockReturnValue(Either.success()),
     } as unknown as Mocked<TimeEntry>
 
     sut = new TimeEntriesPushService(
@@ -86,267 +84,215 @@ describe('TimeEntriesPushService', () => {
     vi.useRealTimers()
   })
 
-  it('should return UnauthorizedError if session user is not found', async () => {
-    sessionManagerMock.getCurrentUser.mockReturnValue(undefined)
+  describe('Main Flow Authorization', () => {
+    it('should return Unauthorized error if session user is not found', async () => {
+      sessionManagerMock.getCurrentUser.mockReturnValue(undefined)
 
-    const result = await sut.execute({
-      workspaceId: 'w-1',
-      pluginId: 'p-1',
-      connectionInstanceId: 'c-1',
-      entries: [],
+      const result = await sut.execute({
+        workspaceId: 'w-1',
+        pluginId: 'p-1',
+        connectionInstanceId: 'c-1',
+        entries: [],
+      })
+
+      expect(result.isFailure()).toBe(true)
+      expect(result.failure.statusCode).toBe(401)
+      expect(result.failure.messageKey).toBe('USUARIO_NAO_ENCONTRADO')
     })
 
-    expect(result.isFailure()).toBe(true)
-    expect(result.failure).toBeInstanceOf(UnauthorizedError)
-    expect((result.failure as UnauthorizedError).messageKey).toBe(
-      'USUARIO_NAO_ENCONTRADO',
-    )
+    it('should return Unauthorized error if workspace is not found', async () => {
+      workspacesRepositoryMock.findById.mockResolvedValue(null as any)
+
+      const result = await sut.execute({
+        workspaceId: 'w-1',
+        pluginId: 'p-1',
+        connectionInstanceId: 'c-1',
+        entries: [],
+      })
+
+      expect(result.isFailure()).toBe(true)
+      expect(result.failure.statusCode).toBe(401)
+      expect(result.failure.messageKey).toBe('WORKSPACE_NAO_ENCONTRADO')
+    })
+
+    it('should return Internal error if an unexpected error occurs in the setup', async () => {
+      dataSourceResolverMock.getDataSource.mockRejectedValue(new Error('Crash'))
+
+      const result = await sut.execute({
+        workspaceId: 'w-1',
+        pluginId: 'p-1',
+        connectionInstanceId: 'c-1',
+        entries: [],
+      })
+
+      expect(result.isFailure()).toBe(true)
+      expect(result.failure.statusCode).toBe(500)
+      expect(result.failure.messageKey).toBe('ERRO_INESPERADO')
+    })
   })
 
-  it('should return UnauthorizedError if workspace is not found', async () => {
-    workspacesRepositoryMock.findById.mockResolvedValue(undefined)
+  describe('Document Validation', () => {
+    it('should assign validation error if document id is missing', async () => {
+      const entry = { _deleted: false } as SyncTimeEntryDTO
 
-    const result = await sut.execute({
-      workspaceId: 'w-1',
-      pluginId: 'p-1',
-      connectionInstanceId: 'c-1',
-      entries: [],
+      const result = await sut.execute({
+        workspaceId: 'w-1',
+        pluginId: 'p-1',
+        connectionInstanceId: 'c-1',
+        entries: [entry],
+      })
+
+      expect(result.success?.[0].validationError?.messageKey).toBe(
+        'DOCUMENT_ID_MISSING',
+      )
     })
 
-    expect(result.isFailure()).toBe(true)
-    expect(result.failure).toBeInstanceOf(UnauthorizedError)
-    expect((result.failure as UnauthorizedError).messageKey).toBe(
-      'WORKSPACE_NAO_ENCONTRADO',
-    )
+    it('should assign validation error if updatedAt is missing on non-deleted entries', async () => {
+      const entry = { id: '123', _deleted: false } as SyncTimeEntryDTO
+
+      const result = await sut.execute({
+        workspaceId: 'w-1',
+        pluginId: 'p-1',
+        connectionInstanceId: 'c-1',
+        entries: [entry],
+      })
+
+      expect(result.success?.[0].validationError?.messageKey).toBe(
+        'DOCUMENT_UPDATED_AT_MISSING',
+      )
+    })
   })
 
-  it('should return InternalServerError if an unexpected error occurs in the main flow', async () => {
-    dataSourceResolverMock.getDataSource.mockRejectedValue(
-      new Error('Adapter crashed'),
-    )
+  describe('Processing Logic', () => {
+    it('should delete entry when _deleted is true', async () => {
+      const entry = { id: 'del-1', _deleted: true } as SyncTimeEntryDTO
 
-    const result = await sut.execute({
-      workspaceId: 'w-1',
-      pluginId: 'p-1',
-      connectionInstanceId: 'c-1',
-      entries: [],
+      const result = await sut.execute({
+        workspaceId: 'w-1',
+        pluginId: 'p-1',
+        connectionInstanceId: 'c-1',
+        entries: [entry],
+      })
+
+      expect(timeEntryRepositoryMock.delete).toHaveBeenCalledWith('del-1')
+      expect(result.success?.[0].syncedAt).toEqual(fakeCurrentTime)
     })
 
-    expect(result.isFailure()).toBe(true)
-    expect(result.failure).toBeInstanceOf(InternalServerError)
-    expect((result.failure as InternalServerError).messageKey).toBe(
-      'ERRO_INESPERADO',
-    )
-  })
+    it('should update existing entry and handle conflict check', async () => {
+      const entry = {
+        id: 'existing-1',
+        _deleted: false,
+        updatedAt: fakeCurrentTime,
+        assumedMasterState: { updatedAt: fakeCurrentTime }, // No conflict
+        comments: 'New comment',
+      } as SyncTimeEntryDTO
 
-  it('should add validation error if document id is missing', async () => {
-    const invalidEntry = { _deleted: false } as SyncTimeEntryDTO
+      timeEntryRepositoryMock.findById.mockResolvedValue(fakeDomainTimeEntry)
 
-    const result = await sut.execute({
-      workspaceId: 'w-1',
-      pluginId: 'p-1',
-      connectionInstanceId: 'c-1',
-      entries: [invalidEntry],
+      const result = await sut.execute({
+        workspaceId: 'w-1',
+        pluginId: 'p-1',
+        connectionInstanceId: 'c-1',
+        entries: [entry],
+      })
+
+      expect(fakeDomainTimeEntry.updateHours).toHaveBeenCalled()
+      expect(timeEntryRepositoryMock.update).toHaveBeenCalledWith(
+        fakeDomainTimeEntry,
+      )
+      expect(result.success?.[0].syncedAt).toBeDefined()
     })
 
-    expect(result.isSuccess()).toBe(true)
-    const syncedEntries = result.success as SyncTimeEntryDTO[]
-    expect(syncedEntries[0].validationError).toBeInstanceOf(ValidationError)
-    expect(
-      (syncedEntries[0].validationError as ValidationError).messageKey,
-    ).toBe('DOCUMENT_ID_MISSING')
-  })
+    it('should detect conflict if assumedMasterState differs from server', async () => {
+      const entry = {
+        id: 'existing-1',
+        _deleted: false,
+        updatedAt: fakeCurrentTime,
+        assumedMasterState: { updatedAt: fakeOldTime }, // Conflito!
+      } as SyncTimeEntryDTO
 
-  it('should add validation error if not deleted and updatedAt is missing', async () => {
-    const invalidEntry = { id: '123', _deleted: false } as SyncTimeEntryDTO
+      timeEntryRepositoryMock.findById.mockResolvedValue(fakeDomainTimeEntry)
 
-    const result = await sut.execute({
-      workspaceId: 'w-1',
-      pluginId: 'p-1',
-      connectionInstanceId: 'c-1',
-      entries: [invalidEntry],
+      const result = await sut.execute({
+        workspaceId: 'w-1',
+        pluginId: 'p-1',
+        connectionInstanceId: 'c-1',
+        entries: [entry],
+      })
+
+      const processed = result.success?.[0]
+      expect(processed?.conflicted).toBe(true)
+      expect(processed?.conflictData?.server).toBe(fakeDomainTimeEntry)
+      expect(timeEntryRepositoryMock.update).not.toHaveBeenCalled()
     })
 
-    expect(result.isSuccess()).toBe(true)
-    const syncedEntries = result.success as SyncTimeEntryDTO[]
-    expect(syncedEntries[0].validationError).toBeInstanceOf(ValidationError)
-    expect(
-      (syncedEntries[0].validationError as ValidationError).messageKey,
-    ).toBe('DOCUMENT_UPDATED_AT_MISSING')
-  })
+    it('should forward domain validation errors during update', async () => {
+      const entry = {
+        id: '123',
+        _deleted: false,
+        updatedAt: fakeCurrentTime,
+      } as SyncTimeEntryDTO
+      const domainError = AppError.ValidationError('INVALID_RANGE')
 
-  it('should handle deleted document successfully', async () => {
-    const deletedEntry = { id: 'del-123', _deleted: true } as SyncTimeEntryDTO
+      fakeDomainTimeEntry.updateHours.mockReturnValue(
+        Either.failure(domainError),
+      )
+      timeEntryRepositoryMock.findById.mockResolvedValue(fakeDomainTimeEntry)
 
-    const result = await sut.execute({
-      workspaceId: 'w-1',
-      pluginId: 'p-1',
-      connectionInstanceId: 'c-1',
-      entries: [deletedEntry],
+      const result = await sut.execute({
+        workspaceId: 'w-1',
+        pluginId: 'p-1',
+        connectionInstanceId: 'c-1',
+        entries: [entry],
+      })
+
+      expect(result.success?.[0].validationError).toBe(domainError)
     })
 
-    expect(result.isSuccess()).toBe(true)
-    expect(timeEntryRepositoryMock.delete).toHaveBeenCalledWith('del-123')
-    expect(result.success?.[0].syncedAt).toEqual(fakeCurrentTime)
-  })
+    it('should create new entry successfully when not found in repository', async () => {
+      const entry = {
+        id: 'new-1',
+        _deleted: false,
+        updatedAt: fakeCurrentTime,
+        task: { id: 't1' },
+        activity: { id: 'a1' },
+        user: { id: 'u1' },
+      } as SyncTimeEntryDTO
 
-  it('should handle existing document successfully', async () => {
-    const existingEntry = {
-      id: 'existing-123',
-      _deleted: false,
-      updatedAt: fakeCurrentTime,
-      comments: 'Updated text',
-    } as SyncTimeEntryDTO
+      timeEntryRepositoryMock.findById.mockResolvedValue(null as any)
+      vi.spyOn(TimeEntry, 'create').mockReturnValue(
+        Either.success(fakeDomainTimeEntry),
+      )
 
-    timeEntryRepositoryMock.findById.mockResolvedValue(fakeDomainTimeEntry)
+      const result = await sut.execute({
+        workspaceId: 'w-1',
+        pluginId: 'p-1',
+        connectionInstanceId: 'c-1',
+        entries: [entry],
+      })
 
-    const result = await sut.execute({
-      workspaceId: 'w-1',
-      pluginId: 'p-1',
-      connectionInstanceId: 'c-1',
-      entries: [existingEntry],
+      expect(timeEntryRepositoryMock.create).toHaveBeenCalled()
+      expect(result.success?.[0].syncedAt).toEqual(fakeCurrentTime)
     })
 
-    expect(result.isSuccess()).toBe(true)
-    expect(fakeDomainTimeEntry.updateHours).toHaveBeenCalled()
-    expect(fakeDomainTimeEntry.updateComments).toHaveBeenCalledWith(
-      'Updated text',
-    )
-    expect(timeEntryRepositoryMock.update).toHaveBeenCalledWith(
-      fakeDomainTimeEntry,
-    )
-    expect(result.success?.[0].syncedAt).toEqual(fakeCurrentTime)
-  })
+    it('should assign processing error if any exception occurs during single entry processing', async () => {
+      const entry = {
+        id: '123',
+        _deleted: false,
+        updatedAt: fakeCurrentTime,
+      } as SyncTimeEntryDTO
+      timeEntryRepositoryMock.findById.mockRejectedValue(new Error('DB Down'))
 
-  it('should flag conflict if assumedMasterState updatedAt differs from existing entity', async () => {
-    const conflictingEntry = {
-      id: 'conflict-123',
-      _deleted: false,
-      updatedAt: fakeCurrentTime,
-      assumedMasterState: { updatedAt: fakeOldTime },
-    } as SyncTimeEntryDTO
+      const result = await sut.execute({
+        workspaceId: 'w-1',
+        pluginId: 'p-1',
+        connectionInstanceId: 'c-1',
+        entries: [entry],
+      })
 
-    timeEntryRepositoryMock.findById.mockResolvedValue(fakeDomainTimeEntry)
-
-    const result = await sut.execute({
-      workspaceId: 'w-1',
-      pluginId: 'p-1',
-      connectionInstanceId: 'c-1',
-      entries: [conflictingEntry],
+      expect(result.success?.[0].validationError?.messageKey).toBe(
+        'ERRO_PROCESSAMENTO_DOCUMENTO',
+      )
     })
-
-    expect(result.isSuccess()).toBe(true)
-    const syncedEntry = result.success?.[0] as SyncTimeEntryDTO
-    expect(syncedEntry.conflicted).toBe(true)
-    expect(syncedEntry.conflictData?.local).toEqual(conflictingEntry)
-    expect(syncedEntry.conflictData?.server).toEqual(fakeDomainTimeEntry)
-    expect(timeEntryRepositoryMock.update).not.toHaveBeenCalled()
-  })
-
-  it('should add validation error if existing domain entity rejects updateHours', async () => {
-    const existingEntry = {
-      id: 'existing-123',
-      _deleted: false,
-      updatedAt: fakeCurrentTime,
-    } as SyncTimeEntryDTO
-
-    const domainError = ValidationError.danger('HORAS_INVALIDAS')
-    fakeDomainTimeEntry.updateHours.mockReturnValue(Either.failure(domainError))
-    timeEntryRepositoryMock.findById.mockResolvedValue(fakeDomainTimeEntry)
-
-    const result = await sut.execute({
-      workspaceId: 'w-1',
-      pluginId: 'p-1',
-      connectionInstanceId: 'c-1',
-      entries: [existingEntry],
-    })
-
-    expect(result.isSuccess()).toBe(true)
-    expect(result.success?.[0].validationError).toBe(domainError)
-    expect(timeEntryRepositoryMock.update).not.toHaveBeenCalled()
-  })
-
-  it('should handle new document successfully', async () => {
-    const newEntry = {
-      id: 'new-123',
-      _deleted: false,
-      updatedAt: fakeCurrentTime,
-      task: { id: 't-1' },
-      activity: { id: 'a-1' },
-      user: { id: 'u-1', name: 'John' },
-      comments: 'New work',
-    } as SyncTimeEntryDTO
-
-    timeEntryRepositoryMock.findById.mockResolvedValue(undefined)
-    vi.spyOn(TimeEntry, 'create').mockReturnValue(
-      Either.success(fakeDomainTimeEntry),
-    )
-
-    const result = await sut.execute({
-      workspaceId: 'w-1',
-      pluginId: 'p-1',
-      connectionInstanceId: 'c-1',
-      entries: [newEntry],
-    })
-
-    expect(result.isSuccess()).toBe(true)
-    expect(TimeEntry.create).toHaveBeenCalled()
-    expect(timeEntryRepositoryMock.create).toHaveBeenCalledWith(
-      fakeDomainTimeEntry,
-    )
-    expect(result.success?.[0].syncedAt).toEqual(fakeCurrentTime)
-  })
-
-  it('should add validation error if new document creation is rejected by domain', async () => {
-    const newEntry = {
-      id: 'new-123',
-      _deleted: false,
-      updatedAt: fakeCurrentTime,
-      task: { id: 't-1' },
-      activity: { id: 'a-1' },
-      user: { id: 'u-1', name: 'John' },
-    } as SyncTimeEntryDTO
-
-    timeEntryRepositoryMock.findById.mockResolvedValue(undefined)
-    vi.spyOn(TimeEntry, 'create').mockReturnValue(
-      Either.failure(ValidationError.danger('DADOS_INVALIDOS')),
-    )
-
-    const result = await sut.execute({
-      workspaceId: 'w-1',
-      pluginId: 'p-1',
-      connectionInstanceId: 'c-1',
-      entries: [newEntry],
-    })
-
-    expect(result.isSuccess()).toBe(true)
-    expect(result.success?.[0].validationError?.messageKey).toBe(
-      'TIME_ENTRY_INVALID',
-    )
-    expect(timeEntryRepositoryMock.create).not.toHaveBeenCalled()
-  })
-
-  it('should catch unhandled exceptions inside processEntry and assign ERRO_PROCESSAMENTO_DOCUMENTO', async () => {
-    const exceptionEntry = {
-      id: 'exc-123',
-      _deleted: false,
-      updatedAt: fakeCurrentTime,
-    } as SyncTimeEntryDTO
-
-    timeEntryRepositoryMock.findById.mockRejectedValue(new Error('DB Timeout'))
-
-    const result = await sut.execute({
-      workspaceId: 'w-1',
-      pluginId: 'p-1',
-      connectionInstanceId: 'c-1',
-      entries: [exceptionEntry],
-    })
-
-    expect(result.isSuccess()).toBe(true)
-    const processedEntry = result.success?.[0] as SyncTimeEntryDTO
-    expect(processedEntry.validationError).toBeInstanceOf(ValidationError)
-    expect((processedEntry.validationError as ValidationError).messageKey).toBe(
-      'ERRO_PROCESSAMENTO_DOCUMENTO',
-    )
   })
 })

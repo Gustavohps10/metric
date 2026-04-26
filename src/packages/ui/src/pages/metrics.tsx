@@ -97,7 +97,7 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table'
-import { useWorkspace } from '@/hooks'
+import { useWorkspace } from '@/contexts/WorkspaceContext'
 import { SyncTimeEntryRxDBDTO } from '@/local-db/schemas/time-entries-sync-schema'
 import { AppCollections } from '@/stores/syncStore'
 import { useSyncStore } from '@/stores/syncStore'

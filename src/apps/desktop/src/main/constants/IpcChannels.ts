@@ -31,6 +31,9 @@ export const IpcChannels = {
   WORKSPACES_UNLINK_DATASOURCE: 'workspaces:unlink-datasource',
   WORKSPACES_CONNECT_DATASOURCE: 'workspaces:connect-datasource',
   WORKSPACES_DISCONNECT_DATASOURCE: 'workspaces:disconnect-datasource',
+  WORKSPACES_MARK_AS_CONFIGURED: 'workspaces:mark-as-configured',
+  WORKSPACES_UPDATE_IDENTITY: 'workspaces:update-identity',
+  WORKSPACES_DELETE: 'workspaces:delete',
 
   DATA_SOURCE_GET_FIELDS: 'datasource:get-fields',
 

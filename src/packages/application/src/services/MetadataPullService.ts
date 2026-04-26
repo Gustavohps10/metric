@@ -1,8 +1,4 @@
-import {
-  AppError,
-  Either,
-  InternalServerError,
-} from '@metric-org/cross-cutting/helpers'
+import { AppError, Either } from '@metric-org/cross-cutting/helpers'
 
 import { IDataSourceResolver } from '@/contracts/resolvers'
 import {
@@ -32,9 +28,7 @@ export class MetadataPullService implements IMetadataPullUseCase {
 
       return Either.success(metadata)
     } catch (error) {
-      return Either.failure(
-        InternalServerError.danger('Failed to pull metadata'),
-      )
+      return Either.failure(AppError.NotFound('Failed to pull metadata'))
     }
   }
 }

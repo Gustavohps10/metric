@@ -1,8 +1,4 @@
-import {
-  AppError,
-  Either,
-  NotFoundError,
-} from '@metric-org/cross-cutting/helpers'
+import { AppError, Either } from '@metric-org/cross-cutting/helpers'
 
 import { IWorkspacesRepository } from '@/contracts'
 import {
@@ -22,11 +18,14 @@ export class GetWorkspaceService implements IGetWorkspaceUseCase {
     )
 
     if (!workspace) {
-      return Either.failure(NotFoundError.danger('WORKSPACE_NAO_ENCONTRADO'))
+      return Either.failure(AppError.NotFound('WORKSPACE_NAO_ENCONTRADO'))
     }
 
     const workspaceDTO: WorkspaceDTO = {
       id: workspace.id,
+      avatarUrl: workspace.avatarUrl,
+      description: workspace.description,
+      status: workspace.status,
       name: workspace.name,
       dataSourceConnections: workspace.dataSourceConnections.map(
         toWorkspaceConnectionDTO,

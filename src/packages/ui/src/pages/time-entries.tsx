@@ -99,7 +99,6 @@ import {
 } from '@/components/ui/select'
 import { Skeleton } from '@/components/ui/skeleton'
 import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group'
-import { useWorkspace } from '@/hooks'
 import { useDataSourceConnections } from '@/hooks'
 import { useActiveTimer } from '@/hooks/use-active-timer'
 import { cn } from '@/lib'
@@ -254,7 +253,7 @@ MemoizedCommentInput.displayName = 'MemoizedCommentInput'
 
 export function TimeEntries() {
   const db = useSyncStore((state) => state?.db)
-  const { workspace } = useWorkspace()
+
   const { membersByConnection } = useDataSourceConnections()
 
   const memberIdsByConnection = useMemo(() => {

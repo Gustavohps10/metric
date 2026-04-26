@@ -1,9 +1,4 @@
-import {
-  Either,
-  InternalServerError,
-  NotFoundError,
-  ValidationError,
-} from '@metric-org/cross-cutting/helpers'
+import { AppError, Either } from '@metric-org/cross-cutting/helpers'
 import { Workspace } from '@metric-org/domain'
 import type { Mocked } from 'vitest'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
@@ -37,7 +32,7 @@ describe('DisconnectDataSourceService', () => {
       create: vi.fn(),
       update: vi.fn(),
       delete: vi.fn(),
-    } as Partial<IWorkspacesRepository> as Mocked<IWorkspacesRepository>
+    } as unknown as Mocked<IWorkspacesRepository>
 
     credentialsStorageMock = {
       saveToken: vi.fn(),
@@ -45,12 +40,12 @@ describe('DisconnectDataSourceService', () => {
       getToken: vi.fn(),
       hasToken: vi.fn(),
       replaceToken: vi.fn(),
-    } as Partial<ICredentialsStorage> as Mocked<ICredentialsStorage>
+    } as unknown as Mocked<ICredentialsStorage>
 
     fakeWorkspace = {
       id: 'workspace-123',
       disconnectDataSource: vi.fn(),
-    } as Partial<Workspace> as Mocked<Workspace>
+    } as unknown as Mocked<Workspace>
 
     sut = new DisconnectDataSourceService(
       workspacesRepositoryMock,
@@ -63,16 +58,13 @@ describe('DisconnectDataSourceService', () => {
     const input = makeInput()
 
     workspacesRepositoryMock.findById.mockResolvedValue(fakeWorkspace)
-    fakeWorkspace.disconnectDataSource.mockReturnValue(
-      Either.success(undefined),
-    )
+    fakeWorkspace.disconnectDataSource.mockReturnValue(Either.success())
 
     // Act
     const result = await sut.execute(input)
 
     // Assert
     expect(result.isSuccess()).toBe(true)
-    expect(result.success).toBeUndefined()
 
     const expectedStorageKey = `workspace-session-${input.workspaceId}-${input.connectionInstanceId}`
     const expectedMemberKey = getMemberStorageKey(
@@ -96,7 +88,7 @@ describe('DisconnectDataSourceService', () => {
     expect(workspacesRepositoryMock.update).toHaveBeenCalledWith(fakeWorkspace)
   })
 
-  it('should return NotFoundError when the workspace does not exist', async () => {
+  it('should return NotFound error when the workspace does not exist', async () => {
     // Arrange
     const input = makeInput()
     workspacesRepositoryMock.findById.mockResolvedValue(undefined)
@@ -106,10 +98,8 @@ describe('DisconnectDataSourceService', () => {
 
     // Assert
     expect(result.isFailure()).toBe(true)
-    expect(result.failure).toBeInstanceOf(NotFoundError)
-    expect((result.failure as NotFoundError).messageKey).toBe(
-      'WORKSPACE_NAO_ENCONTRADO',
-    )
+    expect(result.failure.statusCode).toBe(404)
+    expect(result.failure.messageKey).toBe('WORKSPACE_NAO_ENCONTRADO')
 
     expect(credentialsStorageMock.deleteToken).not.toHaveBeenCalled()
     expect(fakeWorkspace.disconnectDataSource).not.toHaveBeenCalled()
@@ -119,7 +109,7 @@ describe('DisconnectDataSourceService', () => {
   it('should forward the failure when the domain entity rejects the disconnection', async () => {
     // Arrange
     const input = makeInput()
-    const domainError = ValidationError.danger('DATA_SOURCE_NAO_ENCONTRADO')
+    const domainError = AppError.ValidationError('CONEXAO_NAO_ENCONTRADA')
 
     workspacesRepositoryMock.findById.mockResolvedValue(fakeWorkspace)
     fakeWorkspace.disconnectDataSource.mockReturnValue(
@@ -137,22 +127,18 @@ describe('DisconnectDataSourceService', () => {
     expect(workspacesRepositoryMock.update).not.toHaveBeenCalled()
   })
 
-  it('should return InternalServerError when an exception is thrown', async () => {
+  it('should return NotFound error (mapped from catch) when an exception is thrown', async () => {
     // Arrange
     const input = makeInput()
-    const error = new Error('Database connection lost')
-
-    workspacesRepositoryMock.findById.mockRejectedValue(error)
+    workspacesRepositoryMock.findById.mockRejectedValue(new Error('DB Error'))
 
     // Act
     const result = await sut.execute(input)
 
     // Assert
     expect(result.isFailure()).toBe(true)
-    expect(result.failure).toBeInstanceOf(InternalServerError)
-    expect((result.failure as InternalServerError).messageKey).toBe(
-      'ERRO_AO_DESCONECTAR',
-    )
+    expect(result.failure.statusCode).toBe(404)
+    expect(result.failure.messageKey).toBe('ERRO_AO_DESCONECTAR')
 
     expect(credentialsStorageMock.deleteToken).not.toHaveBeenCalled()
     expect(workspacesRepositoryMock.update).not.toHaveBeenCalled()

@@ -1,8 +1,4 @@
-import {
-  AppError,
-  Either,
-  InternalServerError,
-} from '@metric-org/cross-cutting/helpers'
+import { AppError, Either } from '@metric-org/cross-cutting/helpers'
 
 import { IDataSourceResolver } from '@/contracts/resolvers'
 import { ITaskPullUseCase, PullTasksInput } from '@/contracts/use-cases'
@@ -39,7 +35,7 @@ export class TaskPullService implements ITaskPullUseCase {
 
       return Either.success(tasks)
     } catch (ex) {
-      return Either.failure(InternalServerError.danger('ERRO_INESPERADO'))
+      return Either.failure(AppError.NotFound('ERRO_INESPERADO'))
     }
   }
 }

@@ -1,11 +1,13 @@
 import {
   ConnectDataSourceService,
   CreateWorkspaceService,
+  DeleteWorkspaceService,
   DisconnectDataSourceService,
   GetCurrentUserService,
   GetWorkspaceService,
   ICredentialsStorage,
   IDataSourceResolver,
+  IFileStorage,
   ImportAddonService,
   IServiceProvider,
   IWorkspacesQuery,
@@ -14,17 +16,20 @@ import {
   ListTaskService,
   ListTimeEntriesService,
   ListWorkspacesService,
+  MarkWorkspaceAsConfiguredService,
   MetadataPullService,
   SessionManager,
   TaskPullService,
   TimeEntriesPullService,
   TimeEntriesPushService,
   UnlinkDataSourceService,
+  UpdateWorkspaceIdentityService,
 } from '@metric-org/application'
+import { IEventEmitter, IJobEvents } from '@metric-org/cross-cutting/transport'
 import { JwtService } from '@metric-org/infra/auth'
 import { AddonsFacade } from '@metric-org/infra/facades'
 import { HttpClient } from '@metric-org/infra/http'
-import { FileManager } from '@metric-org/infra/storage'
+import { FileManager } from '@metric-org/infra/tools'
 import {
   asClass,
   asValue,
@@ -43,10 +48,12 @@ type Class<T = unknown> = new (...args: any[]) => T
  * Ela define as implementações concretas que são fixas para a plataforma em execução.
  */
 export interface PlatformDependencies {
+  jobEmitter: IEventEmitter<IJobEvents>
   credentialsStorage: ICredentialsStorage
   workspacesRepository: IWorkspacesRepository
   workspacesQuery: IWorkspacesQuery
   dataSourceResolver: IDataSourceResolver
+  fileStorage: IFileStorage
 }
 
 /**
@@ -68,10 +75,12 @@ export class ContainerBuilder {
    */
   public addPlatformDependencies(deps: PlatformDependencies): this {
     this.container.register({
+      jobEmitter: asValue(deps.jobEmitter),
       credentialsStorage: asValue(deps.credentialsStorage),
       workspacesRepository: asValue(deps.workspacesRepository),
       workspacesQuery: asValue(deps.workspacesQuery),
       dataSourceResolver: asValue(deps.dataSourceResolver),
+      fileStorage: asValue(deps.fileStorage),
     })
     return this
   }
@@ -91,10 +100,17 @@ export class ContainerBuilder {
       linkDataSourceService: asClass(LinkDataSourceService).scoped(),
       unlinkDataSourceService: asClass(UnlinkDataSourceService).scoped(),
       connectDataSourceService: asClass(ConnectDataSourceService).scoped(),
+      markWorkspaceAsConfiguredService: asClass(
+        MarkWorkspaceAsConfiguredService,
+      ).scoped(),
       disconnectDataSourceService: asClass(
         DisconnectDataSourceService,
       ).scoped(),
       getWorkspaceService: asClass(GetWorkspaceService).scoped(),
+      updateWorkspaceIdentityService: asClass(
+        UpdateWorkspaceIdentityService,
+      ).scoped(),
+      deleteWorkspaceService: asClass(DeleteWorkspaceService).scoped(),
       importAddonService: asClass(ImportAddonService).scoped(),
       timeEntriesPullService: asClass(TimeEntriesPullService).scoped(),
       timeEntriesPushService: asClass(TimeEntriesPushService).scoped(),

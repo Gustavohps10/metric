@@ -1,9 +1,4 @@
-import {
-  Either,
-  InternalServerError,
-  NotFoundError,
-  ValidationError,
-} from '@metric-org/cross-cutting/helpers'
+import { AppError, Either } from '@metric-org/cross-cutting/helpers'
 import { Workspace } from '@metric-org/domain'
 import type { Mocked } from 'vitest'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
@@ -89,10 +84,8 @@ describe('LinkDataSourceService', () => {
 
     // Assert
     expect(result.isFailure()).toBe(true)
-    expect(result.failure).toBeInstanceOf(NotFoundError)
-    expect((result.failure as NotFoundError).messageKey).toBe(
-      'WORKSPACE_NAO_ENCONTRADO',
-    )
+    expect(result.failure).toBeInstanceOf(AppError)
+    expect(result.failure.messageKey).toBe('WORKSPACE_NAO_ENCONTRADO')
 
     expect(fakeWorkspace.linkDataSource).not.toHaveBeenCalled()
     expect(workspacesRepositoryMock.update).not.toHaveBeenCalled()
@@ -101,7 +94,7 @@ describe('LinkDataSourceService', () => {
   it('should forward failure when the domain entity rejects the link operation', async () => {
     // Arrange
     const input = makeInput()
-    const domainError = ValidationError.danger('CONEXAO_JA_EXISTE')
+    const domainError = AppError.ValidationError('CONEXAO_JA_EXISTE')
 
     workspacesRepositoryMock.findById.mockResolvedValue(fakeWorkspace)
     fakeWorkspace.linkDataSource.mockReturnValue(Either.failure(domainError))
@@ -128,9 +121,7 @@ describe('LinkDataSourceService', () => {
 
     // Assert
     expect(result.isFailure()).toBe(true)
-    expect(result.failure).toBeInstanceOf(InternalServerError)
-    expect((result.failure as InternalServerError).messageKey).toBe(
-      'ERRO_INESPERADO',
-    )
+    expect(result.failure).toBeInstanceOf(AppError)
+    expect(result.failure.messageKey).toBe('ERRO_INESPERADO')
   })
 })

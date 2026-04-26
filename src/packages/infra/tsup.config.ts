@@ -5,7 +5,7 @@ export default defineConfig({
     'src/auth/index.ts',
     'src/contracts/index.ts',
     'src/http/index.ts',
-    'src/storage/index.ts',
+    'src/tools/index.ts',
     'src/sync/index.ts',
     'src/data/index.ts',
     'src/facades/index.ts',

@@ -1,8 +1,4 @@
-import {
-  AppError,
-  Either,
-  InternalServerError,
-} from '@metric-org/cross-cutting/helpers'
+import { AppError, Either } from '@metric-org/cross-cutting/helpers'
 
 import { IWorkspacesQuery } from '@/contracts/data/queries'
 import { IListWorkspacesUseCase } from '@/contracts/use-cases/IListWorkspacesUseCase'
@@ -18,7 +14,7 @@ export class ListWorkspacesService implements IListWorkspacesUseCase {
       const workspaces = await this.workspacesQuery.findAll()
       return Either.success(workspaces)
     } catch (error) {
-      return Either.failure(InternalServerError.danger('ERRO_INESPERADO'))
+      return Either.failure(AppError.NotFound('ERRO_INESPERADO'))
     }
   }
 }

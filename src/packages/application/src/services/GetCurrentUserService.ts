@@ -1,10 +1,4 @@
-import {
-  AppError,
-  Either,
-  InternalServerError,
-  NotFoundError,
-  UnauthorizedError,
-} from '@metric-org/cross-cutting/helpers'
+import { AppError, Either } from '@metric-org/cross-cutting/helpers'
 
 import {
   GetCurrentUserInput,
@@ -32,7 +26,7 @@ export class GetCurrentUserService implements IGetCurrentUserUseCase {
       )
 
       if (!sessionUser) {
-        return Either.failure(UnauthorizedError.danger('USUARIO_NAO_LOGADO'))
+        return Either.failure(AppError.Unauthorized('USUARIO_NAO_LOGADO'))
       }
 
       const workspace = await this.workspacesRepository.findById(
@@ -40,7 +34,7 @@ export class GetCurrentUserService implements IGetCurrentUserUseCase {
       )
 
       if (!workspace) {
-        return Either.failure(NotFoundError.danger('WORKSPACE_NAO_ENCONTRADO'))
+        return Either.failure(AppError.NotFound('WORKSPACE_NAO_ENCONTRADO'))
       }
 
       const connection = workspace.dataSourceConnections.find(
@@ -49,7 +43,7 @@ export class GetCurrentUserService implements IGetCurrentUserUseCase {
 
       if (!connection) {
         return Either.failure(
-          NotFoundError.danger('CONEXAO_NAO_ENCONTRADA_OU_INVALIDA'),
+          AppError.NotFound('CONEXAO_NAO_ENCONTRADA_OU_INVALIDA'),
         )
       }
 
@@ -62,12 +56,12 @@ export class GetCurrentUserService implements IGetCurrentUserUseCase {
       const user = await adapter.memberQuery.findById(sessionUser.id)
 
       if (!user) {
-        return Either.failure(NotFoundError.danger('USUARIO_NAO_ENCONTRADO'))
+        return Either.failure(AppError.NotFound('USUARIO_NAO_ENCONTRADO'))
       }
 
       return Either.success(user)
     } catch (error: unknown) {
-      return Either.failure(InternalServerError.danger('ERRO_AO_OBTER_USUARIO'))
+      return Either.failure(AppError.NotFound('ERRO_AO_OBTER_USUARIO'))
     }
   }
 }

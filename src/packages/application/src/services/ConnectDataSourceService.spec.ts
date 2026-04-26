@@ -1,9 +1,4 @@
-import {
-  Either,
-  InternalServerError,
-  NotFoundError,
-  ValidationError,
-} from '@metric-org/cross-cutting/helpers'
+import { AppError, Either } from '@metric-org/cross-cutting/helpers'
 import { Workspace } from '@metric-org/domain'
 import type { Mocked } from 'vitest'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
@@ -120,7 +115,7 @@ describe('ConnectDataSourceService', () => {
       }),
     )
 
-    fakeWorkspace.connectDataSource.mockReturnValue(Either.success(undefined))
+    fakeWorkspace.connectDataSource.mockReturnValue(Either.success())
     jwtServiceMock.generateToken.mockReturnValue(expectedToken)
 
     // Act
@@ -174,10 +169,9 @@ describe('ConnectDataSourceService', () => {
 
     // Assert
     expect(result.isFailure()).toBe(true)
-    expect(result.failure).toBeInstanceOf(NotFoundError)
-    expect((result.failure as NotFoundError).messageKey).toBe(
-      'WORKSPACE_NAO_ENCONTRADO',
-    )
+    // Usando o statusCode para garantir que é o erro correto
+    expect(result.failure.statusCode).toBe(404)
+    expect(result.failure.messageKey).toBe('WORKSPACE_NAO_ENCONTRADO')
 
     expect(dataSourceResolverMock.getDataSource).not.toHaveBeenCalled()
   })
@@ -185,7 +179,7 @@ describe('ConnectDataSourceService', () => {
   it('should return failure when authentication strategy fails', async () => {
     // Arrange
     const input = makeInput()
-    const authError = InternalServerError.danger('AUTH_FAILED')
+    const authError = AppError.Internal('AUTH_FAILED')
 
     workspacesRepositoryMock.findById.mockResolvedValue(fakeWorkspace)
     dataSourceResolverMock.getDataSource.mockResolvedValue(adapterMock)
@@ -208,7 +202,7 @@ describe('ConnectDataSourceService', () => {
   it('should return failure when workspace entity rejects data source connection', async () => {
     // Arrange
     const input = makeInput()
-    const domainError = ValidationError.danger('CONNECTION_ALREADY_EXISTS')
+    const domainError = AppError.ValidationError('CONNECTION_ALREADY_EXISTS')
 
     workspacesRepositoryMock.findById.mockResolvedValue(fakeWorkspace)
     dataSourceResolverMock.getDataSource.mockResolvedValue(adapterMock)
@@ -244,10 +238,8 @@ describe('ConnectDataSourceService', () => {
 
     // Assert
     expect(result.isFailure()).toBe(true)
-    expect(result.failure).toBeInstanceOf(InternalServerError)
-    expect((result.failure as InternalServerError).messageKey).toBe(
-      'ERRO_AO_CONECTAR_DATA_SOURCE',
-    )
+    expect(result.failure.statusCode).toBe(500)
+    expect(result.failure.messageKey).toBe('ERRO_AO_CONECTAR_DATA_SOURCE')
 
     const storageKey = `workspace-session-${input.workspaceId}-${input.connectionInstanceId}`
     const memberKey = getMemberStorageKey(

@@ -1,9 +1,4 @@
-import {
-  Either,
-  InternalServerError,
-  NotFoundError,
-  ValidationError,
-} from '@metric-org/cross-cutting/helpers'
+import { AppError, Either } from '@metric-org/cross-cutting/helpers'
 import { Workspace } from '@metric-org/domain'
 import type { Mocked } from 'vitest'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
@@ -37,15 +32,22 @@ describe('UnlinkDataSourceService', () => {
     workspacesRepositoryMock = {
       findById: vi.fn(),
       update: vi.fn(),
-    } as Partial<IWorkspacesRepository> as Mocked<IWorkspacesRepository>
+      create: vi.fn(),
+      delete: vi.fn(),
+    } as unknown as Mocked<IWorkspacesRepository>
 
     credentialsStorageMock = {
+      saveToken: vi.fn(),
+      getToken: vi.fn(),
+      hasToken: vi.fn(),
+      replaceToken: vi.fn(),
       deleteToken: vi.fn(),
-    } as Partial<ICredentialsStorage> as Mocked<ICredentialsStorage>
+    } as unknown as Mocked<ICredentialsStorage>
 
     fakeWorkspace = {
       id: 'workspace-123',
       name: 'Metric Workspace',
+      status: 'configured',
       dataSourceConnections: [
         { id: 'conn-1', dataSourceId: 'plugin-x' },
         { id: 'conn-2', dataSourceId: 'plugin-y' },
@@ -53,7 +55,7 @@ describe('UnlinkDataSourceService', () => {
       createdAt: fakeDate,
       updatedAt: fakeDate,
       unlinkDataSource: vi.fn(),
-    } as Partial<Workspace> as Mocked<Workspace>
+    } as unknown as Mocked<Workspace>
 
     sut = new UnlinkDataSourceService(
       workspacesRepositoryMock,
@@ -66,7 +68,7 @@ describe('UnlinkDataSourceService', () => {
     const input = makeInput('conn-1')
 
     workspacesRepositoryMock.findById.mockResolvedValue(fakeWorkspace)
-    fakeWorkspace.unlinkDataSource.mockReturnValue(Either.success(undefined))
+    fakeWorkspace.unlinkDataSource.mockReturnValue(Either.success())
     workspacesRepositoryMock.update.mockResolvedValue(undefined)
 
     // Act
@@ -97,6 +99,7 @@ describe('UnlinkDataSourceService', () => {
     expect(result.success).toEqual({
       id: fakeWorkspace.id,
       name: fakeWorkspace.name,
+      status: fakeWorkspace.status,
       dataSourceConnections: fakeWorkspace.dataSourceConnections,
       createdAt: fakeWorkspace.createdAt,
       updatedAt: fakeWorkspace.updatedAt,
@@ -108,7 +111,7 @@ describe('UnlinkDataSourceService', () => {
     const input = makeInput(undefined)
 
     workspacesRepositoryMock.findById.mockResolvedValue(fakeWorkspace)
-    fakeWorkspace.unlinkDataSource.mockReturnValue(Either.success(undefined))
+    fakeWorkspace.unlinkDataSource.mockReturnValue(Either.success())
     workspacesRepositoryMock.update.mockResolvedValue(undefined)
 
     // Act
@@ -140,20 +143,19 @@ describe('UnlinkDataSourceService', () => {
     expect(fakeWorkspace.unlinkDataSource).toHaveBeenCalledWith(undefined)
   })
 
-  it('should return NotFoundError when the workspace does not exist', async () => {
+  it('should return NotFound error when the workspace does not exist', async () => {
     // Arrange
     const input = makeInput('conn-1')
-    workspacesRepositoryMock.findById.mockResolvedValue(undefined)
+    workspacesRepositoryMock.findById.mockResolvedValue(null as any)
 
     // Act
     const result = await sut.execute(input)
 
     // Assert
     expect(result.isFailure()).toBe(true)
-    expect(result.failure).toBeInstanceOf(NotFoundError)
-    expect((result.failure as NotFoundError).messageKey).toBe(
-      'WORKSPACE_NAO_ENCONTRADO',
-    )
+    expect(result.failure).toBeInstanceOf(AppError)
+    expect(result.failure.statusCode).toBe(404)
+    expect(result.failure.messageKey).toBe('WORKSPACE_NAO_ENCONTRADO')
 
     expect(credentialsStorageMock.deleteToken).not.toHaveBeenCalled()
     expect(fakeWorkspace.unlinkDataSource).not.toHaveBeenCalled()
@@ -163,7 +165,7 @@ describe('UnlinkDataSourceService', () => {
   it('should forward failure when the domain entity rejects the unlink operation', async () => {
     // Arrange
     const input = makeInput('conn-abc')
-    const domainError = ValidationError.danger('CONEXAO_NAO_ENCONTRADA')
+    const domainError = AppError.ValidationError('CONEXAO_NAO_ENCONTRADA')
 
     workspacesRepositoryMock.findById.mockResolvedValue(fakeWorkspace)
     fakeWorkspace.unlinkDataSource.mockReturnValue(Either.failure(domainError))
@@ -179,7 +181,7 @@ describe('UnlinkDataSourceService', () => {
     expect(workspacesRepositoryMock.update).not.toHaveBeenCalled()
   })
 
-  it('should return InternalServerError when an unexpected exception is thrown', async () => {
+  it('should return Internal error when an unexpected exception is thrown', async () => {
     // Arrange
     const input = makeInput('conn-1')
     const error = new Error('Database connection lost')
@@ -191,10 +193,9 @@ describe('UnlinkDataSourceService', () => {
 
     // Assert
     expect(result.isFailure()).toBe(true)
-    expect(result.failure).toBeInstanceOf(InternalServerError)
-    expect((result.failure as InternalServerError).messageKey).toBe(
-      'ERRO_INESPERADO',
-    )
+    expect(result.failure).toBeInstanceOf(AppError)
+    expect(result.failure.statusCode).toBe(500)
+    expect(result.failure.messageKey).toBe('ERRO_INESPERADO')
 
     expect(credentialsStorageMock.deleteToken).not.toHaveBeenCalled()
     expect(fakeWorkspace.unlinkDataSource).not.toHaveBeenCalled()

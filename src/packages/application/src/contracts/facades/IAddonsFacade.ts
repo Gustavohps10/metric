@@ -1,4 +1,5 @@
 import { AppError, Either } from '@metric-org/cross-cutting/helpers'
+import { IJobEvent } from '@metric-org/cross-cutting/transport'
 
 import { AddonInstallerDTO } from '@/dtos/AddonInstallerDTO'
 import { AddonManifestDTO } from '@/dtos/AddonManifestDTO'
@@ -21,6 +22,6 @@ export interface IAddonsFacade {
 
   downloadFile(
     downloadUrl: string,
-    onProgress?: (percent: number) => void,
+    onProgress?: (event: IJobEvent) => void,
   ): Promise<Either<AppError, Uint8Array>>
 }

@@ -1,4 +1,8 @@
-import { IHeaders, IRequest } from '@metric-org/cross-cutting/transport'
+import {
+  IHeaders,
+  IJobResult,
+  IRequest,
+} from '@metric-org/cross-cutting/transport'
 import {
   AuthenticationViewModel,
   MemberViewModel,
@@ -12,7 +16,10 @@ import {
 } from '@metric-org/presentation/view-models'
 
 import { FileData } from '@/contracts/infra'
-import { PushTimeEntriesInput } from '@/contracts/use-cases'
+import {
+  PushTimeEntriesInput,
+  UpdateWorkspaceIdentityInput,
+} from '@/contracts/use-cases'
 
 export interface ConfigField {
   id: string
@@ -33,8 +40,14 @@ export interface IWorkspacesAPI {
   create(
     input: IRequest<{
       name: string
+      description?: string
+      avatarFile?: FileData
     }>,
   ): Promise<ViewModel<WorkspaceViewModel>>
+
+  markAsConfigured(
+    input: IRequest<{ workspaceId: string }>,
+  ): Promise<ViewModel<ViewModel>>
 
   getById(
     input: IRequest<{ workspaceId: string }>,
@@ -85,6 +98,12 @@ export interface IWorkspacesAPI {
       connectionInstanceId: string
     }>,
   ): Promise<ViewModel<MemberViewModel | null>>
+
+  updateIdentity(
+    input: IRequest<UpdateWorkspaceIdentityInput>,
+  ): Promise<ViewModel<WorkspaceViewModel>>
+
+  delete(input: IRequest<{ workspaceId: string }>): Promise<ViewModel>
 }
 
 export interface ISessionAPI {
@@ -237,10 +256,8 @@ export interface IAddonsAPI {
     payload: IRequest<{ installerUrl: string }>,
   ): Promise<AddonInstaller>
   install(
-    payload: IRequest<
-      { downloadUrl: string } & { onProgress?: (progress: number) => void }
-    >,
-  ): Promise<ViewModel>
+    payload: IRequest<{ downloadUrl: string }>,
+  ): Promise<ViewModel<IJobResult>>
 }
 
 export interface EnvironmentInfo {
@@ -250,6 +267,10 @@ export interface EnvironmentInfo {
 export interface ISystemAPI {
   getAppVersion(): Promise<string>
   getEnvironment(): Promise<EnvironmentInfo>
+}
+
+export interface IEventAPI {
+  on<T = unknown>(channel: string, handler: (data: T) => void): () => void
 }
 
 export interface IApplicationAPI {
@@ -269,4 +290,5 @@ export interface IApplicationAPI {
     discord: IDiscordAPI
     addons: IAddonsAPI
   }
+  events: IEventAPI
 }

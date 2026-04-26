@@ -10,6 +10,9 @@ import path from 'path'
 type PlainWorkspace = {
   id: string
   name: string
+  status: 'draft' | 'configured'
+  avatarUrl?: string
+  description?: string
   dataSourceConnections: {
     id: string
     dataSourceId: string
@@ -34,6 +37,9 @@ export class JSONWorkspacesQuery implements IQueryBase<WorkspaceDTO> {
       return plain.map((p) => ({
         id: p.id,
         name: p.name,
+        status: p.status,
+        description: p.description,
+        avatarUrl: p.avatarUrl,
         dataSourceConnections: (p.dataSourceConnections ?? []).map((c) => ({
           id: c.id,
           dataSourceId: c.dataSourceId,

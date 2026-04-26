@@ -1,140 +1,76 @@
 import { describe, expect, it } from 'vitest'
 
-import {
-  AppError,
-  InternalServerError,
-  NotFoundError,
-  UnauthorizedError,
-  ValidationError,
-} from './AppError'
+import { AppError } from './AppError'
 
 describe('AppError', () => {
-  it('should create a base error with default values', () => {
-    // Arrange
-    class TestError extends AppError {}
+  describe('Static Factories (Points of Entry)', () => {
+    it('should create a ValidationError via AppError.ValidationError() with status 422', () => {
+      const details = { email: ['Formato inválido'] }
+      const error = AppError.ValidationError('VALIDATION_ERROR', details)
 
-    // Act
-    const error = new TestError('TEST_KEY')
+      expect(error.messageKey).toBe('VALIDATION_ERROR')
+      expect(error.statusCode).toBe(422)
+      expect(error.details).toEqual(details)
+      expect(error.type).toBe('danger')
+    })
 
-    // Assert
-    expect(error.messageKey).toBe('TEST_KEY')
-    expect(error.details).toBeUndefined()
-    expect(error.statusCode).toBe(500)
-    expect(error.type).toBe('danger')
+    it('should create a NotFoundError via AppError.NotFound() with status 404', () => {
+      const error = AppError.NotFound('USER_NOT_FOUND')
+
+      expect(error.messageKey).toBe('USER_NOT_FOUND')
+      expect(error.statusCode).toBe(404)
+      expect(error.type).toBe('danger')
+    })
+
+    it('should create an UnauthorizedError via AppError.Unauthorized() with status 401', () => {
+      const error = AppError.Unauthorized('TOKEN_EXPIRED')
+
+      expect(error.messageKey).toBe('TOKEN_EXPIRED')
+      expect(error.statusCode).toBe(401)
+    })
+
+    it('should create an InternalServerError via AppError.Internal() with status 500', () => {
+      const error = AppError.Internal('DATABASE_CRASH')
+
+      expect(error.messageKey).toBe('DATABASE_CRASH')
+      expect(error.statusCode).toBe(500)
+    })
+
+    it('should allow overriding the error type to warning', () => {
+      const error = AppError.ValidationError(
+        'LOW_CREDITS',
+        undefined,
+        'warning',
+      )
+
+      expect(error.type).toBe('warning')
+      expect(error.statusCode).toBe(422)
+    })
   })
 
-  it('should create a base error with details', () => {
-    // Arrange
-    class TestError extends AppError {}
-    const details = { field: ['error1'] }
+  describe('Helpers', () => {
+    it('should return field errors when they exist', () => {
+      const details = { password: ['Muito curto', 'Falta número'] }
+      const error = AppError.ValidationError('ERR', details)
 
-    // Act
-    const error = new TestError('TEST_KEY', details)
+      expect(error.getFieldErrors('password')).toEqual([
+        'Muito curto',
+        'Falta número',
+      ])
+      expect(error.getFieldErrors('email')).toEqual([]) // Campo inexistente
+    })
 
-    // Assert
-    expect(error.details).toEqual(details)
-  })
+    it('should identify if it has errors correctly', () => {
+      const errorWithDetails = AppError.ValidationError('ERR', { field: [] })
+      const errorWithoutDetails = AppError.NotFound('ERR')
 
-  it('should create a danger error using static method', () => {
-    // Arrange
-    const details = { field: ['error'] }
+      expect(errorWithDetails.hasErrors()).toBe(true)
+      expect(errorWithoutDetails.hasErrors()).toBe(false)
+    })
 
-    // Act
-    const error = ValidationError.danger('VALIDATION_ERROR', details)
-
-    // Assert
-    expect(error).toBeInstanceOf(ValidationError)
-    expect(error.type).toBe('danger')
-    expect(error.messageKey).toBe('VALIDATION_ERROR')
-    expect(error.details).toEqual(details)
-  })
-
-  it('should create a warning error using static method', () => {
-    // Arrange
-    const details = { field: ['warning'] }
-
-    // Act
-    const error = ValidationError.warning('VALIDATION_WARNING', details)
-
-    // Assert
-    expect(error).toBeInstanceOf(ValidationError)
-    expect(error.type).toBe('warning')
-    expect(error.messageKey).toBe('VALIDATION_WARNING')
-    expect(error.details).toEqual(details)
-  })
-})
-
-describe('NotFoundError', () => {
-  it('should create with status 404', () => {
-    // Arrange & Act
-    const error = new NotFoundError('NOT_FOUND')
-
-    // Assert
-    expect(error.statusCode).toBe(404)
-    expect(error.type).toBe('danger')
-  })
-
-  it('should allow custom type', () => {
-    // Arrange & Act
-    const error = new NotFoundError('NOT_FOUND', undefined, 'warning')
-
-    // Assert
-    expect(error.type).toBe('warning')
-  })
-})
-
-describe('ValidationError', () => {
-  it('should create with status 422', () => {
-    // Arrange & Act
-    const error = new ValidationError('VALIDATION')
-
-    // Assert
-    expect(error.statusCode).toBe(422)
-  })
-})
-
-describe('UnauthorizedError', () => {
-  it('should create with status 401', () => {
-    // Arrange & Act
-    const error = new UnauthorizedError('UNAUTHORIZED')
-
-    // Assert
-    expect(error.statusCode).toBe(401)
-  })
-})
-
-describe('InternalServerError', () => {
-  it('should create with status 500', () => {
-    // Arrange & Act
-    const error = new InternalServerError('INTERNAL')
-
-    // Assert
-    expect(error.statusCode).toBe(500)
-  })
-})
-
-describe('Static factory inheritance behavior', () => {
-  it('should preserve class type when using static danger', () => {
-    // Arrange
-
-    // Act
-    const error = NotFoundError.danger('NOT_FOUND')
-
-    // Assert
-    expect(error).toBeInstanceOf(NotFoundError)
-    expect(error.statusCode).toBe(404)
-    expect(error.type).toBe('danger')
-  })
-
-  it('should preserve class type when using static warning', () => {
-    // Arrange
-
-    // Act
-    const error = UnauthorizedError.warning('UNAUTHORIZED')
-
-    // Assert
-    expect(error).toBeInstanceOf(UnauthorizedError)
-    expect(error.statusCode).toBe(401)
-    expect(error.type).toBe('warning')
+    it('should return empty array in getFieldErrors if details are undefined', () => {
+      const error = AppError.NotFound('ERR')
+      expect(error.getFieldErrors('any')).toEqual([])
+    })
   })
 })

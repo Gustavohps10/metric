@@ -16,9 +16,14 @@ export function toWorkspaceConnectionDTO(c: {
   }
 }
 
+export type WorkspaceStatus = 'draft' | 'configured'
+
 export interface WorkspaceDTO {
   id: string
   name: string
+  status: WorkspaceStatus
+  description?: string
+  avatarUrl?: string
   dataSourceConnections: WorkspaceConnectionDTO[]
   createdAt: Date
   updatedAt: Date
