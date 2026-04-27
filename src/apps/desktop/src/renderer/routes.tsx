@@ -21,43 +21,69 @@ import { createHashRouter, Navigate } from 'react-router-dom'
 export const router = createHashRouter([
   {
     path: '/',
-    element: <AppLayout />, // layout global
+    element: <AppLayout />,
     errorElement: <Error />,
     children: [
       {
-        path: '/',
-        element: <HomeLayout />, // sidebar + conteúdo do Home
+        errorElement: <Error />,
         children: [
-          { index: true, element: <div>Home</div> },
-          { path: 'about', element: <div>About</div> },
-          { path: 'contact', element: <div>Contact</div> },
-        ],
-      },
-      {
-        path: 'workspaces/:workspaceId',
-        element: <WorkspaceLayout />, // sidebar + conteúdo do workspace
-        children: [
-          { index: true, element: <Navigate to="time-entries" replace /> },
-          { path: 'notes', element: <Notes /> },
-          { path: 'time-entries', element: <TimeEntries /> },
-          { path: 'my-metrics', element: <Metrics /> },
           {
-            path: 'activities',
-            element: <ActivitiesLayout />,
+            path: '/',
+            element: <HomeLayout />,
             children: [
-              { index: true, element: <Activities /> },
-              { path: 'backlog', element: <Backlog /> },
+              {
+                errorElement: <Error />,
+                children: [
+                  { index: true, element: <div>Home</div> },
+                  { path: 'about', element: <div>About</div> },
+                  { path: 'contact', element: <div>Contact</div> },
+                  { path: '*', element: <NotFound /> },
+                ],
+              },
             ],
           },
-          { path: 'settings', element: <WorkspaceSettings /> },
-          { path: 'addons', element: <AddonsPage /> },
           {
-            path: 'widgets',
-            children: [{ path: 'timer', element: <TimerWidget /> }],
+            path: 'workspaces/:workspaceId',
+            element: <WorkspaceLayout />,
+            children: [
+              {
+                errorElement: <Error />,
+                children: [
+                  {
+                    index: true,
+                    element: <Navigate to="time-entries" replace />,
+                  },
+                  { path: 'notes', element: <Notes /> },
+                  { path: 'time-entries', element: <TimeEntries /> },
+                  { path: 'my-metrics', element: <Metrics /> },
+                  {
+                    path: 'activities',
+                    element: <ActivitiesLayout />,
+                    children: [
+                      {
+                        errorElement: <Error />,
+                        children: [
+                          { index: true, element: <Activities /> },
+                          { path: 'backlog', element: <Backlog /> },
+                          { path: '*', element: <NotFound /> },
+                        ],
+                      },
+                    ],
+                  },
+                  { path: 'settings', element: <WorkspaceSettings /> },
+                  { path: 'addons', element: <AddonsPage /> },
+                  {
+                    path: 'widgets',
+                    children: [{ path: 'timer', element: <TimerWidget /> }],
+                  },
+                  { path: '*', element: <NotFound /> },
+                ],
+              },
+            ],
           },
+          { path: '*', element: <NotFound /> },
         ],
       },
     ],
   },
-  { path: '*', element: <NotFound /> },
 ])
