@@ -1,4 +1,4 @@
-import { AppError } from '@metric-org/cross-cutting/helpers'
+import { AppError, Either } from '@metric-org/cross-cutting/helpers'
 import type { Mocked } from 'vitest'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
@@ -7,14 +7,12 @@ import type { IDataSourceResolver } from '@/contracts/resolvers'
 import type { IDataSourceAdapter } from '@/contracts/resolvers/IDataSourceAdapter'
 import type { PullTasksInput } from '@/contracts/use-cases'
 import type { TaskDTO } from '@/dtos'
-import { SessionManager } from '@/workflow'
 
 import { TaskPullService } from './TaskPullService'
 
 describe('TaskPullService', () => {
   let sut: TaskPullService
 
-  let sessionManagerMock: Mocked<SessionManager>
   let dataSourceResolverMock: Mocked<IDataSourceResolver>
   let adapterMock: Mocked<IDataSourceAdapter>
   let taskQueryMock: Mocked<ITaskQuery>
@@ -24,8 +22,8 @@ describe('TaskPullService', () => {
   const makeInput = (): PullTasksInput => ({
     workspaceId: 'workspace-123',
     pluginId: 'plugin-xyz',
+    memberId: '',
     connectionInstanceId: 'conn-abc',
-    memberId: 'fallback-member-id',
     checkpoint: {
       updatedAt: fakeDate,
       id: 'task-last-sync-1',
@@ -33,9 +31,10 @@ describe('TaskPullService', () => {
     batch: 50,
   })
 
-  const fakeSessionUser = {
-    id: 'session-user-id',
-    name: 'John Doe',
+  const fakeMember = {
+    id: 'member-123',
+    firstname: 'John',
+    lastname: 'Doe',
   }
 
   const fakeTasks: TaskDTO[] = [
@@ -58,31 +57,30 @@ describe('TaskPullService', () => {
   beforeEach(() => {
     vi.clearAllMocks()
 
-    sessionManagerMock = {
-      getCurrentUser: vi.fn(),
-    } as unknown as Mocked<SessionManager>
-
     taskQueryMock = {
       pull: vi.fn(),
     } as unknown as Mocked<ITaskQuery>
 
     adapterMock = {
       taskQuery: taskQueryMock,
+      getAuthenticatedMemberData: vi.fn(),
     } as unknown as Mocked<IDataSourceAdapter>
 
     dataSourceResolverMock = {
       getDataSource: vi.fn(),
     } as unknown as Mocked<IDataSourceResolver>
 
-    sut = new TaskPullService(sessionManagerMock, dataSourceResolverMock)
+    sut = new TaskPullService(dataSourceResolverMock)
   })
 
-  it('should resolve data source, pull tasks using session user ID, and return them successfully', async () => {
+  it('should successfully pull tasks using the authenticated member from the adapter', async () => {
     // Arrange
     const input = makeInput()
 
-    sessionManagerMock.getCurrentUser.mockReturnValue(fakeSessionUser as any)
     dataSourceResolverMock.getDataSource.mockResolvedValue(adapterMock)
+    adapterMock.getAuthenticatedMemberData.mockResolvedValue(
+      Either.success(fakeMember as any),
+    )
     taskQueryMock.pull.mockResolvedValue(fakeTasks)
 
     // Act
@@ -92,71 +90,40 @@ describe('TaskPullService', () => {
     expect(result.isSuccess()).toBe(true)
     expect(result.success).toEqual(fakeTasks)
 
-    expect(sessionManagerMock.getCurrentUser).toHaveBeenCalledWith(
-      input.workspaceId,
-      input.connectionInstanceId,
-    )
-    expect(dataSourceResolverMock.getDataSource).toHaveBeenCalledWith(
-      input.workspaceId,
-      input.pluginId,
-      input.connectionInstanceId,
-    )
+    expect(adapterMock.getAuthenticatedMemberData).toHaveBeenCalled()
     expect(taskQueryMock.pull).toHaveBeenCalledWith(
-      fakeSessionUser.id,
+      fakeMember.id,
       input.checkpoint,
       input.batch,
     )
   })
 
-  it('should pull tasks using the fallback memberId from input if session user is not found', async () => {
+  it('should forward the failure if getAuthenticatedMemberData returns a failure', async () => {
     // Arrange
     const input = makeInput()
+    const authError = AppError.Unauthorized('FALHA_DE_AUTENTICACAO')
 
-    sessionManagerMock.getCurrentUser.mockReturnValue(undefined)
     dataSourceResolverMock.getDataSource.mockResolvedValue(adapterMock)
-    taskQueryMock.pull.mockResolvedValue(fakeTasks)
-
-    // Act
-    const result = await sut.execute(input)
-
-    // Assert
-    expect(result.isSuccess()).toBe(true)
-    expect(result.success).toEqual(fakeTasks)
-
-    expect(taskQueryMock.pull).toHaveBeenCalledWith(
-      input.memberId,
-      input.checkpoint,
-      input.batch,
+    adapterMock.getAuthenticatedMemberData.mockResolvedValue(
+      Either.failure(authError),
     )
-  })
-
-  it('should return Internal error when the data source resolver throws an exception', async () => {
-    // Arrange
-    const input = makeInput()
-    const error = new Error('Plugin not found')
-
-    sessionManagerMock.getCurrentUser.mockReturnValue(fakeSessionUser as any)
-    dataSourceResolverMock.getDataSource.mockRejectedValue(error)
 
     // Act
     const result = await sut.execute(input)
 
     // Assert
     expect(result.isFailure()).toBe(true)
-    expect(result.failure).toBeInstanceOf(AppError)
-    expect(result.failure.messageKey).toBe('ERRO_INESPERADO')
+    expect(result.failure).toBe(authError)
 
     expect(taskQueryMock.pull).not.toHaveBeenCalled()
   })
 
-  it('should return Internal error when the adapter fails to pull tasks', async () => {
+  it('should return unexpected error when the data source resolver throws an exception', async () => {
     // Arrange
     const input = makeInput()
-    const error = new Error('API Rate Limit Exceeded')
-
-    sessionManagerMock.getCurrentUser.mockReturnValue(fakeSessionUser as any)
-    dataSourceResolverMock.getDataSource.mockResolvedValue(adapterMock)
-    taskQueryMock.pull.mockRejectedValue(error)
+    dataSourceResolverMock.getDataSource.mockRejectedValue(
+      new Error('Plugin not found'),
+    )
 
     // Act
     const result = await sut.execute(input)
@@ -165,16 +132,17 @@ describe('TaskPullService', () => {
     expect(result.isFailure()).toBe(true)
     expect(result.failure).toBeInstanceOf(AppError)
     expect(result.failure.messageKey).toBe('ERRO_INESPERADO')
+    expect(result.failure.statusCode).toBe(404)
   })
 
-  it('should return Internal error when sessionManager throws an exception', async () => {
+  it('should return unexpected error when the adapter fails to pull tasks (throws)', async () => {
     // Arrange
     const input = makeInput()
-    const error = new Error('Session storage corrupted')
-
-    sessionManagerMock.getCurrentUser.mockImplementation(() => {
-      throw error
-    })
+    dataSourceResolverMock.getDataSource.mockResolvedValue(adapterMock)
+    adapterMock.getAuthenticatedMemberData.mockResolvedValue(
+      Either.success(fakeMember as any),
+    )
+    taskQueryMock.pull.mockRejectedValue(new Error('API Rate Limit Exceeded'))
 
     // Act
     const result = await sut.execute(input)
@@ -183,7 +151,6 @@ describe('TaskPullService', () => {
     expect(result.isFailure()).toBe(true)
     expect(result.failure).toBeInstanceOf(AppError)
     expect(result.failure.messageKey).toBe('ERRO_INESPERADO')
-
-    expect(dataSourceResolverMock.getDataSource).not.toHaveBeenCalled()
+    expect(result.failure.statusCode).toBe(404)
   })
 })

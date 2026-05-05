@@ -1,4 +1,4 @@
-import { AppError } from '@metric-org/cross-cutting/helpers'
+import { AppError, Either } from '@metric-org/cross-cutting/helpers'
 import type { Mocked } from 'vitest'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
@@ -8,7 +8,7 @@ import type { ListTasksInput } from '@/contracts/use-cases/IListTasksUseCase'
 import type { TaskDTO } from '@/dtos'
 import type { PagedResultDTO } from '@/dtos/pagination'
 
-import { ListTaskService } from './ListTasksService'
+import { ListTaskService } from './ListTasksService' // ou ListTaskService, ajuste conforme o nome real do seu arquivo
 
 describe('ListTasksService', () => {
   let sut: ListTaskService
@@ -18,11 +18,18 @@ describe('ListTasksService', () => {
 
   const fakeDate = new Date('2026-04-18T00:00:00.000Z')
 
-  const makeInput = (): ListTasksInput => ({
-    workspaceId: 'workspace-123',
-    pluginId: 'plugin-xyz',
-    connectionInstanceId: 'conn-abc',
-  })
+  const makeInput = (): ListTasksInput =>
+    ({
+      workspaceId: 'workspace-123',
+      pluginId: 'plugin-xyz',
+      connectionInstanceId: 'conn-abc',
+    }) as ListTasksInput
+
+  const fakeMember = {
+    id: 'member-123',
+    firstname: 'John',
+    lastname: 'Doe',
+  }
 
   const fakeTasksPage: PagedResultDTO<TaskDTO> = {
     items: [
@@ -75,6 +82,8 @@ describe('ListTasksService', () => {
     } as Partial<IDataSourceResolver> as Mocked<IDataSourceResolver>
 
     adapterMock = {
+      // ADICIONADO: mock para a função de autenticação
+      getAuthenticatedMemberData: vi.fn(),
       taskQuery: {
         findAll: vi.fn(),
       },
@@ -88,6 +97,11 @@ describe('ListTasksService', () => {
     const input = makeInput()
 
     dataSourceResolverMock.getDataSource.mockResolvedValue(adapterMock)
+
+    // ADICIONADO: garantindo que a autenticação passe
+    adapterMock.getAuthenticatedMemberData.mockResolvedValue(
+      Either.success(fakeMember as any),
+    )
     ;(adapterMock.taskQuery.findAll as any).mockResolvedValue(fakeTasksPage)
 
     // Act
@@ -102,10 +116,32 @@ describe('ListTasksService', () => {
       input.pluginId,
       input.connectionInstanceId,
     )
+    expect(adapterMock.getAuthenticatedMemberData).toHaveBeenCalled()
     expect(adapterMock.taskQuery.findAll).toHaveBeenCalledTimes(1)
   })
 
-  it('should return InternalServerError when the data source resolver throws an exception', async () => {
+  it('should forward the failure if getAuthenticatedMemberData returns a failure', async () => {
+    // Arrange
+    const input = makeInput()
+    const authError = AppError.Unauthorized('FALHA_DE_AUTENTICACAO')
+
+    dataSourceResolverMock.getDataSource.mockResolvedValue(adapterMock)
+    // Simulando falha na autenticação
+    adapterMock.getAuthenticatedMemberData.mockResolvedValue(
+      Either.failure(authError),
+    )
+
+    // Act
+    const result = await sut.execute(input)
+
+    // Assert
+    expect(result.isFailure()).toBe(true)
+    expect(result.failure).toBe(authError)
+
+    expect(adapterMock.taskQuery.findAll).not.toHaveBeenCalled()
+  })
+
+  it('should return InternalServerError (ERRO_INESPERADO) when the data source resolver throws an exception', async () => {
     // Arrange
     const input = makeInput()
     const error = new Error('Plugin not found or inactive')
@@ -123,12 +159,15 @@ describe('ListTasksService', () => {
     expect(adapterMock.taskQuery.findAll).not.toHaveBeenCalled()
   })
 
-  it('should return InternalServerError when the adapter fails to fetch tasks', async () => {
+  it('should return InternalServerError (ERRO_INESPERADO) when the adapter fails to fetch tasks', async () => {
     // Arrange
     const input = makeInput()
     const error = new Error('API Rate Limit Exceeded')
 
     dataSourceResolverMock.getDataSource.mockResolvedValue(adapterMock)
+    adapterMock.getAuthenticatedMemberData.mockResolvedValue(
+      Either.success(fakeMember as any),
+    )
     ;(adapterMock.taskQuery.findAll as any).mockRejectedValue(error)
 
     // Act

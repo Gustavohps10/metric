@@ -15,8 +15,15 @@ type PlainWorkspace = {
   description?: string
   dataSourceConnections: {
     id: string
+    status: 'connected' | 'disabled' | 'disconnected'
     dataSourceId: string
     config?: Record<string, unknown>
+    member?: {
+      id: string
+      name: string
+      login: string
+      avatarUrl?: string
+    }
   }[]
   createdAt: string
   updatedAt: string
@@ -42,8 +49,10 @@ export class JSONWorkspacesQuery implements IQueryBase<WorkspaceDTO> {
         avatarUrl: p.avatarUrl,
         dataSourceConnections: (p.dataSourceConnections ?? []).map((c) => ({
           id: c.id,
+          status: c.status,
           dataSourceId: c.dataSourceId,
           config: c.config,
+          member: c.member,
         })),
         createdAt: new Date(p.createdAt),
         updatedAt: new Date(p.updatedAt),

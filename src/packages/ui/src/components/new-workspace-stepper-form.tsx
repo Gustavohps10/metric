@@ -29,7 +29,9 @@ import {
   Settings2,
   ShieldCheck,
   TerminalIcon,
+  User2,
   UserCog,
+  WifiOff,
   X,
 } from 'lucide-react'
 import React from 'react'
@@ -52,6 +54,7 @@ import { DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { useWorkspace, workspaceKeys } from '@/contexts/WorkspaceContext'
 import { useClient, useDataSourceConnections } from '@/hooks'
 import { cn } from '@/lib'
+import { useConnectionsWithSync } from '@/stores/syncStore'
 
 // ---------------------------------------------------------------------------
 // Schemas
@@ -67,10 +70,19 @@ const sourceTypeSchema = z.object({
   sourceType: z.enum(['DATASOURCE', 'PRESET', 'SCRATCH']),
 })
 
+const workspaceConnectionMemberSchema = z.object({
+  id: z.string(),
+  name: z.string(),
+  login: z.string(),
+  avatarUrl: z.string().optional(),
+})
+
 const workspaceConnectionSchema: z.ZodType<WorkspaceConnectionViewModel> =
   z.object({
     id: z.string(),
     dataSourceId: z.string(),
+    status: z.enum(['connected', 'disabled', 'disconnected']),
+    member: workspaceConnectionMemberSchema.optional(),
     config: z.record(z.unknown()).optional(),
   })
 
@@ -568,14 +580,15 @@ export function StepperForm({
   const sourceType = methods.watch('sourceType')
   const selectedPlugin = methods.watch('dataSourcePlugin')
 
-  const instances =
-    workspace?.dataSourceConnections ?? methods.watch('dataSourceInstances')
-
   const [installState, setInstallState] = React.useState<InstallState>('idle')
   const [installLogs, setInstallLogs] = React.useState<LogEntry[]>([])
   const [installProgress, setInstallProgress] = React.useState(0)
   const [showDataSourcePicker, setShowDataSourcePicker] = React.useState(false)
-  const { connect } = useDataSourceConnections()
+  const { connect, link, unlink, disconnect } = useDataSourceConnections()
+
+  const syncedConnections = useConnectionsWithSync()
+
+  const instances = syncedConnections
 
   // -------------------------------------------------------------------------
   // Helpers
@@ -680,13 +693,34 @@ export function StepperForm({
     }
   }
 
-  function removeInstance(id: string) {
-    methods.setValue(
-      'dataSourceInstances',
-      instances.filter((i) => i.id !== id),
-    )
-  }
+  async function removeInstance(id: string) {
+    try {
+      const res = await unlink(id)
 
+      if (res?.isSuccess) {
+        const updatedInstances: WorkspaceConnectionViewModel[] =
+          syncedConnections
+            .filter((conn) => conn.connectionId !== id)
+            .map((conn) => ({
+              id: conn.connectionId,
+              dataSourceId: conn.dataSourceId,
+              status: conn.status,
+              config: conn.config,
+              member: conn.member,
+            }))
+
+        methods.setValue('dataSourceInstances', updatedInstances, {
+          shouldValidate: true,
+          shouldDirty: true,
+        })
+
+        toast.success('Integração removida com sucesso')
+      }
+    } catch (error) {
+      console.error('Erro ao remover instância:', error)
+      toast.error('Não foi possível remover a integração')
+    }
+  }
   // -------------------------------------------------------------------------
   // Final submit (step 4)
   // -------------------------------------------------------------------------
@@ -716,110 +750,52 @@ export function StepperForm({
   }
 
   async function handleSelectDataSource(plugin: AddonManifest | null) {
-    if (!plugin) return
-
-    if (!workspace?.id) {
-      toast.error('Workspace ainda não foi criado.')
-      return
-    }
+    if (!plugin || !workspace?.id) return
 
     try {
       const connectionInstanceId = crypto.randomUUID()
 
-      const response = await client.services.workspaces.linkDataSource({
-        body: {
-          workspaceId: workspace?.id,
-          dataSourceId: plugin.id,
-          connectionInstanceId,
-        },
+      const res = await link({
+        connectionInstanceId,
+        pluginId: plugin.id,
       })
 
-      if (!response.isSuccess) {
-        toast.error('Falha ao vincular datasource.')
+      if (!res?.isSuccess) {
+        toast.error('Erro ao vincular fonte de dados.')
         return
       }
 
       methods.setValue('dataSourcePlugin', plugin)
       methods.setValue('currentConnectionInstanceId', connectionInstanceId)
-
-      const currentInstances = methods.getValues('dataSourceInstances') || []
-
-      methods.setValue('dataSourceInstances', [
-        ...currentInstances,
-        {
-          id: connectionInstanceId,
-          dataSourceId: plugin.id,
-          // config: plugin.data
-        },
-      ])
-
-      toast.success(`${plugin.name} conectado com sucesso.`)
+      toast.success(`${plugin.name} vinculado ao workspace.`)
     } catch (err) {
-      console.error(err)
-      toast.error('Erro ao conectar datasource.')
+      toast.error('Erro ao vincular fonte de dados.')
     }
   }
 
   async function handleConnectDataSource(
     instanceData: DataSourceInstanceFormData,
   ) {
-    if (!workspace?.id) {
-      toast.error('ID do Workspace não encontrado.')
-      return
-    }
+    if (!workspace?.id) return
 
     try {
-      // Chamada ao serviço que executa o ConnectDataSourceService no Backend
-      const response = await client.services.workspaces.connectDataSource({
-        body: {
-          workspaceId: workspace?.id,
-          pluginId: instanceData.pluginId,
-          connectionInstanceId: instanceData.connectionInstanceId,
-          configuration: instanceData.configuration,
-          credentials: instanceData.credentials,
-        },
+      const res = await connect({
+        connectionInstanceId: instanceData.connectionInstanceId,
+        pluginId: instanceData.pluginId,
+        credentials: instanceData.credentials,
+        configuration: instanceData.configuration,
       })
 
-      if (!response.isSuccess) {
-        // Aqui aproveitamos o padrão Either/AppError que você usa no backend
-        const error = response.error
-        toast.error(error || 'Erro ao validar conexão com a fonte de dados.')
-        return
+      if (res?.isSuccess) {
+        toast.success(`Conexão estabelecida com sucesso!`)
+        setShowDataSourcePicker(false)
+        methods.setValue('dataSourcePlugin', undefined)
+        resetInstall()
+      } else {
+        toast.error(res?.error ?? 'Falha na autenticação.')
       }
-
-      if (response.data?.member && response.data?.token) {
-        connect({
-          connectionInstanceId: instanceData.connectionInstanceId,
-          member: response.data.member,
-          token: response.data.token,
-        })
-      }
-      const plugin = methods.getValues('dataSourcePlugin')
-
-      const newInstance: WorkspaceConnectionViewModel = {
-        id: instanceData.connectionInstanceId,
-        dataSourceId: plugin.id,
-        // config: config
-      }
-
-      const currentInstances = methods.getValues('dataSourceInstances') || []
-
-      methods.setValue('dataSourceInstances', [
-        ...currentInstances,
-        newInstance,
-      ])
-
-      // UI Feedback e Reset de estados do Picker
-      toast.success(`${plugin?.name} conectado com sucesso!`)
-      await queryClient.invalidateQueries({
-        queryKey: workspaceKeys.detail(workspace?.id),
-      })
-      setShowDataSourcePicker(false)
-      methods.setValue('dataSourcePlugin', undefined)
-      resetInstall()
     } catch (error) {
-      console.error('Connection Error:', error)
-      toast.error('Ocorreu um erro inesperado ao tentar conectar.')
+      toast.error('Erro ao validar conexão.')
     }
   }
 
@@ -1040,31 +1016,204 @@ export function StepperForm({
                                 </p>
                               </div>
                             ) : (
-                              instances.map((inst) => (
-                                <div
-                                  key={inst.id}
-                                  className="bg-background hover:border-primary/30 flex items-center gap-3 rounded-xl border p-3 transition-colors"
-                                >
-                                  <img src="" className="h-8 w-8 rounded-md" />
-                                  <div className="min-w-0 flex-1">
-                                    <p className="truncate text-xs font-semibold">
-                                      {inst.id}
-                                    </p>
-                                    <p className="text-muted-foreground text-[10px]">
-                                      ID: {inst.id.split('-')[0]}
-                                    </p>
-                                  </div>
-                                  <Button
-                                    variant="ghost"
-                                    size="icon"
-                                    className="text-destructive/50 hover:text-destructive h-7 w-7"
-                                    type="button"
-                                    onClick={() => removeInstance(inst.id)}
+                              instances.map((inst) => {
+                                const syncStatuses = Object.values(inst.sync)
+
+                                const isSyncing = syncStatuses.some(
+                                  (s) => s.isPulling || s.isPushing,
+                                )
+
+                                const hasError = syncStatuses.some(
+                                  (s) => s.error,
+                                )
+
+                                const isConnected = inst.status === 'connected'
+
+                                return (
+                                  <div
+                                    key={inst.connectionId}
+                                    className={cn(
+                                      'relative flex flex-col gap-3 rounded-xl border p-3',
+                                      isConnected
+                                        ? 'bg-card/40 border-border'
+                                        : 'bg-muted/20 border-dashed opacity-75',
+                                    )}
                                   >
-                                    <X className="h-3.5 w-3.5" />
-                                  </Button>
-                                </div>
-                              ))
+                                    <div className="flex items-center justify-between gap-3">
+                                      {/* Lado Esquerdo */}
+                                      <div className="flex min-w-0 items-center gap-3">
+                                        <div className="relative">
+                                          <div className="bg-background flex h-10 w-10 shrink-0 items-center justify-center overflow-hidden rounded-lg border shadow-sm">
+                                            {inst.addon?.logo ? (
+                                              <img
+                                                src={inst.addon.logo}
+                                                alt={inst.addon.name}
+                                                className="h-7 w-7 object-contain"
+                                              />
+                                            ) : (
+                                              <PlugZap className="text-muted-foreground h-5 w-5" />
+                                            )}
+                                          </div>
+
+                                          {isSyncing && (
+                                            <span className="absolute -top-1 -right-1 flex h-3 w-3">
+                                              <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-sky-400 opacity-75" />
+                                              <span className="relative inline-flex h-3 w-3 rounded-full bg-sky-500" />
+                                            </span>
+                                          )}
+                                        </div>
+
+                                        <div className="flex min-w-0 flex-col gap-0.5">
+                                          <div className="flex items-center gap-2">
+                                            <h4 className="truncate text-xs font-bold tracking-tight">
+                                              {inst.addon?.name ||
+                                                inst.dataSourceId}
+                                            </h4>
+
+                                            <span className="text-muted-foreground/60 font-mono text-[9px] uppercase">
+                                              {inst.connectionId.split('-')[0]}
+                                            </span>
+                                          </div>
+
+                                          {inst.member ? (
+                                            <div className="flex items-center gap-1.5">
+                                              <div className="bg-muted flex h-3.5 w-3.5 items-center justify-center rounded-full border-[0.5px]">
+                                                {inst.member.avatarUrl ? (
+                                                  <img
+                                                    src={inst.member.avatarUrl}
+                                                    className="h-full w-full rounded-full object-cover"
+                                                  />
+                                                ) : (
+                                                  <User2
+                                                    size={8}
+                                                    className="text-muted-foreground"
+                                                  />
+                                                )}
+                                              </div>
+
+                                              <p className="text-muted-foreground truncate text-[10px]">
+                                                {inst.member.name ||
+                                                  inst.member.login}
+                                              </p>
+                                            </div>
+                                          ) : (
+                                            <p className="text-muted-foreground text-[10px]">
+                                              Aguardando conexão...
+                                            </p>
+                                          )}
+                                        </div>
+                                      </div>
+
+                                      {/* Lado Direito */}
+                                      <div className="flex items-center gap-1.5">
+                                        {hasError && (
+                                          <div
+                                            className="bg-destructive/10 flex h-6 w-6 items-center justify-center rounded-full"
+                                            title="Erro na sincronização"
+                                          >
+                                            <AlertCircle className="text-destructive h-3.5 w-3.5" />
+                                          </div>
+                                        )}
+
+                                        {inst.status === 'disconnected' && (
+                                          <Button
+                                            variant="ghost"
+                                            size="icon"
+                                            type="button"
+                                            title="Configurar credenciais"
+                                            className="text-muted-foreground/60 hover:text-foreground hover:bg-muted/60 h-8 w-8 rounded-lg"
+                                            onClick={() => {
+                                              methods.setValue(
+                                                'dataSourcePlugin',
+                                                {
+                                                  ...inst.addon,
+                                                  installed: true,
+                                                },
+                                              )
+
+                                              methods.setValue(
+                                                'currentConnectionInstanceId',
+                                                inst.connectionId,
+                                              )
+
+                                              setShowDataSourcePicker(true)
+                                            }}
+                                          >
+                                            <Settings2 className="h-4 w-4" />
+                                          </Button>
+                                        )}
+
+                                        {inst.status === 'connected' && (
+                                          <Button
+                                            variant="ghost"
+                                            size="icon"
+                                            type="button"
+                                            title="Desconectar"
+                                            className="text-muted-foreground/60 h-8 w-8 rounded-lg hover:bg-amber-500/10 hover:text-amber-500"
+                                            onClick={() =>
+                                              disconnect(inst.connectionId)
+                                            }
+                                          >
+                                            <WifiOff className="h-4 w-4" />
+                                          </Button>
+                                        )}
+
+                                        <Button
+                                          variant="ghost"
+                                          size="icon"
+                                          type="button"
+                                          title="Remover integração"
+                                          className="text-muted-foreground/60 hover:text-destructive hover:bg-destructive/10 h-8 w-8 rounded-lg"
+                                          onClick={() =>
+                                            removeInstance(inst.connectionId)
+                                          }
+                                        >
+                                          <X className="h-4 w-4" />
+                                        </Button>
+                                      </div>
+                                    </div>
+
+                                    <div className="border-border/30 flex items-center justify-between border-t pt-2">
+                                      <div className="flex items-center gap-2">
+                                        <span
+                                          className={cn(
+                                            'h-1.5 w-1.5 rounded-full',
+                                            isConnected
+                                              ? 'bg-emerald-500'
+                                              : 'bg-muted-foreground/30',
+                                          )}
+                                        />
+
+                                        <span className="text-muted-foreground/80 text-[10px] font-medium">
+                                          {isConnected
+                                            ? 'Conectado'
+                                            : 'Desconectado'}
+                                        </span>
+                                      </div>
+
+                                      {isSyncing && (
+                                        <span className="text-[9px] font-medium text-sky-500">
+                                          Sincronizando...
+                                        </span>
+                                      )}
+
+                                      {!isSyncing && hasError && (
+                                        <span className="text-destructive text-[9px] font-medium">
+                                          Erro de sincronização
+                                        </span>
+                                      )}
+
+                                      {!isSyncing &&
+                                        !hasError &&
+                                        isConnected && (
+                                          <span className="text-muted-foreground/60 text-[9px] font-medium">
+                                            Em dia
+                                          </span>
+                                        )}
+                                    </div>
+                                  </div>
+                                )
+                              })
                             )}
                           </div>
                         </div>

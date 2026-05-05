@@ -1,4 +1,5 @@
-import type { Mock, Mocked } from 'vitest'
+import { AppError, Either } from '@metric-org/cross-cutting/helpers'
+import type { Mocked } from 'vitest'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
 import type { ITimeEntryQuery } from '@/contracts/data'
@@ -13,17 +14,24 @@ describe('ListTimeEntriesService', () => {
   let sut: ListTimeEntriesService
 
   let dataSourceResolverMock: Mocked<IDataSourceResolver>
-  let findByMemberIdMock: Mock<ITimeEntryQuery['findByMemberId']>
-  let adapterMock: IDataSourceAdapter
+  let adapterMock: Mocked<IDataSourceAdapter>
+  let timeEntryQueryMock: Mocked<ITimeEntryQuery>
 
-  const makeInput = (): ListTimeEntriesInput => ({
-    workspaceId: 'workspace-1',
-    pluginId: 'plugin-1',
-    connectionInstanceId: 'conn-1',
-    memberId: 'member-1',
-    startDate: new Date('2024-01-01'),
-    endDate: new Date('2024-01-31'),
-  })
+  const makeInput = (): ListTimeEntriesInput =>
+    ({
+      workspaceId: 'workspace-1',
+      pluginId: 'plugin-1',
+      connectionInstanceId: 'conn-1',
+      // memberId removido, pois a responsabilidade de identificação agora é do adapter
+      startDate: new Date('2024-01-01'),
+      endDate: new Date('2024-01-31'),
+    }) as ListTimeEntriesInput
+
+  const fakeMember = {
+    id: 'member-123',
+    firstname: 'John',
+    lastname: 'Doe',
+  }
 
   const makePagedResult = (): PagedResultDTO<TimeEntryDTO> => ({
     items: [],
@@ -35,54 +43,76 @@ describe('ListTimeEntriesService', () => {
   beforeEach(() => {
     vi.clearAllMocks()
 
-    findByMemberIdMock = vi.fn()
+    timeEntryQueryMock = {
+      findByMemberId: vi.fn(),
+    } as unknown as Mocked<ITimeEntryQuery>
 
     adapterMock = {
-      timeEntryQuery: {
-        findByMemberId: findByMemberIdMock,
-      } as Partial<ITimeEntryQuery> as ITimeEntryQuery,
-    } as Partial<IDataSourceAdapter> as IDataSourceAdapter
+      timeEntryQuery: timeEntryQueryMock,
+      getAuthenticatedMemberData: vi.fn(),
+    } as unknown as Mocked<IDataSourceAdapter>
 
     dataSourceResolverMock = {
       getDataSource: vi.fn(),
-      getDataSourcesForWorkspace: vi.fn(),
-      getConfigFields: vi.fn(),
-    }
+    } as unknown as Mocked<IDataSourceResolver>
 
     sut = new ListTimeEntriesService(dataSourceResolverMock)
   })
 
-  it('should resolve data source and return time entries', async () => {
+  it('should resolve data source, authenticate member, and return time entries successfully', async () => {
     // Arrange
     const input = makeInput()
     const fakeResult = makePagedResult()
 
     dataSourceResolverMock.getDataSource.mockResolvedValue(adapterMock)
-    findByMemberIdMock.mockResolvedValue(fakeResult)
+    adapterMock.getAuthenticatedMemberData.mockResolvedValue(
+      Either.success(fakeMember as any),
+    )
+    timeEntryQueryMock.findByMemberId.mockResolvedValue(fakeResult)
 
     // Act
     const result = await sut.execute(input)
 
     // Assert
+    expect(result.isSuccess()).toBe(true)
+    expect(result.success).toEqual(fakeResult)
+
     expect(dataSourceResolverMock.getDataSource).toHaveBeenCalledWith(
       input.workspaceId,
       input.pluginId,
       input.connectionInstanceId,
     )
-
-    expect(findByMemberIdMock).toHaveBeenCalledWith(
-      input.memberId,
+    expect(adapterMock.getAuthenticatedMemberData).toHaveBeenCalled()
+    expect(timeEntryQueryMock.findByMemberId).toHaveBeenCalledWith(
+      fakeMember.id,
       input.startDate,
       input.endDate,
     )
-
-    expect(result.isSuccess()).toBe(true)
   })
 
-  it('should return failure when resolver throws', async () => {
+  it('should forward the failure if getAuthenticatedMemberData returns a failure', async () => {
     // Arrange
     const input = makeInput()
+    const authError = AppError.Unauthorized('FALHA_DE_AUTENTICACAO')
 
+    dataSourceResolverMock.getDataSource.mockResolvedValue(adapterMock)
+    adapterMock.getAuthenticatedMemberData.mockResolvedValue(
+      Either.failure(authError),
+    )
+
+    // Act
+    const result = await sut.execute(input)
+
+    // Assert
+    expect(result.isFailure()).toBe(true)
+    expect(result.failure).toBe(authError)
+
+    expect(timeEntryQueryMock.findByMemberId).not.toHaveBeenCalled()
+  })
+
+  it('should return unexpected error when the data source resolver throws an exception', async () => {
+    // Arrange
+    const input = makeInput()
     dataSourceResolverMock.getDataSource.mockRejectedValue(
       new Error('resolver error'),
     )
@@ -92,22 +122,35 @@ describe('ListTimeEntriesService', () => {
 
     // Assert
     expect(result.isFailure()).toBe(true)
-    expect(findByMemberIdMock).not.toHaveBeenCalled()
+    expect(result.failure).toBeInstanceOf(AppError)
+    expect(result.failure.messageKey).toBe('ERRO_INESPERADO')
+    expect(result.failure.statusCode).toBe(404)
+
+    expect(timeEntryQueryMock.findByMemberId).not.toHaveBeenCalled()
   })
 
-  it('should return failure when adapter query throws', async () => {
+  it('should return unexpected error when the adapter query throws an exception', async () => {
     // Arrange
     const input = makeInput()
 
     dataSourceResolverMock.getDataSource.mockResolvedValue(adapterMock)
-    findByMemberIdMock.mockRejectedValue(new Error('query error'))
+    adapterMock.getAuthenticatedMemberData.mockResolvedValue(
+      Either.success(fakeMember as any),
+    )
+    timeEntryQueryMock.findByMemberId.mockRejectedValue(
+      new Error('query error'),
+    )
 
     // Act
     const result = await sut.execute(input)
 
     // Assert
     expect(result.isFailure()).toBe(true)
+    expect(result.failure).toBeInstanceOf(AppError)
+    expect(result.failure.messageKey).toBe('ERRO_INESPERADO')
+    expect(result.failure.statusCode).toBe(404)
+
     expect(dataSourceResolverMock.getDataSource).toHaveBeenCalledOnce()
-    expect(findByMemberIdMock).toHaveBeenCalledOnce()
+    expect(timeEntryQueryMock.findByMemberId).toHaveBeenCalledOnce()
   })
 })

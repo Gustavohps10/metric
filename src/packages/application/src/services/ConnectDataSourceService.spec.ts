@@ -7,19 +7,16 @@ import type {
   ConnectDataSourceInput,
   ICredentialsStorage,
   IDataSourceResolver,
-  IJWTService,
   IWorkspacesRepository,
 } from '@/contracts'
 import type { IDataSourceAdapter } from '@/contracts/resolvers/IDataSourceAdapter'
 import type { IAuthenticationStrategy } from '@/contracts/strategies'
 
-import { getMemberStorageKey } from '../credentials-storage-keys'
 import { ConnectDataSourceService } from './ConnectDataSourceService'
 
 describe('ConnectDataSourceService', () => {
   let sut: ConnectDataSourceService
 
-  let jwtServiceMock: Mocked<IJWTService>
   let credentialsStorageMock: Mocked<ICredentialsStorage>
   let workspacesRepositoryMock: Mocked<IWorkspacesRepository>
   let dataSourceResolverMock: Mocked<IDataSourceResolver>
@@ -32,6 +29,8 @@ describe('ConnectDataSourceService', () => {
     id: 'member-123',
     firstname: 'John',
     lastname: 'Doe',
+    login: 'johndoe',
+    avatarUrl: 'https://example.com/avatar.png',
   }
 
   const fakeCredentials = {
@@ -51,12 +50,6 @@ describe('ConnectDataSourceService', () => {
 
   beforeEach(() => {
     vi.clearAllMocks()
-
-    jwtServiceMock = {
-      generateToken: vi.fn(),
-      tokenIsValid: vi.fn(),
-      decodeToken: vi.fn(),
-    } as Partial<IJWTService> as Mocked<IJWTService>
 
     credentialsStorageMock = {
       saveToken: vi.fn(),
@@ -93,17 +86,15 @@ describe('ConnectDataSourceService', () => {
     } as Partial<Workspace> as Mocked<Workspace>
 
     sut = new ConnectDataSourceService(
-      jwtServiceMock,
       credentialsStorageMock,
       workspacesRepositoryMock,
       dataSourceResolverMock,
     )
   })
 
-  it('should authenticate, save credentials, update workspace and return a token successfully', async () => {
+  it('should authenticate, save credentials, update workspace and return member successfully', async () => {
     // Arrange
     const input = makeInput()
-    const expectedToken = 'metric-jwt-token-123'
 
     workspacesRepositoryMock.findById.mockResolvedValue(fakeWorkspace)
     dataSourceResolverMock.getDataSource.mockResolvedValue(adapterMock)
@@ -116,7 +107,6 @@ describe('ConnectDataSourceService', () => {
     )
 
     fakeWorkspace.connectDataSource.mockReturnValue(Either.success())
-    jwtServiceMock.generateToken.mockReturnValue(expectedToken)
 
     // Act
     const result = await sut.execute(input)
@@ -125,38 +115,31 @@ describe('ConnectDataSourceService', () => {
     expect(result.isSuccess()).toBe(true)
     expect(result.success).toEqual({
       member: fakeMember,
-      token: expectedToken,
     })
 
-    const storageKey = `workspace-session-${input.workspaceId}-${input.connectionInstanceId}`
-    const memberKey = getMemberStorageKey(
-      input.workspaceId,
-      input.connectionInstanceId,
-    )
+    const storageKey = `workspace-connection-${input.workspaceId}-${input.connectionInstanceId}`
 
     expect(credentialsStorageMock.saveToken).toHaveBeenCalledWith(
       'metric',
       storageKey,
-      JSON.stringify(fakeCredentials),
-    )
-    expect(credentialsStorageMock.saveToken).toHaveBeenCalledWith(
-      'metric',
-      memberKey,
-      JSON.stringify(fakeMember),
+      JSON.stringify({
+        member: fakeMember,
+        credentials: fakeCredentials,
+      }),
     )
 
     expect(fakeWorkspace.connectDataSource).toHaveBeenCalledWith(
       input.connectionInstanceId,
+      {
+        id: fakeMember.id.toString(),
+        name: `${fakeMember.firstname} ${fakeMember.lastname}`,
+        login: fakeMember.login,
+        avatarUrl: fakeMember.avatarUrl,
+      },
       input.configuration,
     )
-    expect(workspacesRepositoryMock.update).toHaveBeenCalledWith(fakeWorkspace)
 
-    expect(jwtServiceMock.generateToken).toHaveBeenCalledWith({
-      id: fakeMember.id,
-      name: `${fakeMember.firstname} ${fakeMember.lastname}`,
-      workspaceId: input.workspaceId,
-      connectionInstanceId: input.connectionInstanceId,
-    })
+    expect(workspacesRepositoryMock.update).toHaveBeenCalledWith(fakeWorkspace)
   })
 
   it('should return NotFoundError when workspace does not exist', async () => {
@@ -169,7 +152,6 @@ describe('ConnectDataSourceService', () => {
 
     // Assert
     expect(result.isFailure()).toBe(true)
-    // Usando o statusCode para garantir que é o erro correto
     expect(result.failure.statusCode).toBe(404)
     expect(result.failure.messageKey).toBe('WORKSPACE_NAO_ENCONTRADO')
 
@@ -199,10 +181,11 @@ describe('ConnectDataSourceService', () => {
     expect(fakeWorkspace.connectDataSource).not.toHaveBeenCalled()
   })
 
-  it('should return failure when workspace entity rejects data source connection', async () => {
+  it('should delete storage token and return failure when workspace entity rejects data source connection', async () => {
     // Arrange
     const input = makeInput()
     const domainError = AppError.ValidationError('CONNECTION_ALREADY_EXISTS')
+    const storageKey = `workspace-connection-${input.workspaceId}-${input.connectionInstanceId}`
 
     workspacesRepositoryMock.findById.mockResolvedValue(fakeWorkspace)
     dataSourceResolverMock.getDataSource.mockResolvedValue(adapterMock)
@@ -223,13 +206,18 @@ describe('ConnectDataSourceService', () => {
     expect(result.isFailure()).toBe(true)
     expect(result.failure).toBe(domainError)
 
+    expect(credentialsStorageMock.deleteToken).toHaveBeenCalledWith(
+      'metric',
+      storageKey,
+    )
     expect(workspacesRepositoryMock.update).not.toHaveBeenCalled()
   })
 
-  it('should delete storage tokens and return InternalServerError when an exception is thrown', async () => {
+  it('should delete storage token and return InternalServerError when an exception is thrown', async () => {
     // Arrange
     const input = makeInput()
     const error = new Error('Database connection lost')
+    const storageKey = `workspace-connection-${input.workspaceId}-${input.connectionInstanceId}`
 
     workspacesRepositoryMock.findById.mockRejectedValue(error)
 
@@ -241,20 +229,10 @@ describe('ConnectDataSourceService', () => {
     expect(result.failure.statusCode).toBe(500)
     expect(result.failure.messageKey).toBe('ERRO_AO_CONECTAR_DATA_SOURCE')
 
-    const storageKey = `workspace-session-${input.workspaceId}-${input.connectionInstanceId}`
-    const memberKey = getMemberStorageKey(
-      input.workspaceId,
-      input.connectionInstanceId,
-    )
-
-    expect(credentialsStorageMock.deleteToken).toHaveBeenCalledTimes(2)
+    expect(credentialsStorageMock.deleteToken).toHaveBeenCalledTimes(1)
     expect(credentialsStorageMock.deleteToken).toHaveBeenCalledWith(
       'metric',
       storageKey,
-    )
-    expect(credentialsStorageMock.deleteToken).toHaveBeenCalledWith(
-      'metric',
-      memberKey,
     )
   })
 })

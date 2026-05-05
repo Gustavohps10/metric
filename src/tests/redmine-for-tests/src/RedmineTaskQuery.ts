@@ -169,7 +169,7 @@ export class RedmineTaskQuery extends RedmineBase implements ITaskQuery {
               description: journal.notes
                 ? MarkupConverter.fromTextile(
                     journal.notes,
-                    this.context?.config?.apiUrl!,
+                    this.context?.config?.apiUrl! as string,
                   )
                 : undefined,
               changedBy: {
@@ -296,7 +296,7 @@ export class RedmineTaskQuery extends RedmineBase implements ITaskQuery {
         description: fullIssue.description
           ? MarkupConverter.fromTextile(
               fullIssue.description,
-              this.context?.config?.apiUrl!,
+              this.context?.config?.apiUrl! as string,
             )
           : undefined,
         projectName: fullIssue.project?.name,

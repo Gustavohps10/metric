@@ -3,8 +3,6 @@ import { createRoot } from 'react-dom/client'
 
 import { AppDesktop } from '@/renderer/App'
 
-console.log(import.meta.env.MODE)
-
 // if (import.meta.env.MODE === 'development') {
 //   // @ts-ignore
 //   import('@welldone-software/why-did-you-render').then(

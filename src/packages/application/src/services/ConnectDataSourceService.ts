@@ -5,16 +5,12 @@ import {
   IConnectDataSourceUseCase,
   ICredentialsStorage,
   IDataSourceResolver,
-  IJWTService,
   IWorkspacesRepository,
 } from '@/contracts'
-import { AuthenticationDTO } from '@/dtos'
-
-import { getMemberStorageKey } from '../credentials-storage-keys'
+import { ConnectionResultDTO } from '@/dtos/ConnectionResultDTO'
 
 export class ConnectDataSourceService implements IConnectDataSourceUseCase {
   constructor(
-    private readonly jwtService: IJWTService,
     private readonly credentialsStorage: ICredentialsStorage,
     private readonly workspacesRepository: IWorkspacesRepository,
     private readonly dataSourceResolver: IDataSourceResolver,
@@ -25,7 +21,9 @@ export class ConnectDataSourceService implements IConnectDataSourceUseCase {
     Configuration extends Record<string, unknown>,
   >(
     input: ConnectDataSourceInput<Credentials, Configuration>,
-  ): Promise<Either<AppError, AuthenticationDTO>> {
+  ): Promise<Either<AppError, ConnectionResultDTO>> {
+    const storageKey = `workspace-connection-${input.workspaceId}-${input.connectionInstanceId}`
+
     try {
       const workspace = await this.workspacesRepository.findById(
         input.workspaceId,
@@ -55,54 +53,39 @@ export class ConnectDataSourceService implements IConnectDataSourceUseCase {
       }
 
       const { member, credentials } = authResult.success
-      const serializedCredentials = JSON.stringify(credentials)
-
-      const storageKey = `workspace-session-${input.workspaceId}-${input.connectionInstanceId}`
-      const memberKey = getMemberStorageKey(
-        input.workspaceId,
-        input.connectionInstanceId,
-      )
 
       await this.credentialsStorage.saveToken(
         'metric',
         storageKey,
-        serializedCredentials,
-      )
-
-      await this.credentialsStorage.saveToken(
-        'metric',
-        memberKey,
-        JSON.stringify(member),
+        JSON.stringify({
+          member,
+          credentials,
+        }),
       )
 
       const connectResult = workspace.connectDataSource(
         input.connectionInstanceId,
+        {
+          id: member.id.toString(),
+          name: `${member.firstname} ${member.lastname}`,
+          login: member.login,
+          avatarUrl: member.avatarUrl,
+        },
         input.configuration as Record<string, unknown>,
       )
 
       if (connectResult.isFailure()) {
+        await this.credentialsStorage.deleteToken('metric', storageKey)
         return connectResult.forwardFailure()
       }
 
       await this.workspacesRepository.update(workspace)
 
-      const token = await this.jwtService.generateToken({
-        id: member.id.toString(),
-        name: `${member.firstname} ${member.lastname}`,
-        workspaceId: input.workspaceId,
-        connectionInstanceId: input.connectionInstanceId,
+      return Either.success<ConnectionResultDTO>({
+        member,
       })
-
-      return Either.success<AuthenticationDTO>({ member, token })
-    } catch (error: unknown) {
-      const storageKey = `workspace-session-${input.workspaceId}-${input.connectionInstanceId}`
-      const memberKey = getMemberStorageKey(
-        input.workspaceId,
-        input.connectionInstanceId,
-      )
-
+    } catch {
       await this.credentialsStorage.deleteToken('metric', storageKey)
-      await this.credentialsStorage.deleteToken('metric', memberKey)
 
       return Either.failure(AppError.Internal('ERRO_AO_CONECTAR_DATA_SOURCE'))
     }

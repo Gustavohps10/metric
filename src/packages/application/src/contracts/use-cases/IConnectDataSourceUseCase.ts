@@ -1,6 +1,6 @@
 import { AppError, Either } from '@metric-org/cross-cutting/helpers'
 
-import { AuthenticationDTO } from '@/dtos'
+import { ConnectionResultDTO } from '@/dtos/ConnectionResultDTO'
 
 export interface ConnectDataSourceInput<Credentials, Configuration> {
   workspaceId: string
@@ -13,5 +13,5 @@ export interface ConnectDataSourceInput<Credentials, Configuration> {
 export interface IConnectDataSourceUseCase {
   execute<Credentials, Configuration extends Record<string, unknown>>(
     input: ConnectDataSourceInput<Credentials, Configuration>,
-  ): Promise<Either<AppError, AuthenticationDTO>>
+  ): Promise<Either<AppError, ConnectionResultDTO>>
 }

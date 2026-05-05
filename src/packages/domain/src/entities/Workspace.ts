@@ -7,11 +7,22 @@ import z from 'zod'
 
 import { Entity } from '@/entities/Entity'
 
-export interface DataSourceConnection {
+type ConnectionMember = {
+  id: string
+  name: string
+  login: string
+  avatarUrl?: string
+}
+
+type InternalConnection = {
   id: string
   dataSourceId: string
+  status: 'connected' | 'disabled' | 'disconnected'
+  member?: ConnectionMember
   config?: Record<string, unknown>
 }
+
+export type DataSourceConnection = Readonly<InternalConnection>
 
 export type WorkspaceStatus = 'draft' | 'configured'
 
@@ -28,14 +39,12 @@ const avatarUrlSchema = z
 
       const hasValidExtension = /\.(png|jpg|jpeg|gif|svg)(\?.*)?$/i.test(val)
 
-      // protocolo custom (windows path incluso)
       if (val.startsWith('metric-app://')) {
         return hasValidExtension
       }
 
       try {
         const url = new URL(val)
-
         const isHttp = url.protocol === 'http:' || url.protocol === 'https:'
 
         if (!isHttp) return false
@@ -73,7 +82,7 @@ export class Workspace extends Entity {
   private _name: string
   private _description?: string
   private _avatarUrl?: string
-  private _dataSourceConnections: DataSourceConnection[]
+  private _dataSourceConnections: InternalConnection[]
   private _status: WorkspaceStatus
   private _createdAt: Date
   private _updatedAt: Date
@@ -86,7 +95,7 @@ export class Workspace extends Entity {
     status: WorkspaceStatus,
     description?: string,
     avatarUrl?: string,
-    connections: DataSourceConnection[] = [],
+    connections: InternalConnection[] = [],
   ) {
     super()
     this._id = id
@@ -140,9 +149,17 @@ export class Workspace extends Entity {
   get avatarUrl(): string | undefined {
     return this._avatarUrl
   }
-  get dataSourceConnections(): DataSourceConnection[] {
-    return this._dataSourceConnections
+
+  get dataSourceConnections(): ReadonlyArray<DataSourceConnection> {
+    return this._dataSourceConnections.map((c) =>
+      Object.freeze({
+        ...c,
+        member: c.member ? Object.freeze({ ...c.member }) : undefined,
+        config: c.config ? Object.freeze({ ...c.config }) : undefined,
+      }),
+    )
   }
+
   get createdAt(): Date {
     return this._createdAt
   }
@@ -239,8 +256,13 @@ export class Workspace extends Entity {
     }
 
     const exists = this._dataSourceConnections.some((c) => c.id === id)
+
     if (!exists) {
-      this._dataSourceConnections.push({ id, dataSourceId })
+      this._dataSourceConnections.push({
+        id,
+        dataSourceId,
+        status: 'disconnected',
+      })
     }
 
     this.touch()
@@ -255,12 +277,14 @@ export class Workspace extends Entity {
     } else {
       this._dataSourceConnections = []
     }
+
     this.touch()
     return Either.success()
   }
 
   connectDataSource(
     id: string,
+    member: ConnectionMember,
     config: Record<string, unknown>,
   ): Either<AppError, void> {
     const connection = this._dataSourceConnections.find((c) => c.id === id)
@@ -273,7 +297,10 @@ export class Workspace extends Entity {
       )
     }
 
+    connection.status = 'connected'
     connection.config = config
+    connection.member = member
+
     this.touch()
     return Either.success()
   }
@@ -289,7 +316,9 @@ export class Workspace extends Entity {
       )
     }
 
+    connection.status = 'disconnected'
     connection.config = undefined
+
     this.touch()
     return Either.success()
   }

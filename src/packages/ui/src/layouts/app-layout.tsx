@@ -21,8 +21,8 @@ export function AppLayout() {
     <>
       <main className="flex h-screen w-screen overflow-hidden pt-12">
         <WorkspaceProvider workspaceId={activeWorkspaceId}>
-          <SyncProvider>
-            <DataSourceConnectionsProvider>
+          <DataSourceConnectionsProvider>
+            <SyncProvider>
               <NewWorkspaceDialog
                 isOpen={workspaceDialogIsOpen}
                 setIsOpen={setWorkspaceDialogIsOpen}
@@ -44,8 +44,8 @@ export function AppLayout() {
                   setWorkspaceDialogIsOpen(true)
                 }}
               />
-            </DataSourceConnectionsProvider>
-          </SyncProvider>
+            </SyncProvider>
+          </DataSourceConnectionsProvider>
         </WorkspaceProvider>
 
         <section className="flex flex-1 overflow-hidden rounded-tl-md border-t border-l">

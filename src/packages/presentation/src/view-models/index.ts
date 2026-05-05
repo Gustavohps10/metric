@@ -1,4 +1,7 @@
+export * from './AddonInstallerViewModel'
+export * from './AddonManifestViewModel'
 export * from './AuthenticationViewModel'
+export * from './ConnectionResultViewModel'
 export * from './MemberViewModel'
 export * from './MetadataViewModel'
 export * from './PaginatedViewModel'

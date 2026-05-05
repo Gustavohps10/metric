@@ -47,14 +47,17 @@ function ClientTasksTableWrapper({
 export function Backlog() {
   const db = useSyncStore((state) => state.db)
 
-  const { membersByConnection } = useDataSourceConnections()
+  const { connections } = useDataSourceConnections()
 
   const memberIds = useMemo(() => {
-    return Object.values(membersByConnection ?? {})
+    return Object.values(connections ?? {})
       .map((state) => state.member?.id)
-      .filter((id): id is number => id !== null && id !== undefined)
+      .filter(
+        (id): id is string =>
+          id !== null && id !== undefined && typeof id === 'string',
+      )
       .map((id) => String(id))
-  }, [membersByConnection])
+  }, [connections])
 
   if (!db) {
     return (
