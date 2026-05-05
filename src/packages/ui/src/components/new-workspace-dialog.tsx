@@ -18,8 +18,6 @@ export function NewWorkspaceDialog({
   const { workspace, isLoading } = useWorkspace()
   const [hasOpenChild, setHasOpenChild] = React.useState(false)
 
-  console.log(workspace)
-
   function resetDialog() {
     setIsOpen(false)
     setWorkspaceId(undefined)

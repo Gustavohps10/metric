@@ -19,7 +19,7 @@ import {
 } from '@metric-org/application/contracts/use-cases/IMarkWorkspaceAsConfiguredUseCase'
 import { IRequest } from '@metric-org/cross-cutting/transport'
 import {
-  AuthenticationViewModel,
+  ConnectionResultViewModel,
   MemberViewModel,
   PaginatedViewModel,
   ViewModel,
@@ -218,7 +218,7 @@ export class WorkspacesHandler {
   public async connectDataSource(
     _event: IpcMainInvokeEvent,
     { body }: IRequest<ConnectDataSourceRequest>,
-  ): Promise<ViewModel<AuthenticationViewModel>> {
+  ): Promise<ViewModel<ConnectionResultViewModel>> {
     const result = await this.connectDataSourceService.execute(body)
 
     if (result.isFailure()) {

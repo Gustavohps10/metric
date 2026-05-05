@@ -1,211 +1,334 @@
 'use client'
 
-import { WorkspaceConnectionDTO, WorkspaceDTO } from '@metric-org/application'
+import {
+  AddonManifestViewModel,
+  ConnectionResultViewModel,
+  ViewModel,
+  WorkspaceConnectionViewModel,
+  WorkspaceViewModel,
+} from '@metric-org/sdk'
+import { useQuery, useQueryClient } from '@tanstack/react-query'
 import React, {
   createContext,
   ReactNode,
   useCallback,
   useContext,
-  useEffect,
   useMemo,
-  useState,
 } from 'react'
 
-import { User } from '@/@types/session/User'
 import { useWorkspace } from '@/contexts/WorkspaceContext'
 import { useClient } from '@/hooks'
 
 export type ConnectionInstanceId = string
 
-export interface DataSource {
-  id: ConnectionInstanceId
-  pluginId: string
+export interface AddonConnectionView {
+  connectionId: string
+  dataSourceId: string
+  status: WorkspaceConnectionViewModel['status']
   config?: Record<string, unknown>
-}
 
-export interface DataSourceConnectionState {
-  member: User | null
-  isAuthenticated: boolean
-  token?: string | null
+  member?: WorkspaceConnectionViewModel['member']
+
+  addon?: AddonManifestViewModel
 }
 
 export interface DataSourceConnectionsContextType {
   isLoading: boolean
-  membersByConnection: Record<ConnectionInstanceId, DataSourceConnectionState>
+
+  connections: AddonConnectionView[]
+
+  workspaceConnections: WorkspaceViewModel['dataSourceConnections']
+
+  installedPlugins: AddonManifestViewModel[]
+
+  link: (params: {
+    connectionInstanceId: ConnectionInstanceId
+    pluginId: string
+  }) => Promise<ViewModel<WorkspaceViewModel> | undefined>
+
+  unlink: (
+    connectionInstanceId?: ConnectionInstanceId,
+  ) => Promise<ViewModel<WorkspaceViewModel> | undefined>
+
   connect: (params: {
     connectionInstanceId: ConnectionInstanceId
-    member: User
-    token: string
-  }) => Promise<void>
-  disconnect: (connectionInstanceId: ConnectionInstanceId) => Promise<void>
-  getMemberId: (connectionInstanceId: ConnectionInstanceId) => string | null
+    pluginId: string
+    credentials: Record<string, unknown>
+    configuration: Record<string, unknown>
+  }) => Promise<ViewModel<ConnectionResultViewModel> | undefined>
+
+  disconnect: (
+    connectionInstanceId: ConnectionInstanceId,
+  ) => Promise<ViewModel<WorkspaceViewModel> | undefined>
+
+  getConnection: (
+    connectionInstanceId: ConnectionInstanceId,
+  ) => AddonConnectionView | undefined
+
+  isConnected: (connectionInstanceId: ConnectionInstanceId) => boolean
 }
 
 export const DataSourceConnectionsContext = createContext<
   DataSourceConnectionsContextType | undefined
 >(undefined)
 
-function mapConnections(workspace: WorkspaceDTO): DataSource[] {
-  const conns = workspace.dataSourceConnections
-  if (!Array.isArray(conns)) return []
-
-  return conns.map((c: WorkspaceConnectionDTO) => ({
-    id: c.id,
-    pluginId: c.dataSourceId,
-    config: c.config,
-  }))
-}
-
 export function DataSourceConnectionsProvider({
   children,
 }: {
   children: ReactNode
 }) {
-  const { workspace, isLoading: workspaceIsLoading } = useWorkspace()
+  const { workspace } = useWorkspace()
   const client = useClient()
+  const queryClient = useQueryClient()
 
-  const [membersByConnection, setMembersByConnection] = useState<
-    Record<ConnectionInstanceId, DataSourceConnectionState>
-  >({})
-  const [isLoading, setIsLoading] = useState(true)
+  const workspaceId = workspace?.id
+  const workspaceConnections = workspace?.dataSourceConnections ?? []
+
+  const { data: installedPlugins = [] } = useQuery({
+    queryKey: ['plugins', 'installed'],
+    queryFn: async () => {
+      const res = await client.integrations.addons.listInstalled()
+      if (!res.isSuccess) return []
+      return res.data ?? []
+    },
+  })
+
+  const connections = useMemo<AddonConnectionView[]>(() => {
+    return workspaceConnections.map((conn) => {
+      const addon = installedPlugins.find((a) => a.id === conn.dataSourceId)
+
+      return {
+        connectionId: conn.id,
+        dataSourceId: conn.dataSourceId,
+        status: conn.status,
+        config: conn.config,
+        member: conn.member,
+        addon,
+      }
+    })
+  }, [workspaceConnections, installedPlugins])
+
+  const getConnection = useCallback(
+    (connectionInstanceId: string) => {
+      return connections.find((c) => c.connectionId === connectionInstanceId)
+    },
+    [connections],
+  )
+
+  const isConnected = useCallback(
+    (connectionInstanceId: string): boolean => {
+      return (
+        workspaceConnections.find((c) => c.id === connectionInstanceId)
+          ?.status === 'connected'
+      )
+    },
+    [workspaceConnections],
+  )
+
+  const link = useCallback(
+    async ({
+      connectionInstanceId,
+      pluginId,
+    }: {
+      connectionInstanceId: ConnectionInstanceId
+      pluginId: string
+    }) => {
+      if (!workspaceId) return
+
+      const res = await client.services.workspaces.linkDataSource({
+        body: {
+          workspaceId,
+          dataSourceId: pluginId,
+          connectionInstanceId,
+        },
+      })
+
+      if (res.isSuccess) {
+        queryClient.setQueryData<WorkspaceViewModel>(
+          ['workspace', workspaceId],
+          (prev) => {
+            if (!prev) return prev
+
+            const exists = prev.dataSourceConnections.some(
+              (c) => c.id === connectionInstanceId,
+            )
+
+            if (exists) return prev
+
+            return {
+              ...prev,
+              dataSourceConnections: [
+                ...prev.dataSourceConnections,
+                {
+                  id: connectionInstanceId,
+                  dataSourceId: pluginId,
+                  status: 'disconnected',
+                },
+              ],
+            }
+          },
+        )
+      }
+
+      return res
+    },
+    [client, workspaceId, queryClient],
+  )
+
+  const unlink = useCallback(
+    async (connectionInstanceId?: ConnectionInstanceId) => {
+      if (!workspaceId) return
+
+      const res = await client.services.workspaces.unlinkDataSource({
+        body: {
+          workspaceId,
+          connectionInstanceId,
+        },
+      })
+
+      if (res.isSuccess) {
+        queryClient.setQueryData<WorkspaceViewModel>(
+          ['workspace', workspaceId],
+          (prev) => {
+            if (!prev) return prev
+
+            return {
+              ...prev,
+              dataSourceConnections: connectionInstanceId
+                ? prev.dataSourceConnections.filter(
+                    (c) => c.id !== connectionInstanceId,
+                  )
+                : [],
+            }
+          },
+        )
+      }
+
+      return res
+    },
+    [client, workspaceId, queryClient],
+  )
 
   const connect = useCallback(
     async ({
       connectionInstanceId,
-      member,
-      token,
+      pluginId,
+      credentials,
+      configuration,
     }: {
       connectionInstanceId: ConnectionInstanceId
-      member: User
-      token: string
+      pluginId: string
+      credentials: Record<string, unknown>
+      configuration: Record<string, unknown>
     }) => {
-      if (!workspace?.id) return
+      if (!workspaceId) return
 
-      await client.modules.tokenStorage.saveToken({
+      const res = await client.services.workspaces.connectDataSource({
         body: {
-          service: 'metric',
-          account: `jwt-${workspace.id}-${connectionInstanceId}`,
-          token,
+          workspaceId,
+          connectionInstanceId,
+          pluginId,
+          credentials,
+          configuration,
         },
       })
 
-      setMembersByConnection((prev) => ({
-        ...prev,
-        [connectionInstanceId]: {
-          member,
-          isAuthenticated: true,
-          token,
-        },
-      }))
+      if (res.isSuccess && res.data) {
+        queryClient.setQueryData<WorkspaceViewModel>(
+          ['workspace', workspaceId],
+          (prev) => {
+            if (!prev) return prev
+
+            return {
+              ...prev,
+              dataSourceConnections: prev.dataSourceConnections.map((c) =>
+                c.id === connectionInstanceId
+                  ? {
+                      ...c,
+                      status: 'connected',
+                      config: configuration,
+                      member: {
+                        id: res.data?.member?.id.toString() ?? '',
+                        login: res.data?.member?.login ?? '',
+                        name: `${res.data?.member?.firstname ?? ''} ${res.data?.member?.lastname ?? ''}`.trim(),
+                        avatarUrl: res.data?.member?.avatarUrl ?? undefined,
+                      },
+                    }
+                  : c,
+              ),
+            }
+          },
+        )
+      }
+
+      return res
     },
-    [client, workspace?.id],
+    [client, workspaceId, queryClient],
   )
 
   const disconnect = useCallback(
     async (connectionInstanceId: ConnectionInstanceId) => {
-      if (!workspace?.id) return
+      if (!workspaceId) return
 
-      setMembersByConnection((prev) => ({
-        ...prev,
-        [connectionInstanceId]: {
-          member: null,
-          isAuthenticated: false,
-          token: null,
-        },
-      }))
-
-      await client.modules.tokenStorage.deleteToken({
+      const res = await client.services.workspaces.disconnectDataSource({
         body: {
-          service: 'metric',
-          account: `jwt-${workspace.id}-${connectionInstanceId}`,
+          workspaceId,
+          connectionInstanceId,
         },
       })
-    },
-    [client, workspace?.id],
-  )
 
-  const getMemberId = useCallback(
-    (connectionInstanceId: ConnectionInstanceId) => {
-      const state = membersByConnection[connectionInstanceId]
-      return state?.member?.id != null ? String(state.member.id) : null
-    },
-    [membersByConnection],
-  )
+      if (res.isSuccess) {
+        queryClient.setQueryData<WorkspaceViewModel>(
+          ['workspace', workspaceId],
+          (prev) => {
+            if (!prev) return prev
 
-  useEffect(() => {
-    if (!workspace?.id || workspaceIsLoading) return
-
-    let isMounted = true
-
-    const run = async () => {
-      setIsLoading(true)
-      const connections = mapConnections(workspace)
-      const next: Record<ConnectionInstanceId, DataSourceConnectionState> = {}
-
-      for (const conn of connections) {
-        try {
-          const res = await client.modules.tokenStorage.getToken({
-            body: {
-              service: 'metric',
-              account: `jwt-${workspace.id}-${conn.id}`,
-            },
-          })
-
-          const token = res.isSuccess ? (res.data ?? null) : null
-
-          if (!token) {
-            next[conn.id] = {
-              member: null,
-              isAuthenticated: false,
-              token: null,
+            return {
+              ...prev,
+              dataSourceConnections: prev.dataSourceConnections.map((c) =>
+                c.id === connectionInstanceId
+                  ? {
+                      ...c,
+                      status: 'disconnected',
+                      config: undefined,
+                      member: undefined,
+                    }
+                  : c,
+              ),
             }
-            continue
-          }
-
-          const response = await client.services.workspaces.getConnectionMember(
-            {
-              body: {
-                workspaceId: workspace.id,
-                connectionInstanceId: conn.id,
-              },
-              headers: {
-                authorization: `Bearer ${token}`,
-              },
-            },
-          )
-
-          next[conn.id] = {
-            member: response.isSuccess ? (response.data as User) : null,
-            isAuthenticated: response.isSuccess && response.data != null,
-            token,
-          }
-        } catch {
-          next[conn.id] = { member: null, isAuthenticated: false, token: null }
-        }
+          },
+        )
       }
 
-      if (isMounted) {
-        setMembersByConnection(next)
-        setIsLoading(false)
-      }
-    }
-
-    void run()
-
-    return () => {
-      isMounted = false
-    }
-  }, [client, workspace, workspaceIsLoading])
+      return res
+    },
+    [client, workspaceId, queryClient],
+  )
 
   const value = useMemo<DataSourceConnectionsContextType>(
     () => ({
-      isLoading,
-      membersByConnection,
+      isLoading: false,
+      connections,
+      workspaceConnections,
+      installedPlugins,
+      link,
+      unlink,
       connect,
       disconnect,
-      getMemberId,
+      getConnection,
+      isConnected,
     }),
-    [connect, disconnect, getMemberId, isLoading, membersByConnection],
+    [
+      connections,
+      workspaceConnections,
+      installedPlugins,
+      link,
+      unlink,
+      connect,
+      disconnect,
+      getConnection,
+      isConnected,
+    ],
   )
 
   return (
@@ -217,10 +340,12 @@ export function DataSourceConnectionsProvider({
 
 export function useDataSourceConnections(): DataSourceConnectionsContextType {
   const context = useContext(DataSourceConnectionsContext)
-  if (context === undefined) {
+
+  if (!context) {
     throw new Error(
       'useDataSourceConnections must be used within a DataSourceConnectionsProvider',
     )
   }
+
   return context
 }

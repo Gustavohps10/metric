@@ -1,4 +1,4 @@
-import { AppError } from '@metric-org/cross-cutting/helpers'
+import { AppError, Either } from '@metric-org/cross-cutting/helpers'
 import { Workspace } from '@metric-org/domain'
 import type { Mocked } from 'vitest'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
@@ -10,14 +10,12 @@ import type {
 } from '@/contracts'
 import type { IDataSourceAdapter } from '@/contracts/resolvers/IDataSourceAdapter'
 import type { MemberDTO } from '@/dtos'
-import { SessionManager } from '@/workflow'
 
 import { GetCurrentUserService } from './GetCurrentUserService'
 
 describe('GetCurrentUserService', () => {
   let sut: GetCurrentUserService
 
-  let sessionManagerMock: Mocked<SessionManager>
   let workspacesRepositoryMock: Mocked<IWorkspacesRepository>
   let dataSourceResolverMock: Mocked<IDataSourceResolver>
   let adapterMock: Mocked<IDataSourceAdapter>
@@ -28,8 +26,8 @@ describe('GetCurrentUserService', () => {
     connectionInstanceId: 'conn-abc',
   })
 
-  const fakeSessionUser = {
-    id: 'user-789',
+  const fakeAuthMember = {
+    id: 789,
     name: 'John Doe',
   }
 
@@ -39,19 +37,13 @@ describe('GetCurrentUserService', () => {
     lastname: 'Doe',
     login: 'test-user',
     admin: false,
-    custom_fields: [{ id: 123, name: 'chave', value: 'valor' }],
-    created_on: Date.now().toLocaleString(),
-    last_login_on: Date.now().toLocaleString(),
-    api_key: '123',
-    // email: 'john.doe@example.com',
+    customFields: [{ id: 123, name: 'chave', value: 'valor' }],
+    createdOn: Date.now().toLocaleString(),
+    lastLoginOn: Date.now().toLocaleString(),
   }
 
   beforeEach(() => {
     vi.clearAllMocks()
-
-    sessionManagerMock = {
-      getCurrentUser: vi.fn(),
-    } as Partial<SessionManager> as Mocked<SessionManager>
 
     workspacesRepositoryMock = {
       findById: vi.fn(),
@@ -62,6 +54,7 @@ describe('GetCurrentUserService', () => {
     } as Partial<IDataSourceResolver> as Mocked<IDataSourceResolver>
 
     adapterMock = {
+      getAuthenticatedMemberData: vi.fn(),
       memberQuery: {
         findById: vi.fn(),
       },
@@ -69,8 +62,11 @@ describe('GetCurrentUserService', () => {
 
     fakeWorkspace = {
       id: 'workspace-123',
+      status: 'configured',
+
       dataSourceConnections: [
         {
+          status: 'connected',
           id: 'conn-abc',
           dataSourceId: 'plugin-1',
         },
@@ -78,7 +74,6 @@ describe('GetCurrentUserService', () => {
     } as Partial<Workspace> as Mocked<Workspace>
 
     sut = new GetCurrentUserService(
-      sessionManagerMock,
       workspacesRepositoryMock,
       dataSourceResolverMock,
     )
@@ -88,9 +83,11 @@ describe('GetCurrentUserService', () => {
     // Arrange
     const input = makeInput()
 
-    sessionManagerMock.getCurrentUser.mockReturnValue(fakeSessionUser as any)
     workspacesRepositoryMock.findById.mockResolvedValue(fakeWorkspace)
     dataSourceResolverMock.getDataSource.mockResolvedValue(adapterMock)
+    adapterMock.getAuthenticatedMemberData.mockResolvedValue(
+      Either.success(fakeAuthMember as any),
+    )
     ;(adapterMock.memberQuery.findById as any).mockResolvedValue(fakeMemberDTO)
 
     // Act
@@ -100,10 +97,6 @@ describe('GetCurrentUserService', () => {
     expect(result.isSuccess()).toBe(true)
     expect(result.success).toEqual(fakeMemberDTO)
 
-    expect(sessionManagerMock.getCurrentUser).toHaveBeenCalledWith(
-      input.workspaceId,
-      input.connectionInstanceId,
-    )
     expect(workspacesRepositoryMock.findById).toHaveBeenCalledWith(
       input.workspaceId,
     )
@@ -112,31 +105,15 @@ describe('GetCurrentUserService', () => {
       'plugin-1',
       input.connectionInstanceId,
     )
+    expect(adapterMock.getAuthenticatedMemberData).toHaveBeenCalled()
     expect(adapterMock.memberQuery.findById).toHaveBeenCalledWith(
-      fakeSessionUser.id,
+      fakeAuthMember.id.toString(),
     )
-  })
-
-  it('should return UnauthorizedError when user is not in session', async () => {
-    // Arrange
-    const input = makeInput()
-    sessionManagerMock.getCurrentUser.mockReturnValue(undefined)
-
-    // Act
-    const result = await sut.execute(input)
-
-    // Assert
-    expect(result.isFailure()).toBe(true)
-    expect(result.failure).toBeInstanceOf(AppError)
-    expect(result.failure.messageKey).toBe('USUARIO_NAO_LOGADO')
-
-    expect(workspacesRepositoryMock.findById).not.toHaveBeenCalled()
   })
 
   it('should return NotFoundError when workspace is not found', async () => {
     // Arrange
     const input = makeInput()
-    sessionManagerMock.getCurrentUser.mockReturnValue(fakeSessionUser as any)
     workspacesRepositoryMock.findById.mockResolvedValue(undefined)
 
     // Act
@@ -146,14 +123,14 @@ describe('GetCurrentUserService', () => {
     expect(result.isFailure()).toBe(true)
     expect(result.failure).toBeInstanceOf(AppError)
     expect(result.failure.messageKey).toBe('WORKSPACE_NAO_ENCONTRADO')
+
+    expect(dataSourceResolverMock.getDataSource).not.toHaveBeenCalled()
   })
 
   it('should return NotFoundError when connection instance is not found in workspace', async () => {
     // Arrange
     const input = makeInput()
-    sessionManagerMock.getCurrentUser.mockReturnValue(fakeSessionUser as any)
 
-    // Simulando um workspace sem a conexão solicitada
     const workspaceWithoutConnection = {
       ...fakeWorkspace,
       dataSourceConnections: [],
@@ -174,13 +151,36 @@ describe('GetCurrentUserService', () => {
     expect(dataSourceResolverMock.getDataSource).not.toHaveBeenCalled()
   })
 
+  it('should return forward the failure if getAuthenticatedMemberData fails', async () => {
+    // Arrange
+    const input = makeInput()
+    const authError = AppError.Unauthorized('FALHA_DE_AUTENTICACAO')
+
+    workspacesRepositoryMock.findById.mockResolvedValue(fakeWorkspace)
+    dataSourceResolverMock.getDataSource.mockResolvedValue(adapterMock)
+    adapterMock.getAuthenticatedMemberData.mockResolvedValue(
+      Either.failure(authError),
+    )
+
+    // Act
+    const result = await sut.execute(input)
+
+    // Assert
+    expect(result.isFailure()).toBe(true)
+    expect(result.failure).toBe(authError)
+
+    expect(adapterMock.memberQuery.findById).not.toHaveBeenCalled()
+  })
+
   it('should return NotFoundError when user is not found in the external data source (adapter)', async () => {
     // Arrange
     const input = makeInput()
 
-    sessionManagerMock.getCurrentUser.mockReturnValue(fakeSessionUser as any)
     workspacesRepositoryMock.findById.mockResolvedValue(fakeWorkspace)
     dataSourceResolverMock.getDataSource.mockResolvedValue(adapterMock)
+    adapterMock.getAuthenticatedMemberData.mockResolvedValue(
+      Either.success(fakeAuthMember as any),
+    )
     ;(adapterMock.memberQuery.findById as any).mockResolvedValue(undefined)
 
     // Act
@@ -192,14 +192,12 @@ describe('GetCurrentUserService', () => {
     expect(result.failure.messageKey).toBe('USUARIO_NAO_ENCONTRADO')
   })
 
-  it('should return InternalServerError when an exception is thrown', async () => {
+  it('should return NotFoundError (ERRO_AO_OBTER_USUARIO) when an exception is thrown', async () => {
     // Arrange
     const input = makeInput()
     const error = new Error('Unexpected adapter failure')
 
-    sessionManagerMock.getCurrentUser.mockImplementation(() => {
-      throw error
-    })
+    workspacesRepositoryMock.findById.mockRejectedValue(error)
 
     // Act
     const result = await sut.execute(input)

@@ -9,7 +9,7 @@ import {
 } from '@metric-org/application'
 import DataSourceFake from '@metric-org/datasource-fake'
 import Redmine4Test from '@metric-org/redmine-for-tests'
-import type { IDataSource } from '@metric-org/sdk'
+import { AppError, Either, type IDataSource } from '@metric-org/sdk'
 import { existsSync } from 'fs'
 import { resolve } from 'path'
 import { pathToFileURL } from 'url'
@@ -49,27 +49,41 @@ export class DataSourceResolver implements IDataSourceResolver {
 
     if (contextOverride) {
       context = {
+        authenticatedMemberData: contextOverride.authenticatedMemberData,
         config: contextOverride.config ?? config,
         credentials: contextOverride.credentials,
       }
     } else {
-      const storageKey = `workspace-session-${workspaceId}-${connectionInstanceId}`
+      const storageKey = `workspace-connection-${workspaceId}-${connectionInstanceId}`
       const credentialsSerialized = await this.credentialsStorage.getToken(
         'metric',
         storageKey,
       )
 
+      const parsed = credentialsSerialized
+        ? JSON.parse(credentialsSerialized)
+        : undefined
+
       context = {
+        authenticatedMemberData: parsed?.member,
         config,
-        credentials: credentialsSerialized
-          ? JSON.parse(credentialsSerialized)
-          : undefined,
+        credentials: parsed?.credentials,
       }
     }
 
     const datasource = await this.loadModule(pluginId)
 
     return {
+      getAuthenticatedMemberData: () => {
+        if (!context.authenticatedMemberData)
+          return Either.failure(
+            AppError.ValidationError(
+              'NAO FOI POSSIVEL OBTER DADOS DO USUARIO AUTENTICADO',
+            ),
+          )
+
+        return Either.success(context.authenticatedMemberData)
+      },
       id: connectionInstanceId,
       authenticationStrategy: datasource.getAuthenticationStrategy(context),
       memberQuery: datasource.getMemberQuery(context),

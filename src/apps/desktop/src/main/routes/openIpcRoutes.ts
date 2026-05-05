@@ -13,11 +13,8 @@ import {
 import { AddonsHandler } from '@/main/handlers/AddonsHandler'
 import { MetadataHandler } from '@/main/handlers/MetadataHandler'
 import { WorkspacesHandler } from '@/main/handlers/WorkspacesHandler'
-import { createAuthMiddleware } from '@/main/middlewares/ensureAuthenticated'
 
 export function openIpcRoutes(serviceProvider: IServiceProvider): void {
-  const ensureAuthenticated = createAuthMiddleware(serviceProvider)
-
   const tokenHandler = serviceProvider.resolve<TokenHandler>('tokenHandler')
   const workspacesHandler =
     serviceProvider.resolve<WorkspacesHandler>('workspacesHandler')
@@ -79,7 +76,7 @@ export function openIpcRoutes(serviceProvider: IServiceProvider): void {
   )
 
   // --- SESSION ---
-  IpcHandler.register('GET_CURRENT_USER', [ensureAuthenticated], (e, req) =>
+  IpcHandler.register('GET_CURRENT_USER', (e, req) =>
     sessionHandler.getCurrentUser(e, req),
   )
 
@@ -96,23 +93,21 @@ export function openIpcRoutes(serviceProvider: IServiceProvider): void {
   )
 
   // --- SYNC / DATA PULL (Authenticated) ---
-  IpcHandler.register('METADATA_PULL', [ensureAuthenticated], (e, req) =>
-    metadataHandler.pull(e, req),
-  )
-  IpcHandler.register('TASKS_PULL', [ensureAuthenticated], (e, req) =>
-    tasksHandler.pull(e, req),
-  )
-  IpcHandler.register('TASKS_LIST', [ensureAuthenticated], (e, req) =>
-    tasksHandler.listTasks(e, req),
-  )
-  IpcHandler.register('LIST_TIME_ENTRIES', [ensureAuthenticated], (e, req) =>
+  IpcHandler.register('METADATA_PULL', (e, req) => metadataHandler.pull(e, req))
+  IpcHandler.register('TASKS_PULL', (e, req) => tasksHandler.pull(e, req))
+  IpcHandler.register('TASKS_LIST', (e, req) => tasksHandler.listTasks(e, req))
+  IpcHandler.register('LIST_TIME_ENTRIES', (e, req) =>
     timeEntriesHandler.listTimeEntries(e, req),
   )
-  IpcHandler.register('TIME_ENTRIES_PULL', [ensureAuthenticated], (e, req) =>
-    timeEntriesHandler.pull(e, req),
+  IpcHandler.register(
+    'TIME_ENTRIES_PULL',
+
+    (e, req) => timeEntriesHandler.pull(e, req),
   )
-  IpcHandler.register('TIME_ENTRIES_PUSH', [ensureAuthenticated], (e, req) =>
-    timeEntriesHandler.push(e, req),
+  IpcHandler.register(
+    'TIME_ENTRIES_PUSH',
+
+    (e, req) => timeEntriesHandler.push(e, req),
   )
 
   // --- ADDONS / MARKETPLACE ---

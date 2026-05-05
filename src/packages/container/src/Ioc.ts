@@ -1,5 +1,6 @@
 import {
   ConnectDataSourceService,
+  ConnectionContextManager,
   CreateWorkspaceService,
   DeleteWorkspaceService,
   DisconnectDataSourceService,
@@ -91,6 +92,7 @@ export class ContainerBuilder {
   public addApplicationServices(): this {
     this.container.register({
       sessionManager: asClass(SessionManager).scoped(),
+      connectionContextManager: asClass(ConnectionContextManager).scoped(),
       listTasksService: asClass(ListTaskService).scoped(),
       taskPullService: asClass(TaskPullService).scoped(),
       listTimeEntriesService: asClass(ListTimeEntriesService).scoped(),

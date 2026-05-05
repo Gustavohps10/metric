@@ -4,22 +4,22 @@ import { format } from 'date-fns'
 import { ptBR } from 'date-fns/locale'
 import {
   Activity,
-  ChevronRight,
+  AlertCircle,
+  CheckCircle,
+  CheckCircle2,
   Clock,
   CloudOff,
-  Database,
+  DatabaseIcon,
   Monitor,
+  RefreshCcw,
   Share2Icon,
+  User2,
+  XCircle,
 } from 'lucide-react'
 import { AiOutlineCloudSync } from 'react-icons/ai'
 
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui'
 import { Button } from '@/components/ui/button'
-import {
-  Collapsible,
-  CollapsibleContent,
-  CollapsibleTrigger,
-} from '@/components/ui/collapsible'
 import {
   Popover,
   PopoverContent,
@@ -33,118 +33,90 @@ import {
   TooltipTrigger,
 } from '@/components/ui/tooltip'
 import { useWorkspace } from '@/contexts/WorkspaceContext'
-import { type ReplicationStatus, useSyncStore } from '@/stores/syncStore'
+import {
+  ReplicationStatus,
+  useConnectionsWithSync,
+  useSyncStore,
+} from '@/stores/syncStore'
 
-/**
- * CONSTANTS & HELPERS
- */
 const COLLECTION_LABELS: Record<string, string> = {
-  metadata: 'Metadata',
+  metadata: 'Metadados',
   tasks: 'Tarefas',
   timeEntries: 'Apontamentos',
 }
 
 const ERROR_CODES = { MISSING_TOKEN: 'MISSING_TOKEN' }
 
-const getDisplayName = (id: string) =>
-  id
-    .split(/[-_]/)
-    .map((s) => s.charAt(0).toUpperCase() + s.slice(1).toLowerCase())
-    .join(' ')
-
-const getRawErrorMessage = (error: any): string =>
-  error?.parameters?.errors?.message ||
-  error?.innerError?.message ||
-  error?.message ||
-  ''
-
-const isAuthError = (error: any) =>
-  getRawErrorMessage(error).includes(ERROR_CODES.MISSING_TOKEN)
-
-function groupStatuses(statuses: Record<string, ReplicationStatus>) {
-  const map = new Map<
-    string,
-    { collection: string; status: ReplicationStatus }[]
-  >()
-  Object.entries(statuses).forEach(([key, status]) => {
-    const idx = key.indexOf('_')
-    if (idx <= 0) return
-    const collection = key.slice(0, idx)
-    const dataSourceId = key.slice(idx + 1)
-    if (!map.has(dataSourceId)) map.set(dataSourceId, [])
-    map.get(dataSourceId)!.push({ collection, status })
-  })
-  return map
+const getRawErrorMessage = (error: unknown): string => {
+  if (typeof error === 'object' && error !== null) {
+    const err = error as Record<string, any>
+    return (
+      err.parameters?.errors?.message ||
+      err.innerError?.message ||
+      err.message ||
+      ''
+    )
+  }
+  return ''
 }
+
+const isAuthError = (error: unknown) =>
+  getRawErrorMessage(error).includes(ERROR_CODES.MISSING_TOKEN)
 
 export function Header() {
   const { workspace } = useWorkspace()
-  const statuses = useSyncStore((s) => s.statuses) ?? {}
+  const connections = useConnectionsWithSync()
   const dbName = useSyncStore((s) => s.db?.name)
   const isInitialized = useSyncStore((s) => s.isInitialized) ?? false
 
-  const connections = workspace?.dataSourceConnections ?? []
   const hasRemote = connections.length > 0
-  const grouped = groupStatuses(statuses)
+  const allStatuses = connections.flatMap((c) =>
+    Object.values(c.sync).filter((v): v is ReplicationStatus => Boolean(v)),
+  )
 
-  /**
-   * SENIOR LOGIC: Status Global com Hierarquia de criticidade
-   */
   const getGlobalState = () => {
     if (!isInitialized)
       return { color: 'bg-muted', label: 'Inicializando...', icon: 'sync' }
     if (!hasRemote)
       return { color: 'bg-zinc-400', label: 'Modo Local', icon: 'local' }
 
-    const values = Object.values(statuses)
-
-    // 1. ERRO TÉCNICO (Prioridade Máxima)
-    if (values.some((v) => v.error && !isAuthError(v.error))) {
+    if (allStatuses.some((v) => v.error && !isAuthError(v.error)))
       return { color: 'bg-red-500', label: 'Erro técnico', icon: 'sync' }
-    }
-
-    // 2. ATIVIDADE (Sincronizando no momento)
-    if (values.some((v) => v.isPulling || v.isPushing)) {
+    if (allStatuses.some((v) => v.isPulling || v.isPushing))
       return {
         color: 'bg-blue-500 animate-pulse',
         label: 'Sincronizando...',
         icon: 'sync',
       }
-    }
 
-    // 3. DESCONECTADO (Se ALGUM source configurado não estiver logado/sincronizado)
-    const anyDisconnected = values.some(
+    const anyDisconnected = allStatuses.some(
       (v) => isAuthError(v.error) || v.lastReplication === null,
     )
-    if (anyDisconnected) {
+    if (anyDisconnected)
       return { color: 'bg-zinc-400', label: 'Conexões pendentes', icon: 'sync' }
-    }
 
-    // 4. SUCESSO TOTAL
     return { color: 'bg-green-500', label: 'Sincronizado', icon: 'sync' }
   }
 
   const globalStatus = getGlobalState()
 
-  console.log('WORKSPACE HEAD', workspace)
   return (
     <header className="pointer-events-none absolute top-0 left-0 z-50 flex w-full justify-center bg-transparent pl-[calc(72px+240px)]">
       <div className="p-2">
-        <div className="border-border bg-background/80 pointer-events-auto flex items-center justify-between gap-3 rounded-md border px-1 shadow-sm backdrop-blur-xl">
-          <div className="flex items-center gap-2">
-            <Avatar className="h-5 w-5 rounded-sm">
+        <div className="border-border bg-background/80 pointer-events-auto flex items-center justify-between gap-3 rounded-md border shadow-sm backdrop-blur-xl">
+          <div className="flex items-center gap-2 px-1">
+            <Avatar className="ring-border/50 h-5 w-5 rounded-sm shadow-sm ring-1">
               <AvatarImage
                 src={workspace?.avatarUrl || undefined}
-                alt={workspace?.name || 'Logo'}
-                className="h-full w-full object-cover"
+                alt={workspace?.name}
               />
-              <AvatarFallback className="flex h-full w-full items-center justify-center text-[10px] font-bold">
+              <AvatarFallback className="text-[10px] font-bold">
                 {workspace?.name?.[0]?.toUpperCase() || '?'}
               </AvatarFallback>
             </Avatar>
 
             <div className="flex min-w-max flex-col leading-tight">
-              <span className="text-foreground text-[10px] font-bold tracking-tight">
+              <span className="text-foreground text-[10px] font-bold tracking-tight uppercase">
                 {workspace?.name}
               </span>
               <span className="text-muted-foreground/70 font-mono text-[11px]">
@@ -164,7 +136,7 @@ export function Header() {
                       <Button
                         size="icon"
                         variant="ghost"
-                        className="hover:bg-accent/50 relative h-6 w-6 rounded-sm"
+                        className="relative h-6 w-6 rounded-sm"
                       >
                         {globalStatus.icon === 'local' ? (
                           <Monitor size={14} className="text-foreground/80" />
@@ -186,141 +158,221 @@ export function Header() {
                 </Tooltip>
 
                 <PopoverContent
-                  className="border-border bg-background/95 w-auto max-w-md min-w-[280px] rounded-md p-0 shadow-2xl backdrop-blur-sm"
+                  className="border-border/50 bg-background/95 w-[360px] overflow-hidden rounded-lg p-0 shadow-2xl backdrop-blur-md"
                   align="end"
-                  sideOffset={6}
+                  sideOffset={8}
                 >
-                  <div className="flex items-center gap-2 border-b px-3 py-2">
-                    <div className="bg-secondary text-foreground/70 rounded-sm p-1.5">
-                      {hasRemote ? (
+                  <div className="bg-muted/30 flex items-center justify-between border-b px-4 py-3">
+                    <div className="flex items-center gap-2.5">
+                      <div className="bg-background text-primary flex h-8 w-8 items-center justify-center rounded-lg border shadow-sm">
                         <Activity size={14} />
-                      ) : (
-                        <Monitor size={14} />
-                      )}
-                    </div>
-                    <div className="flex min-w-max flex-col">
-                      <h4 className="text-[11px] leading-none font-bold">
-                        Monitor de Sincronização
-                      </h4>
-                      <div className="text-muted-foreground mt-1 flex items-center gap-1 font-mono text-[9px]">
-                        <Database size={10} className="shrink-0" />
-                        <span>{dbName || 'Local Engine'}</span>
+                      </div>
+                      <div>
+                        <h4 className="text-[11px] font-bold tracking-tight opacity-80">
+                          Sincronização
+                        </h4>
+                        <div className="text-muted-foreground flex items-center gap-1 font-mono text-[10px] leading-4">
+                          <DatabaseIcon size={10} />
+                          <span>
+                            {dbName || 'HOUVE UM ERRO AO CARREGAR O DATABASE '}
+                          </span>
+                        </div>
                       </div>
                     </div>
                   </div>
 
-                  <div className="max-h-[300px] overflow-y-auto p-1">
-                    {/* Caso Local */}
-                    {isInitialized && !hasRemote && (
-                      <div className="space-y-0.5 p-2 text-center">
-                        <p className="text-muted-foreground text-[10px] italic">
-                          Modo somente local ativado.
-                        </p>
-                      </div>
-                    )}
+                  <div className="max-h-[420px] overflow-y-auto p-2">
+                    {isInitialized && hasRemote ? (
+                      <div className="flex flex-col gap-2">
+                        {connections.map((conn) => {
+                          const syncEntries = Object.entries(conn.sync).filter(
+                            ([, v]) => v,
+                          ) as [string, ReplicationStatus][]
+                          const isSyncing = syncEntries.some(
+                            ([, s]) => s.isPulling || s.isPushing,
+                          )
 
-                    {/* Caso Remoto com N Sources */}
-                    {isInitialized &&
-                      hasRemote &&
-                      Array.from(grouped.entries()).map(([dsId, items]) => {
-                        const isDsDisconnected = items.some(
-                          (i) =>
-                            isAuthError(i.status.error) ||
-                            i.status.lastReplication === null,
-                        )
+                          return (
+                            <div
+                              key={conn.connectionId}
+                              className="bg-card/40 hover:bg-card/60 rounded-lg border p-3 shadow-sm transition-colors"
+                            >
+                              <div className="mb-3 flex items-center justify-between">
+                                <div className="flex min-w-0 items-center gap-3">
+                                  <div className="relative shrink-0">
+                                    {/* NOVO CONTAINER DE LOGO DO ADDON */}
+                                    <div className="flex h-10 w-10 shrink-0 items-center justify-center overflow-hidden rounded-lg border bg-zinc-100 p-1 shadow-sm dark:bg-zinc-900">
+                                      {conn.addon?.logo ? (
+                                        <img
+                                          src={conn.addon.logo}
+                                          alt={conn.addon.name}
+                                          className="h-full w-full object-contain"
+                                        />
+                                      ) : (
+                                        <span className="text-lg">📦</span>
+                                      )}
+                                    </div>
 
-                        return (
-                          <Collapsible
-                            key={dsId}
-                            defaultOpen
-                            className="mb-1 rounded-sm"
-                          >
-                            <CollapsibleTrigger className="hover:bg-accent/30 flex w-full items-center justify-between rounded-sm px-2 py-1.5 transition-colors">
-                              <div className="flex items-center gap-1.5">
-                                <ChevronRight
-                                  size={12}
-                                  className="text-muted-foreground shrink-0 transition-transform [&[data-state=open]]:rotate-90"
-                                />
-                                <span className="text-foreground/90 text-[10px] font-bold">
-                                  {getDisplayName(dsId)}
-                                </span>
-                              </div>
-                              {/* ÍCONE DE STATUS DO SOURCE (FLOAT RIGHT) */}
-                              <div className="flex items-center">
-                                {isDsDisconnected ? (
-                                  <CloudOff
-                                    size={12}
-                                    className="text-zinc-400"
+                                    {isSyncing && (
+                                      <div className="bg-primary border-background absolute -top-1.5 -right-1.5 flex h-4 w-4 items-center justify-center rounded-full border-2 shadow-sm">
+                                        <RefreshCcw
+                                          size={10}
+                                          className="animate-spin text-white"
+                                        />
+                                      </div>
+                                    )}
+                                  </div>
+
+                                  <div className="flex min-w-0 flex-col">
+                                    <div className="flex items-center gap-1.5 overflow-hidden">
+                                      <span className="truncate text-[11px] font-bold tracking-tight">
+                                        {conn.addon?.name || conn.connectionId}
+                                      </span>
+                                      <span className="text-muted-foreground shrink-0 font-mono text-[9px] font-medium opacity-60">
+                                        v{conn.addon?.version || '1.0'}
+                                      </span>
+                                    </div>
+                                    <div className="mt-1 flex items-center gap-1.5">
+                                      <Avatar className="ring-border h-4 w-4 rounded-full shadow-sm ring-1">
+                                        <AvatarImage
+                                          src={conn.member?.avatarUrl}
+                                        />
+                                        <AvatarFallback className="bg-muted text-[8px]">
+                                          <User2 size={8} />
+                                        </AvatarFallback>
+                                      </Avatar>
+                                      <span className="text-muted-foreground max-w-[180px] text-[10px]">
+                                        {conn.member?.name ||
+                                          'NÃO IDENTIFICADO '}{' '}
+                                        <span className="text-[9px] opacity-50">
+                                          {conn.member?.login}
+                                        </span>
+                                      </span>
+                                    </div>
+                                  </div>
+                                </div>
+                                {conn.status === 'connected' ? (
+                                  <CheckCircle2
+                                    size={14}
+                                    className="shrink-0 text-green-500"
                                   />
                                 ) : (
-                                  <AiOutlineCloudSync
+                                  <CloudOff
                                     size={14}
-                                    className="text-green-500"
+                                    className="text-muted-foreground shrink-0"
                                   />
                                 )}
                               </div>
-                            </CollapsibleTrigger>
 
-                            <CollapsibleContent>
-                              <div className="border-border/50 ml-4 space-y-0.5 border-l pb-1 pl-2">
-                                {items.map(({ collection, status: s }) => {
-                                  const isMissing = isAuthError(s.error)
-                                  const isRealErr = s.error && !isMissing
+                              <div className="flex flex-col gap-1 px-1">
+                                {syncEntries.map(([key, status]) => {
+                                  const pulling =
+                                    status.isPulling || status.isPushing
+                                  const isErr =
+                                    status.error && !isAuthError(status.error)
 
-                                  // Cores individuais das coleções
-                                  let dotColor = 'bg-zinc-300'
-                                  let label = 'Desconectado'
+                                  let statusText = 'Sincronizado'
+                                  let StatusIcon = (
+                                    <CheckCircle
+                                      size={12}
+                                      className="text-green-500"
+                                    />
+                                  )
 
-                                  if (isRealErr) {
-                                    dotColor = 'bg-red-500'
-                                    label = 'Erro'
-                                  } else if (s.isPulling || s.isPushing) {
-                                    dotColor = 'bg-blue-500 animate-pulse'
-                                    label = 'Sincronizando'
-                                  } else if (s.lastReplication && !isMissing) {
-                                    dotColor = 'bg-green-500'
-                                    label = 'Sincronizado'
+                                  if (pulling) {
+                                    statusText = 'Sincronizando...'
+                                    StatusIcon = (
+                                      <RefreshCcw
+                                        size={12}
+                                        className="animate-spin text-blue-500"
+                                      />
+                                    )
+                                  } else if (isErr) {
+                                    statusText = 'Falha técnica'
+                                    StatusIcon = (
+                                      <XCircle
+                                        size={12}
+                                        className="text-red-500"
+                                      />
+                                    )
+                                  } else if (isAuthError(status.error)) {
+                                    statusText = 'Login expirado'
+                                    StatusIcon = (
+                                      <AlertCircle
+                                        size={12}
+                                        className="text-zinc-400"
+                                      />
+                                    )
+                                  } else if (!status.lastReplication) {
+                                    statusText = 'Aguardando'
+                                    StatusIcon = (
+                                      <Clock
+                                        size={12}
+                                        className="text-zinc-400"
+                                      />
+                                    )
                                   }
 
                                   return (
                                     <div
-                                      key={collection}
-                                      className="hover:bg-accent/20 rounded-sm px-1.5 py-1"
+                                      key={key}
+                                      className="border-border/30 flex items-center justify-between border-t py-1 first:border-0"
                                     >
-                                      <div className="flex items-center justify-between gap-2">
-                                        <span className="text-muted-foreground text-[10px] font-medium">
-                                          {COLLECTION_LABELS[collection] ??
-                                            collection}
-                                        </span>
-                                        <div className="flex items-center gap-1.5">
+                                      <span className="text-muted-foreground text-[10px] font-medium tracking-tight">
+                                        {COLLECTION_LABELS[key] || key}
+                                      </span>
+
+                                      <div className="flex items-center gap-2">
+                                        {StatusIcon}
+                                        <div className="flex flex-col items-end">
                                           <span
-                                            className={`h-1.5 w-1.5 rounded-full ${dotColor}`}
-                                          />
-                                          <span className="text-muted-foreground text-[9px]">
-                                            {label}
+                                            className={`text-[9px] font-bold ${isErr ? 'text-red-500' : pulling ? 'text-blue-500' : 'text-foreground/80'}`}
+                                          >
+                                            {statusText}
                                           </span>
+                                          {status.lastReplication &&
+                                            !pulling && (
+                                              <span className="text-muted-foreground/60 mt-0.5 text-[8px] leading-none">
+                                                {format(
+                                                  status.lastReplication,
+                                                  "HH:mm 'em' dd/MM",
+                                                  { locale: ptBR },
+                                                )}
+                                              </span>
+                                            )}
                                         </div>
-                                      </div>
-                                      <div className="text-muted-foreground/80 flex items-center gap-1 text-[8px]">
-                                        <Clock size={8} />
-                                        {isMissing
-                                          ? 'Aguardando login'
-                                          : s.lastReplication
-                                            ? format(
-                                                s.lastReplication,
-                                                "HH:mm 'em' dd/MM",
-                                                { locale: ptBR },
-                                              )
-                                            : 'Pendente'}
                                       </div>
                                     </div>
                                   )
                                 })}
                               </div>
-                            </CollapsibleContent>
-                          </Collapsible>
-                        )
-                      })}
+                            </div>
+                          )
+                        })}
+                      </div>
+                    ) : (
+                      <div className="py-12 text-center">
+                        <Monitor
+                          size={24}
+                          className="text-muted-foreground/20 mx-auto mb-2"
+                        />
+                        <p className="text-muted-foreground text-[10px] italic opacity-60">
+                          {isInitialized
+                            ? 'Somente dados locais ativados'
+                            : 'Inicializando motor...'}
+                        </p>
+                      </div>
+                    )}
+                  </div>
+
+                  <div className="bg-muted/20 flex items-center justify-between border-t px-4 py-2">
+                    <span className="text-muted-foreground font-mono text-[8px] tracking-widest uppercase opacity-50">
+                      Sync Engine v4.2
+                    </span>
+                    <span className="flex items-center gap-1.5 text-[9px] font-bold text-green-500">
+                      <Activity size={10} className="animate-pulse" />
+                      Motor Ativo
+                    </span>
                   </div>
                 </PopoverContent>
               </Popover>
@@ -330,7 +382,7 @@ export function Header() {
                   <Button
                     size="icon"
                     variant="ghost"
-                    className="hover:bg-accent/50 h-6 w-6 rounded-sm"
+                    className="h-6 w-6 rounded-sm"
                   >
                     <Share2Icon size={14} className="text-foreground/70" />
                   </Button>

@@ -1,4 +1,4 @@
-import { AppError } from '@metric-org/cross-cutting/helpers'
+import { AppError, Either } from '@metric-org/cross-cutting/helpers'
 import type { Mocked } from 'vitest'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
@@ -19,17 +19,24 @@ describe('MetadataPullService', () => {
 
   const fakeDate = new Date('2026-04-18T00:00:00.000Z')
 
-  const makeInput = (): PullMetadataInput => ({
-    workspaceId: 'workspace-123',
-    pluginId: 'plugin-xyz',
-    connectionInstanceId: 'conn-abc',
-    memberId: 'member-789',
-    checkpoint: {
-      updatedAt: fakeDate,
-      id: 'last-sync-123',
-    },
-    batch: 100,
-  })
+  const makeInput = (): PullMetadataInput =>
+    ({
+      workspaceId: 'workspace-123',
+      pluginId: 'plugin-xyz',
+      connectionInstanceId: 'conn-abc',
+      // memberId removido, agora vem do adapter
+      checkpoint: {
+        updatedAt: fakeDate,
+        id: 'last-sync-123',
+      },
+      batch: 100,
+    }) as PullMetadataInput
+
+  const fakeMember = {
+    id: 'member-789',
+    firstname: 'John',
+    lastname: 'Doe',
+  }
 
   const fakeMetadata: MetadataDTO = {
     taskStatuses: [
@@ -60,6 +67,7 @@ describe('MetadataPullService', () => {
 
     adapterMock = {
       metadataQuery: metadataQueryMock,
+      getAuthenticatedMemberData: vi.fn(),
     } as unknown as Mocked<IDataSourceAdapter>
 
     dataSourceResolverMock = {
@@ -69,10 +77,14 @@ describe('MetadataPullService', () => {
     sut = new MetadataPullService(dataSourceResolverMock)
   })
 
-  it('should resolve the data source, pull metadata, and return it successfully', async () => {
+  it('should successfully resolve the data source, pull metadata using the authenticated member, and return it', async () => {
     // Arrange
     const input = makeInput()
+
     dataSourceResolverMock.getDataSource.mockResolvedValue(adapterMock)
+    adapterMock.getAuthenticatedMemberData.mockResolvedValue(
+      Either.success(fakeMember as any),
+    )
     metadataQueryMock.getMetadata.mockResolvedValue(fakeMetadata)
 
     // Act
@@ -87,14 +99,35 @@ describe('MetadataPullService', () => {
       input.pluginId,
       input.connectionInstanceId,
     )
+    expect(adapterMock.getAuthenticatedMemberData).toHaveBeenCalled()
     expect(metadataQueryMock.getMetadata).toHaveBeenCalledWith(
-      input.memberId,
+      fakeMember.id,
       input.checkpoint,
       input.batch,
     )
   })
 
-  it('should return Internal error when the data source resolver throws an exception', async () => {
+  it('should forward the failure if getAuthenticatedMemberData returns a failure', async () => {
+    // Arrange
+    const input = makeInput()
+    const authError = AppError.Unauthorized('FALHA_DE_AUTENTICACAO')
+
+    dataSourceResolverMock.getDataSource.mockResolvedValue(adapterMock)
+    adapterMock.getAuthenticatedMemberData.mockResolvedValue(
+      Either.failure(authError),
+    )
+
+    // Act
+    const result = await sut.execute(input)
+
+    // Assert
+    expect(result.isFailure()).toBe(true)
+    expect(result.failure).toBe(authError)
+
+    expect(metadataQueryMock.getMetadata).not.toHaveBeenCalled()
+  })
+
+  it('should return unexpected error when the data source resolver throws an exception', async () => {
     // Arrange
     const input = makeInput()
     dataSourceResolverMock.getDataSource.mockRejectedValue(new Error('Fail'))
@@ -106,12 +139,16 @@ describe('MetadataPullService', () => {
     expect(result.isFailure()).toBe(true)
     expect(result.failure).toBeInstanceOf(AppError)
     expect(result.failure.messageKey).toBe('Failed to pull metadata')
+    expect(result.failure.statusCode).toBe(404) // Validação do AppError.NotFound
   })
 
-  it('should return Internal error when the adapter fails to pull metadata', async () => {
+  it('should return unexpected error when the adapter fails to pull metadata (throws)', async () => {
     // Arrange
     const input = makeInput()
     dataSourceResolverMock.getDataSource.mockResolvedValue(adapterMock)
+    adapterMock.getAuthenticatedMemberData.mockResolvedValue(
+      Either.success(fakeMember as any),
+    )
     metadataQueryMock.getMetadata.mockRejectedValue(new Error('API Error'))
 
     // Act
@@ -121,5 +158,6 @@ describe('MetadataPullService', () => {
     expect(result.isFailure()).toBe(true)
     expect(result.failure).toBeInstanceOf(AppError)
     expect(result.failure.messageKey).toBe('Failed to pull metadata')
+    expect(result.failure.statusCode).toBe(404)
   })
 })

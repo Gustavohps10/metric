@@ -12,6 +12,13 @@ type PlainWorkspace = {
   dataSourceConnections: {
     id: string
     dataSourceId: string
+    status: 'connected' | 'disabled' | 'disconnected'
+    member?: {
+      id: string
+      name: string
+      login: string
+      avatarUrl?: string
+    }
     config?: Record<string, unknown>
   }[]
   createdAt: string
@@ -57,8 +64,10 @@ export class JSONWorkspacesRepository implements IWorkspacesRepository {
       description: ws.description,
       dataSourceConnections: ws.dataSourceConnections.map((c) => ({
         id: c.id,
+        status: c.status,
         dataSourceId: c.dataSourceId,
         config: c.config,
+        member: c.member,
       })),
       createdAt: ws.createdAt.toISOString(),
       updatedAt: ws.updatedAt.toISOString(),

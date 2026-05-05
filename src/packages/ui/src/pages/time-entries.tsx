@@ -25,8 +25,6 @@ import {
   CalendarCheck,
   CheckCircle,
   ClipboardCheck,
-  ClockArrowDownIcon,
-  ClockArrowUpIcon,
   Code,
   CopyIcon,
   EditIcon,
@@ -34,12 +32,9 @@ import {
   FlaskConical,
   GraduationCap,
   Handshake,
-  HourglassIcon,
   LifeBuoy,
-  ListPlus,
   MoreHorizontal,
   Palette,
-  Pause,
   PlusIcon,
   Save,
   SearchCode,
@@ -81,7 +76,6 @@ import {
   BreadcrumbSeparator,
 } from '@/components/ui/breadcrumb'
 import { Button } from '@/components/ui/button'
-import { Card, CardContent } from '@/components/ui/card'
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -98,7 +92,6 @@ import {
   SelectValue,
 } from '@/components/ui/select'
 import { Skeleton } from '@/components/ui/skeleton'
-import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group'
 import { useDataSourceConnections } from '@/hooks'
 import { useActiveTimer } from '@/hooks/use-active-timer'
 import { cn } from '@/lib'
@@ -254,15 +247,19 @@ MemoizedCommentInput.displayName = 'MemoizedCommentInput'
 export function TimeEntries() {
   const db = useSyncStore((state) => state?.db)
 
-  const { membersByConnection } = useDataSourceConnections()
+  const { connections } = useDataSourceConnections()
 
   const memberIdsByConnection = useMemo(() => {
     const next: Record<string, string> = {}
-    for (const [connId, state] of Object.entries(membersByConnection ?? {})) {
-      if (state.member?.id) next[connId] = String(state.member.id)
+
+    for (const [connId, state] of Object.entries(connections)) {
+      if (state.member?.id) {
+        next[connId] = String(state.member.id)
+      }
     }
+
     return next
-  }, [membersByConnection])
+  }, [connections])
 
   const queryClient = useQueryClient()
   const [searchParams, setSearchParams] = useSearchParams()
@@ -960,7 +957,7 @@ export function TimeEntries() {
       </Breadcrumb>
       <hr className="mt-2" />
 
-      <Card className="bg-card/50 sticky top-0 z-10 rounded-none border-x-0 border-t-0 border-b shadow-sm backdrop-blur-sm">
+      {/* <Card className="bg-card/50 sticky top-0 z-10 rounded-none border-x-0 border-t-0 border-b shadow-sm backdrop-blur-sm">
         <CardContent className="flex h-auto min-h-14 flex-wrap items-center gap-0 p-0 md:flex-nowrap">
           <div className="group focus-within:bg-background flex h-full min-w-full flex-1 items-center border-r px-4 transition-colors md:min-w-[300px]">
             <div className="relative flex w-full items-center gap-2">
@@ -1093,7 +1090,7 @@ export function TimeEntries() {
             </div>
           </div>
         </CardContent>
-      </Card>
+      </Card> */}
 
       <div className="w-full px-4 py-8 md:container">
         <DatePickerWithRange date={range} setDate={handleRangeChange} />

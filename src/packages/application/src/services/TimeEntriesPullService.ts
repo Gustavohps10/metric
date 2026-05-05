@@ -6,11 +6,9 @@ import {
   PullTimeEntriesInput,
 } from '@/contracts/use-cases'
 import { TimeEntryDTO } from '@/dtos'
-import { SessionManager } from '@/workflow'
 
 export class TimeEntriesPullService implements ITimeEntriesPullUseCase {
   public constructor(
-    private readonly sessionManager: SessionManager,
     private readonly dataSourceResolver: IDataSourceResolver,
   ) {}
 
@@ -18,25 +16,19 @@ export class TimeEntriesPullService implements ITimeEntriesPullUseCase {
     input: PullTimeEntriesInput,
   ): Promise<Either<AppError, TimeEntryDTO[]>> {
     try {
-      const sessionUser = this.sessionManager.getCurrentUser(
-        input.workspaceId,
-        input.connectionInstanceId,
-      )
-      const memberId =
-        (input.memberId && String(input.memberId).trim()) || sessionUser?.id
-
-      if (!memberId) {
-        return Either.failure(AppError.Unauthorized('Usuário não autenticado.'))
-      }
-
       const adapter = await this.dataSourceResolver.getDataSource(
         input.workspaceId,
         input.pluginId,
         input.connectionInstanceId,
       )
 
+      const result = await adapter.getAuthenticatedMemberData()
+      if (result.isFailure()) return result.forwardFailure()
+
+      const member = result.success
+
       const timeEntries = await adapter.timeEntryQuery.pull(
-        memberId,
+        member.id.toString(),
         input.checkpoint,
         input.batch,
       )

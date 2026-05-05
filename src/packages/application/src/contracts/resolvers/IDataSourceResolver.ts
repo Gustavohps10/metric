@@ -1,8 +1,10 @@
 import type { FieldGroup } from '@/contracts/api/IApplicationAPI'
+import { MemberDTO } from '@/dtos'
 
 import { IDataSourceAdapter } from './IDataSourceAdapter'
 
 export interface DataSourceContext {
+  authenticatedMemberData?: MemberDTO
   config?: Record<string, unknown>
   credentials?: Record<string, unknown>
 }

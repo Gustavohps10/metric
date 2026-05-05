@@ -3,11 +3,9 @@ import { AppError, Either } from '@metric-org/cross-cutting/helpers'
 import { IDataSourceResolver } from '@/contracts/resolvers'
 import { ITaskPullUseCase, PullTasksInput } from '@/contracts/use-cases'
 import { TaskDTO } from '@/dtos'
-import { SessionManager } from '@/workflow'
 
 export class TaskPullService implements ITaskPullUseCase {
   public constructor(
-    private readonly sessionManager: SessionManager,
     private readonly dataSourceResolver: IDataSourceResolver,
   ) {}
 
@@ -15,20 +13,19 @@ export class TaskPullService implements ITaskPullUseCase {
     input: PullTasksInput,
   ): Promise<Either<AppError, TaskDTO[]>> {
     try {
-      const sessionUser = this.sessionManager.getCurrentUser(
-        input.workspaceId,
-        input.connectionInstanceId,
-      )
-      const memberId = sessionUser?.id ?? input.memberId
-
       const adapter = await this.dataSourceResolver.getDataSource(
         input.workspaceId,
         input.pluginId,
         input.connectionInstanceId,
       )
 
+      const result = await adapter.getAuthenticatedMemberData()
+      if (result.isFailure()) return result.forwardFailure()
+
+      const member = result.success
+
       const tasks = await adapter.taskQuery.pull(
-        memberId,
+        member.id.toString(),
         input.checkpoint,
         input.batch,
       )

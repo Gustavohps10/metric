@@ -1,5 +1,4 @@
 import {
-  AddonInstallerDTO,
   AddonManifest,
   FileData,
   IAddonsFacade,
@@ -11,9 +10,15 @@ import {
   IJobResult,
   IRequest,
 } from '@metric-org/cross-cutting/transport'
-import { ViewModel } from '@metric-org/presentation/view-models'
+import {
+  AddonInstallerViewModel,
+  AddonManifestViewModel,
+  PaginatedViewModel,
+  ViewModel,
+} from '@metric-org/presentation/view-models'
 import { app, type IpcMainInvokeEvent } from 'electron'
 
+import { HandlerContract } from '@/main/handlers/HandlerBase'
 import {
   FAKE_DATASOURCE_ADDON_ID,
   REDMINE4TEST_ADDON_ID,
@@ -40,7 +45,7 @@ const DEV_REDMINE_MANIFEST: AddonManifest = {
   creator: 'Metric',
   description: 'Conector Redmine para testes.',
   path: '',
-  logo: '',
+  logo: 'https://raw.githubusercontent.com/Gustavohps10/redmine-plugin/main/src/icon.png',
   downloads: 0,
   version: '1.0.3',
   stars: 0,
@@ -54,7 +59,7 @@ function isDevelopment(): boolean {
   return !app.isPackaged
 }
 
-export class AddonsHandler {
+export class AddonsHandler implements HandlerContract<AddonsHandler> {
   constructor(
     private readonly importAddonService: IImportAddonUseCase,
     private readonly addonsFacade: IAddonsFacade,
@@ -64,51 +69,63 @@ export class AddonsHandler {
   public async listAvailable(
     _event?: IpcMainInvokeEvent,
     _req?: IRequest,
-  ): Promise<AddonManifest[]> {
+  ): Promise<PaginatedViewModel<AddonManifestViewModel[]>> {
     const result = await this.addonsFacade.listAvailable()
-    if (result.isFailure()) return []
-
-    return result.success.map((a) => ({
-      id: a.id,
-      version: a.version,
-      name: a.name,
-      creator: a.creator,
-      description: a.description,
-      path: a.path || '',
-      logo: a.logo,
-      downloads: a.downloads ?? 0,
-      stars: a.stars ?? 0,
-      installed: false,
-      installerManifestUrl: a.installerManifestUrl,
-      sourceUrl: a.sourceUrl,
-      tags: a.tags,
-    }))
+    if (result.isFailure())
+      return {
+        isSuccess: false,
+        totalItems: 0,
+        totalPages: 1,
+        currentPage: 1,
+        statusCode: result.failure.statusCode,
+        error: result.failure.messageKey,
+      }
+    return {
+      isSuccess: true,
+      statusCode: 200,
+      data: result.success,
+      totalItems: result.success.length,
+      totalPages: 1,
+      currentPage: 1,
+    }
   }
 
   public async listInstalled(
     _event?: IpcMainInvokeEvent,
     _req?: IRequest,
-  ): Promise<AddonManifest[]> {
+  ): Promise<PaginatedViewModel<AddonManifestViewModel[]>> {
     if (isDevelopment()) {
-      return [...DEV_ADDONS]
+      return {
+        isSuccess: true,
+        statusCode: 200,
+        data: [...DEV_ADDONS],
+        totalItems: DEV_ADDONS.length,
+        totalPages: 1,
+        currentPage: 1,
+      }
     }
-    const result = await this.addonsFacade.listInstalled()
-    if (result.isFailure()) return []
 
-    return result.success.map((a) => ({
-      id: a.id,
-      version: a.version,
-      name: a.name,
-      creator: a.creator,
-      description: a.description,
-      path: a.path || '',
-      logo: a.logo,
-      downloads: a.downloads ?? 0,
-      stars: a.stars ?? 0,
-      installed: true,
-      sourceUrl: a.sourceUrl,
-      tags: a.tags,
-    }))
+    const result = await this.addonsFacade.listInstalled()
+
+    if (result.isFailure()) {
+      return {
+        isSuccess: false,
+        totalItems: 0,
+        totalPages: 1,
+        currentPage: 1,
+        statusCode: result.failure.statusCode,
+        error: result.failure.messageKey,
+      }
+    }
+
+    return {
+      isSuccess: true,
+      statusCode: 200,
+      data: result.success,
+      totalItems: result.success.length,
+      totalPages: 1,
+      currentPage: 1,
+    }
   }
 
   public async getInstalledById(
@@ -154,22 +171,39 @@ export class AddonsHandler {
   public async getInstaller(
     _event: IpcMainInvokeEvent,
     { body }: IRequest<{ installerUrl: string }>,
-  ): Promise<AddonInstallerDTO | null> {
+  ): Promise<ViewModel<AddonInstallerViewModel>> {
     const result = await this.addonsFacade.getInstaller(body.installerUrl)
 
     if (result.isFailure()) {
-      return null
+      return {
+        isSuccess: false,
+        statusCode: result.failure.statusCode,
+        error: result.failure.messageKey,
+      }
     }
 
-    return result.success
+    return {
+      isSuccess: true,
+      statusCode: 200,
+      data: result.success,
+    }
   }
 
   public async updateLocal(
     _event: IpcMainInvokeEvent,
     { body }: IRequest<AddonManifest>,
-  ): Promise<void> {
+  ): Promise<ViewModel<void>> {
     if (!body?.id) {
-      throw new Error('INVALID_ADDON_MANIFEST')
+      return {
+        isSuccess: false,
+        statusCode: 400,
+        error: 'INVALID_ADDON_MANIFEST',
+      }
+    }
+
+    return {
+      isSuccess: true,
+      statusCode: 200,
     }
   }
 

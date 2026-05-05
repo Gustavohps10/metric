@@ -20,8 +20,13 @@ export class MetadataPullService implements IMetadataPullUseCase {
         input.connectionInstanceId,
       )
 
+      const result = await adapter.getAuthenticatedMemberData()
+      if (result.isFailure()) return result.forwardFailure()
+
+      const member = result.success
+
       const metadata = await adapter.metadataQuery.getMetadata(
-        input.memberId,
+        member.id.toString(),
         input.checkpoint,
         input.batch,
       )

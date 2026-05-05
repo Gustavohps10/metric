@@ -8,7 +8,7 @@ export abstract class RedmineBase {
   constructor(protected readonly context: DataSourceContext) {}
 
   protected getAuthenticatedClient(): AxiosInstance {
-    const apiUrl = this.context?.config?.apiUrl
+    const apiUrl = this.context?.config?.apiUrl as string
 
     const apiKey: string = this.context.credentials?.apiKey as string
 

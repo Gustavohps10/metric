@@ -7,11 +7,9 @@ import {
   IWorkspacesRepository,
 } from '@/contracts'
 import { MemberDTO } from '@/dtos'
-import { SessionManager } from '@/workflow'
 
 export class GetCurrentUserService implements IGetCurrentUserUseCase {
   constructor(
-    private readonly sessionManager: SessionManager,
     private readonly workspacesRepository: IWorkspacesRepository,
     private readonly dataSourceResolver: IDataSourceResolver,
   ) {}
@@ -20,15 +18,6 @@ export class GetCurrentUserService implements IGetCurrentUserUseCase {
     input: GetCurrentUserInput,
   ): Promise<Either<AppError, MemberDTO>> {
     try {
-      const sessionUser = this.sessionManager.getCurrentUser(
-        input.workspaceId,
-        input.connectionInstanceId,
-      )
-
-      if (!sessionUser) {
-        return Either.failure(AppError.Unauthorized('USUARIO_NAO_LOGADO'))
-      }
-
       const workspace = await this.workspacesRepository.findById(
         input.workspaceId,
       )
@@ -53,7 +42,12 @@ export class GetCurrentUserService implements IGetCurrentUserUseCase {
         connection.id,
       )
 
-      const user = await adapter.memberQuery.findById(sessionUser.id)
+      const result = await adapter.getAuthenticatedMemberData()
+      if (result.isFailure()) return result.forwardFailure()
+
+      const member = result.success
+
+      const user = await adapter.memberQuery.findById(member.id.toString())
 
       if (!user) {
         return Either.failure(AppError.NotFound('USUARIO_NAO_ENCONTRADO'))

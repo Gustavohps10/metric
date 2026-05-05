@@ -2,7 +2,6 @@
 
 import {
   AddonManifest,
-  FieldGroup,
   WorkspaceConnectionDTO,
   WorkspaceDTO,
 } from '@metric-org/application'
@@ -15,6 +14,17 @@ import { toast } from 'sonner'
 import jiraLogo from '@/assets/temp-plugins-icons/jira.png'
 import youtrackLogo from '@/assets/temp-plugins-icons/youtrack.png'
 import { FileUploadButton } from '@/components'
+import {
+  DataSourceInstanceFormData,
+  NewDataSourceInstanceForm,
+} from '@/components/new-datasource-instance-form'
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog'
 import { Input } from '@/components/ui/input'
 import { ScrollArea } from '@/components/ui/scroll-area'
 import { useDataSourceConnections } from '@/hooks'
@@ -25,14 +35,13 @@ import {
   type AddonCategory,
   AddonCategorySidebar,
 } from './addon-category-sidebar'
-import {
-  AddConnectionDialog,
-  AddonDetailsDialog,
-  type ConnectionFormData,
-  InstallPluginDialog,
-} from './addon-dialogs'
+import { AddonDetailsDialog, InstallPluginDialog } from './addon-dialogs'
 import { AddonList } from './addon-list'
 import type { AddonConnection, AddonItem } from './addon-types'
+
+// ---------------------------------------------------------------------------
+// Mock data
+// ---------------------------------------------------------------------------
 
 const MOCK_ADDONS: AddonItem[] = [
   {
@@ -74,6 +83,10 @@ const MOCK_ADDONS: AddonItem[] = [
     ],
   },
 ]
+
+// ---------------------------------------------------------------------------
+// Helpers
+// ---------------------------------------------------------------------------
 
 function getConnections(
   workspace: WorkspaceDTO | null,
@@ -117,30 +130,42 @@ function addonCategory(m: AddonManifest): AddonCategory {
   return 'data-sources'
 }
 
+// ---------------------------------------------------------------------------
+// Page
+// ---------------------------------------------------------------------------
+
 export function AddonsPage() {
   const client = useClient()
-  const { connect, disconnect, membersByConnection } =
-    useDataSourceConnections()
+  const {
+    connect,
+    disconnect,
+    connections: connectionState,
+  } = useDataSourceConnections()
   const { workspaceId } = useParams<{ workspaceId: string }>()
+
   const [activeCategory, setActiveCategory] = useState<AddonCategory>('all')
   const [searchQuery, setSearchQuery] = useState('')
 
+  // Dialogs
   const [installDialogOpen, setInstallDialogOpen] = useState(false)
+  const [detailsDialogOpen, setDetailsDialogOpen] = useState(false)
   const [connectionDialogOpen, setConnectionDialogOpen] = useState(false)
 
-  /** Agora rastreamos a instância específica que está sendo configurada */
+  const [selectedAddon, setSelectedAddon] = useState<AddonItem | null>(null)
   const [connectionTargetId, setConnectionTargetId] = useState<string | null>(
     null,
   )
-
-  const [detailsDialogOpen, setDetailsDialogOpen] = useState(false)
-  const [selectedAddon, setSelectedAddon] = useState<AddonItem | null>(null)
   const [installVersions, setInstallVersions] = useState<
     { value: string; label: string }[]
   >([])
   const [isInstalling, setIsInstalling] = useState(false)
 
+  // ---------------------------------------------------------------------------
+  // Queries
+  // ---------------------------------------------------------------------------
+
   const workspaceQueryKey = ['workspace', workspaceId]
+
   const { data: workspace } = useQuery({
     queryKey: workspaceQueryKey,
     queryFn: async () => {
@@ -155,12 +180,22 @@ export function AddonsPage() {
 
   const { data: installedList = [] } = useQuery({
     queryKey: ['plugins', 'installed'],
-    queryFn: () => client.integrations.addons.listInstalled(),
+    queryFn: async () => {
+      const res = await client.integrations.addons.listInstalled()
+      if (!res.isSuccess)
+        throw new Error(res.error ?? 'Falha ao listar plugins instalados')
+      return res.data ?? []
+    },
   })
 
   const { data: availableList = [] } = useQuery({
     queryKey: ['plugins', 'available'],
-    queryFn: () => client.integrations.addons.listAvailable(),
+    queryFn: async () => {
+      const res = await client.integrations.addons.listAvailable()
+      if (!res.isSuccess)
+        throw new Error(res.error ?? 'Falha ao listar plugins disponíveis')
+      return res.data ?? []
+    },
   })
 
   const connections = useMemo(
@@ -168,21 +203,9 @@ export function AddonsPage() {
     [workspace],
   )
 
-  const { data: connectionFields } = useQuery({
-    queryKey: ['datasource-fields', selectedAddon?.id],
-    queryFn: () => {
-      console.log('ADDON SELECTED', selectedAddon)
-      return client.services.workspaces.getDataSourceFields({
-        body: { pluginId: selectedAddon!.id },
-      })
-    },
-    enabled: !!selectedAddon?.id && connectionDialogOpen,
-  })
-
-  const dynamicFields = connectionFields ?? {
-    credentials: [] as FieldGroup[],
-    configuration: [] as FieldGroup[],
-  }
+  // ---------------------------------------------------------------------------
+  // Derived addon list
+  // ---------------------------------------------------------------------------
 
   const addons: AddonItem[] = useMemo(() => {
     const byId = new Map<string, AddonManifest>()
@@ -190,32 +213,29 @@ export function AddonsPage() {
     availableList.forEach((m) => {
       if (!byId.has(m.id)) byId.set(m.id, m)
     })
-    const list = Array.from(byId.values())
 
-    const realAddons = list.map((m) => {
-      const connsForAddon = connections.filter((c) =>
-        connectionMatchesAddon(c, m.id),
-      )
-
-      const addonConnections: AddonConnection[] = connsForAddon.map((c) => {
-        const session = membersByConnection[c.id]
-        return {
-          id: c.id,
-          name: (c.config?.name as string) || c.id,
-          url:
-            (c.config?.url as string) ||
-            (c.config?.baseUrl as string) ||
-            undefined,
-          status: session?.isAuthenticated ? 'connected' : 'disconnected',
-          lastSync: undefined,
-        }
-      })
-
+    const realAddons = Array.from(byId.values()).map((m) => {
+      const addonConnections: AddonConnection[] = connections
+        .filter((c) => connectionMatchesAddon(c, m.id))
+        .map((c) => {
+          const state = connectionState.find((s) => s.connectionId === c.id)
+          return {
+            id: c.id,
+            name: (c.config?.name as string) || c.id,
+            url:
+              (c.config?.url as string) ||
+              (c.config?.baseUrl as string) ||
+              undefined,
+            status:
+              state?.status === 'connected' ? 'connected' : 'disconnected',
+            lastSync: undefined,
+          } satisfies AddonConnection
+        })
       return manifestToAddonItem(m, addonConnections, addonCategory(m))
     })
 
     return [...realAddons, ...MOCK_ADDONS]
-  }, [installedList, availableList, connections, membersByConnection])
+  }, [installedList, availableList, connections, connectionState])
 
   const categoryCounts = useMemo(
     () => ({
@@ -251,6 +271,10 @@ export function AddonsPage() {
     return result
   }, [addons, activeCategory, searchQuery])
 
+  // ---------------------------------------------------------------------------
+  // Mutations
+  // ---------------------------------------------------------------------------
+
   const linkMutation = useMutation({
     mutationFn: (input: {
       dataSourceId: string
@@ -259,49 +283,34 @@ export function AddonsPage() {
       client.services.workspaces.linkDataSource({
         body: { workspaceId: workspaceId!, ...input },
       }),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: workspaceQueryKey })
-    },
-    onError: (e) => toast.error(e.message),
+    onSuccess: () =>
+      queryClient.invalidateQueries({ queryKey: workspaceQueryKey }),
+    onError: (e: Error) => toast.error(e.message),
   })
 
   const connectMutation = useMutation({
-    mutationFn: (payload: {
-      pluginId: string
-      connectionInstanceId: string
-      credentials: Record<string, unknown>
-      configuration: Record<string, unknown>
-    }) =>
-      client.services.workspaces.connectDataSource({
-        body: {
-          workspaceId: workspaceId!,
-          pluginId: payload.pluginId,
-          connectionInstanceId: payload.connectionInstanceId,
-          credentials: payload.credentials,
-          configuration: payload.configuration,
-        },
+    mutationFn: (payload: DataSourceInstanceFormData) =>
+      connect({
+        connectionInstanceId: payload.connectionInstanceId,
+        pluginId: payload.pluginId,
+        credentials: payload.credentials,
+        configuration: payload.configuration,
       }),
-    onSuccess: (response, variables) => {
-      if (!response.isSuccess) {
-        toast.error(response.error ?? 'Falha ao conectar.')
+    onSuccess: (res) => {
+      if (!res?.isSuccess || !res.data) {
+        toast.error(res?.error ?? 'Falha ao conectar com DataSource')
         return
       }
-
-      if (response.data?.member && response.data?.token) {
-        void connect({
-          connectionInstanceId: variables.connectionInstanceId,
-          member: response.data.member,
-          token: response.data.token,
-        })
-      }
-
       queryClient.invalidateQueries({ queryKey: workspaceQueryKey })
-      toast.success('Conectado com sucesso.')
+      toast.success(`${res.data.member.login} conectado com sucesso`)
       setConnectionDialogOpen(false)
       setSelectedAddon(null)
       setConnectionTargetId(null)
     },
-    onError: (e) => toast.error(e.message),
+    onError: (e: Error) => {
+      console.error('Unexpected error:', e)
+      toast.error('Erro inesperado')
+    },
   })
 
   const disconnectMutation = useMutation({
@@ -309,12 +318,12 @@ export function AddonsPage() {
       client.services.workspaces.disconnectDataSource({
         body: { workspaceId: workspaceId!, connectionInstanceId },
       }),
-    onSuccess: async (_response, variables) => {
-      await disconnect(variables)
+    onSuccess: async (_res, connectionInstanceId) => {
+      await disconnect(connectionInstanceId)
       queryClient.invalidateQueries({ queryKey: workspaceQueryKey })
       toast.info('Desconectado.')
     },
-    onError: (e) => toast.error(e.message),
+    onError: (e: Error) => toast.error(e.message),
   })
 
   const unlinkMutation = useMutation({
@@ -322,13 +331,17 @@ export function AddonsPage() {
       client.services.workspaces.unlinkDataSource({
         body: { workspaceId: workspaceId!, connectionInstanceId },
       }),
-    onSuccess: async (_response, variables) => {
-      await disconnect(variables)
+    onSuccess: async (_res, connectionInstanceId) => {
+      await disconnect(connectionInstanceId)
       queryClient.invalidateQueries({ queryKey: workspaceQueryKey })
       toast.info('Fonte removida.')
     },
-    onError: (e) => toast.error(e.message),
+    onError: (e: Error) => toast.error(e.message),
   })
+
+  // ---------------------------------------------------------------------------
+  // Handlers
+  // ---------------------------------------------------------------------------
 
   const handleInstall = (addon: AddonItem, version: string) => {
     if (!addon.installerManifestUrl) return
@@ -336,7 +349,7 @@ export function AddonsPage() {
     client.integrations.addons
       .getInstaller({ body: { installerUrl: addon.installerManifestUrl } })
       .then((installer) => {
-        const pkg = installer.packages.find((p) => p.version === version)
+        const pkg = installer.data?.packages.find((p) => p.version === version)
         if (!pkg) throw new Error('Versão não encontrada.')
         return client.integrations.addons.install({
           body: { downloadUrl: pkg.downloadUrl },
@@ -347,7 +360,7 @@ export function AddonsPage() {
         toast.success('Plugin instalado.')
         setInstallDialogOpen(false)
       })
-      .catch((e) => toast.error(e?.message ?? 'Erro na instalação'))
+      .catch((e: Error) => toast.error(e?.message ?? 'Erro na instalação'))
       .finally(() => setIsInstalling(false))
   }
 
@@ -360,23 +373,24 @@ export function AddonsPage() {
     setSelectedAddon(addon)
     client.integrations.addons
       .getInstaller({ body: { installerUrl: addon.installerManifestUrl } })
-      .then((installer) => {
-        setInstallVersions(
-          installer.packages.map((p) => ({
-            value: p.version,
-            label: `v${p.version}`,
-          })),
-        )
-        setInstallDialogOpen(true)
-      })
-      .catch(() => toast.error('Falha ao carregar versões.'))
+      .then(
+        (installer) => {
+          setInstallVersions(
+            installer.data?.packages.map((p) => ({
+              value: p.version,
+              label: `v${p.version}`,
+            })) ?? [],
+          )
+          setInstallDialogOpen(true)
+        },
+        (error: Error) => toast.error(error.message),
+      )
   }
 
   const handleAddConnection = async (addon: AddonItem) => {
     setSelectedAddon(addon)
     const unique = crypto.randomUUID().slice(0, 8)
     const newId = `${addon.id}-${unique}`
-
     try {
       await linkMutation.mutateAsync({
         dataSourceId: addon.id,
@@ -385,7 +399,7 @@ export function AddonsPage() {
       setConnectionTargetId(newId)
       setConnectionDialogOpen(true)
     } catch {
-      /* erro via toast */
+      // erro via toast
     }
   }
 
@@ -393,27 +407,18 @@ export function AddonsPage() {
     addon: AddonItem,
     connection: AddonConnection,
   ) => {
-    const session = membersByConnection[connection.id]
-
-    /** Regra: Só deixa configurar se está desconectado */
-    if (session?.isAuthenticated) {
+    const state = connectionState.find((s) => s.connectionId === connection.id)
+    if (state?.status === 'connected') {
       toast.error('Desconecte antes de reconfigurar esta instância.')
       return
     }
-
     setSelectedAddon(addon)
     setConnectionTargetId(connection.id)
     setConnectionDialogOpen(true)
   }
 
-  const handleSaveConnection = (addon: AddonItem, data: ConnectionFormData) => {
-    if (!connectionTargetId) return
-    connectMutation.mutate({
-      pluginId: addon.id,
-      connectionInstanceId: connectionTargetId,
-      credentials: data.credentials,
-      configuration: data.configuration,
-    })
+  const handleConnectDataSource = (data: DataSourceInstanceFormData) => {
+    connectMutation.mutate(data)
   }
 
   const handleDisconnect = (_addon: AddonItem, connection: AddonConnection) => {
@@ -439,8 +444,13 @@ export function AddonsPage() {
     queryClient.invalidateQueries({ queryKey: ['plugins'] })
   }
 
+  // ---------------------------------------------------------------------------
+  // Render
+  // ---------------------------------------------------------------------------
+
   return (
     <div className="bg-background min-h-screen">
+      {/* Header */}
       <header className="border-border border-b">
         <div className="container mx-auto px-6 py-6">
           <div className="flex items-center justify-between">
@@ -467,14 +477,17 @@ export function AddonsPage() {
                 accept=".tladdon"
                 onFileSelect={handleImport}
               >
-                <UploadIcon className="mr-2 h-4 w-4" />
-                Importar
+                <span className="flex items-center">
+                  <UploadIcon className="mr-2 h-4 w-4" />
+                  Importar
+                </span>
               </FileUploadButton>
             </div>
           </div>
         </div>
       </header>
 
+      {/* Body */}
       <div className="container mx-auto px-6 py-6">
         <div className="flex gap-6">
           <AddonCategorySidebar
@@ -492,13 +505,9 @@ export function AddonsPage() {
                   setDetailsDialogOpen(true)
                 }}
                 onAddConnection={handleAddConnection}
-                onOpenSettings={(addon, conn) =>
-                  handleOpenSettings(addon, conn)
-                }
-                onSyncNow={() => toast.info('Sincronizar em breve.')}
+                onOpenSettings={handleOpenSettings}
                 onDisconnect={handleDisconnect}
                 onUpdate={() => toast.info('Atualização em breve.')}
-                onDisable={() => toast.info('Desativar em breve.')}
                 onUninstall={handleUninstall}
               />
             </div>
@@ -506,6 +515,7 @@ export function AddonsPage() {
         </div>
       </div>
 
+      {/* Install dialog */}
       <InstallPluginDialog
         open={installDialogOpen}
         onOpenChange={setInstallDialogOpen}
@@ -514,17 +524,51 @@ export function AddonsPage() {
         onInstall={handleInstall}
         isInstalling={isInstalling}
       />
-      <AddConnectionDialog
+
+      {/* Connection dialog — uses NewDataSourceInstanceForm directly */}
+      <Dialog
         open={connectionDialogOpen}
         onOpenChange={(open) => {
           setConnectionDialogOpen(open)
-          if (!open) setConnectionTargetId(null)
+          if (!open) {
+            setConnectionTargetId(null)
+            setSelectedAddon(null)
+          }
         }}
-        addon={selectedAddon}
-        dynamicFields={dynamicFields}
-        onSave={handleSaveConnection}
-        isSaving={connectMutation.isPending}
-      />
+      >
+        <DialogContent className="sm:max-w-lg">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-3">
+              {selectedAddon?.logo && (
+                <span className="bg-secondary flex h-9 w-9 items-center justify-center overflow-hidden rounded-lg border">
+                  <img
+                    src={selectedAddon.logo}
+                    alt={selectedAddon.name}
+                    className="h-6 w-6 object-contain"
+                  />
+                </span>
+              )}
+              Conectar {selectedAddon?.name}
+            </DialogTitle>
+            <DialogDescription>
+              Preencha as credenciais para autenticar esta instância.
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="py-2">
+            {selectedAddon && connectionTargetId && (
+              <NewDataSourceInstanceForm
+                pluginId={selectedAddon.id}
+                connectionInstanceId={connectionTargetId}
+                isSubmitting={connectMutation.isPending}
+                onSubmit={handleConnectDataSource}
+              />
+            )}
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Details dialog */}
       <AddonDetailsDialog
         open={detailsDialogOpen}
         onOpenChange={setDetailsDialogOpen}

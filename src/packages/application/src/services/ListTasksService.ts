@@ -21,6 +21,11 @@ export class ListTaskService implements IListTasksUseCase {
         input.connectionInstanceId,
       )
 
+      const result = await adapter.getAuthenticatedMemberData()
+      if (result.isFailure()) return result.forwardFailure()
+
+      const member = result.success
+
       const tasks = await adapter.taskQuery.findAll()
 
       return Either.success(tasks)

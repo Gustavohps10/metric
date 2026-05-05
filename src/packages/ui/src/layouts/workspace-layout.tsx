@@ -19,11 +19,12 @@ import { TimeEntryProvider } from '@/stores/timeEntryStore'
 
 export function WorkspaceLayout() {
   const { workspaceId } = useParams<{ workspaceId: string }>()
+
   return (
     <WorkspaceProvider workspaceId={workspaceId}>
-      <SyncProvider>
-        <TimeEntryProvider>
-          <DataSourceConnectionsProvider>
+      <DataSourceConnectionsProvider>
+        <SyncProvider>
+          <TimeEntryProvider>
             <>
               <AppSidebar>
                 <AppSidebarHeader>
@@ -40,18 +41,22 @@ export function WorkspaceLayout() {
               </AppSidebar>
 
               <Header />
-              <main className="relative h-full flex-1 overflow-hidden">
-                <ScrollArea className="h-full">
-                  <section className="px-4 pt-12">
-                    <Outlet />
-                  </section>
-                  <Footer />
-                </ScrollArea>
+
+              <main className="flex h-full flex-1 flex-col overflow-hidden">
+                <div className="min-h-0 flex-1">
+                  <ScrollArea className="h-full">
+                    <section className="px-4 pt-12">
+                      <Outlet />
+                    </section>
+
+                    <Footer />
+                  </ScrollArea>
+                </div>
               </main>
             </>
-          </DataSourceConnectionsProvider>
-        </TimeEntryProvider>
-      </SyncProvider>
+          </TimeEntryProvider>
+        </SyncProvider>
+      </DataSourceConnectionsProvider>
     </WorkspaceProvider>
   )
 }

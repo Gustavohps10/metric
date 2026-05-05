@@ -4,8 +4,8 @@ export interface MemberDTO {
   firstname: string
   lastname: string
   admin: boolean
-  created_on: string
-  last_login_on: string
-  api_key: string
-  custom_fields: { id: number; name: string; value: string }[]
+  createdOn: string
+  lastLoginOn: string
+  avatarUrl?: string
+  customFields: { id: number; name: string; value: string }[]
 }

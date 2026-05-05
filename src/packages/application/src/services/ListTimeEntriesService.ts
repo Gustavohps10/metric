@@ -22,8 +22,13 @@ export class ListTimeEntriesService implements IListTimeEntriesUseCase {
         input.connectionInstanceId,
       )
 
+      const result = await adapter.getAuthenticatedMemberData()
+      if (result.isFailure()) return result.forwardFailure()
+
+      const member = result.success
+
       const timeEntries = await adapter.timeEntryQuery.findByMemberId(
-        input.memberId,
+        member.id.toString(),
         input.startDate,
         input.endDate,
       )

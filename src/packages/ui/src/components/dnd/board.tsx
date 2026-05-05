@@ -258,10 +258,6 @@ export function Board({
 
               // dispara evento
               if (updated.onChange) {
-                console.log(
-                  'disparando evento de onChange da coluna',
-                  updated.id,
-                )
                 updated.onChange({
                   ...updated,
                   position: homeColumnIndex,

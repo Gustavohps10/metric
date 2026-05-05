@@ -4,7 +4,9 @@ import {
   IRequest,
 } from '@metric-org/cross-cutting/transport'
 import {
-  AuthenticationViewModel,
+  AddonInstallerViewModel,
+  AddonManifestViewModel,
+  ConnectionResultViewModel,
   MemberViewModel,
   MetadataViewModel,
   PaginatedViewModel,
@@ -17,6 +19,7 @@ import {
 
 import { FileData } from '@/contracts/infra'
 import {
+  ConnectDataSourceInput,
   PushTimeEntriesInput,
   UpdateWorkspaceIdentityInput,
 } from '@/contracts/use-cases'
@@ -76,14 +79,10 @@ export interface IWorkspacesAPI {
   ): Promise<ViewModel<WorkspaceViewModel>>
 
   connectDataSource(
-    input: IRequest<{
-      workspaceId: string
-      pluginId: string
-      connectionInstanceId: string
-      configuration: Record<string, unknown>
-      credentials: Record<string, unknown>
-    }>,
-  ): Promise<ViewModel<AuthenticationViewModel>>
+    input: IRequest<
+      ConnectDataSourceInput<Record<string, unknown>, Record<string, unknown>>
+    >,
+  ): Promise<ViewModel<ConnectionResultViewModel>>
 
   disconnectDataSource(
     input: IRequest<{
@@ -243,18 +242,23 @@ export interface AddonInstaller {
     changelog: string[]
   }[]
 }
-
 export interface IAddonsAPI {
-  listAvailable(): Promise<AddonManifest[]>
-  listInstalled(): Promise<AddonManifest[]>
+  listAvailable(): Promise<PaginatedViewModel<AddonManifestViewModel[]>>
+
+  listInstalled(): Promise<PaginatedViewModel<AddonManifestViewModel[]>>
+
   getInstalledById(
     payload: IRequest<{ addonId: string }>,
-  ): Promise<ViewModel<AddonManifest>>
-  updateLocal?(addon: AddonManifest): Promise<void>
-  import(payload: IRequest<{ addon: FileData }>): Promise<ViewModel>
+  ): Promise<ViewModel<AddonManifestViewModel>>
+
+  updateLocal(payload: IRequest<AddonManifest>): Promise<ViewModel<void>>
+
+  import(payload: IRequest<{ addon: FileData }>): Promise<ViewModel<void>>
+
   getInstaller(
     payload: IRequest<{ installerUrl: string }>,
-  ): Promise<AddonInstaller>
+  ): Promise<ViewModel<AddonInstallerViewModel>>
+
   install(
     payload: IRequest<{ downloadUrl: string }>,
   ): Promise<ViewModel<IJobResult>>

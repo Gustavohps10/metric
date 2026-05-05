@@ -1,8 +1,10 @@
 'use client'
 
 import { IApplicationAPI } from '@metric-org/application'
-import type { IHeaders } from '@metric-org/cross-cutting/transport'
-import { TimeEntryViewModel } from '@metric-org/presentation/view-models'
+import {
+  TaskViewModel,
+  TimeEntryViewModel,
+} from '@metric-org/presentation/view-models'
 import {
   createContext,
   ReactNode,
@@ -28,6 +30,10 @@ import { wrappedValidateAjvStorage } from 'rxdb/plugins/validate-ajv'
 import { Subscription } from 'rxjs'
 import { createStore, type StoreApi, useStore } from 'zustand'
 
+import {
+  type ConnectionInstanceId,
+  useDataSourceConnections,
+} from '@/contexts/DataSourceConnectionsContext'
 import { useWorkspace } from '@/contexts/WorkspaceContext'
 import { useEnvironment } from '@/hooks'
 import { useClient } from '@/hooks/use-client'
@@ -81,18 +87,25 @@ export type SyncStore = SyncState & {
   init: () => Promise<void>
   destroy: () => Promise<void>
   drop: () => Promise<void>
+  connectDataSource: (params: {
+    connectionInstanceId: ConnectionInstanceId
+    dataSourceId: string
+  }) => Promise<void>
+  disconnectDataSource: (
+    connectionInstanceId: ConnectionInstanceId,
+  ) => Promise<void>
 }
 export interface DataSourceRef {
   id: string
   dataSourceId: string
 }
 
+// --- STORAGE ---
 const createAppStorage = () =>
   wrappedValidateAjvStorage({ storage: getRxStorageDexie() })
 
 const dropAppStorage = async (dbName: string) => {
   const allDbs = await indexedDB.databases()
-
   console.log('DELETANDO', allDbs)
   await Promise.all(
     allDbs
@@ -111,28 +124,10 @@ const dropAppStorage = async (dbName: string) => {
 
 // --- HELPERS ---
 const compositeId = (connId: string, extId: string) => `${connId}::${extId}`
-const dateToISO = (val: any) =>
+const dateToISO = (
+  val: Date | string | null | undefined,
+): string | undefined =>
   val instanceof Date ? val.toISOString() : val ? String(val) : undefined
-
-async function resolveBearerHeaders(
-  client: IApplicationAPI,
-  workspaceId: string,
-  connectionInstanceId: string,
-): Promise<IHeaders | undefined> {
-  try {
-    const res = await client.modules.tokenStorage.getToken({
-      body: {
-        service: 'metric',
-        account: `jwt-${workspaceId}-${connectionInstanceId}`,
-      },
-    })
-    if (res.isSuccess && res.data)
-      return { authorization: `Bearer ${res.data}` }
-  } catch (e) {
-    console.error(`[SYNC] Falha ao resolver token:`, e)
-  }
-  return undefined
-}
 
 // --- STRATEGIES ---
 class MetadataStrategy implements IReplicationStrategy<
@@ -145,14 +140,14 @@ class MetadataStrategy implements IReplicationStrategy<
     private connectionInstanceId: string,
     private pluginId: string,
   ) {}
-  async pull(checkpoint: ReplicationCheckpoint | undefined, batchSize: number) {
-    const headers = await resolveBearerHeaders(
-      this.client,
-      this.workspaceId,
-      this.connectionInstanceId,
-    )
-    if (!headers) throw new Error('MISSING_TOKEN')
 
+  async pull(
+    checkpoint: ReplicationCheckpoint | undefined,
+    batchSize: number,
+  ): Promise<{
+    documents: SyncMetadataRxDBDTO[]
+    checkpoint: ReplicationCheckpoint
+  }> {
     const syncId = `metadata_sync_${this.connectionInstanceId}`
     if (checkpoint?.id === syncId) return { documents: [], checkpoint }
 
@@ -168,17 +163,17 @@ class MetadataStrategy implements IReplicationStrategy<
           updatedAt: new Date(checkpoint?.updatedAt || 0),
         },
       },
-      ...{ headers },
     })
 
     if (!res.data)
       return {
         documents: [],
-        checkpoint: checkpoint || {
+        checkpoint: checkpoint ?? {
           updatedAt: new Date(0).toISOString(),
           id: '',
         },
       }
+
     const now = new Date().toISOString()
     const doc: SyncMetadataRxDBDTO = {
       _id: compositeId(this.connectionInstanceId, 'metadata'),
@@ -196,7 +191,8 @@ class MetadataStrategy implements IReplicationStrategy<
     }
     return { documents: [doc], checkpoint: { updatedAt: now, id: syncId } }
   }
-  async push() {
+
+  async push(): Promise<unknown[]> {
     return []
   }
 }
@@ -211,13 +207,14 @@ class TasksStrategy implements IReplicationStrategy<
     private connectionInstanceId: string,
     private pluginId: string,
   ) {}
-  async pull(checkpoint: ReplicationCheckpoint | undefined, batchSize: number) {
-    const headers = await resolveBearerHeaders(
-      this.client,
-      this.workspaceId,
-      this.connectionInstanceId,
-    )
-    if (!headers) throw new Error('MISSING_TOKEN')
+
+  async pull(
+    checkpoint: ReplicationCheckpoint | undefined,
+    batchSize: number,
+  ): Promise<{
+    documents: SyncTaskRxDBDTO[]
+    checkpoint: ReplicationCheckpoint
+  }> {
     const res = await this.client.services.tasks.pull({
       body: {
         workspaceId: this.workspaceId,
@@ -230,12 +227,12 @@ class TasksStrategy implements IReplicationStrategy<
           updatedAt: new Date(checkpoint?.updatedAt || 0),
         },
       },
-      ...{ headers },
     })
+
     const data = res.data || []
     if (data.length === 0) return { documents: [], checkpoint: checkpoint! }
     const last = data[data.length - 1]
-    const docs: SyncTaskRxDBDTO[] = data.map((item: any) => ({
+    const docs: SyncTaskRxDBDTO[] = data.map((item: TaskViewModel) => ({
       ...item,
       _id: compositeId(this.connectionInstanceId, String(item.id)),
       dataSourceId: this.pluginId,
@@ -245,10 +242,13 @@ class TasksStrategy implements IReplicationStrategy<
       updatedAt: dateToISO(item.updatedAt)!,
       startDate: dateToISO(item.startDate),
       dueDate: dateToISO(item.dueDate),
-      timeEntryIds: item.timeEntryIds || [],
-      statusChanges: item.statusChanges?.map((c: any) => ({
-        ...c,
-        changedAt: dateToISO(c.changedAt),
+      timeEntryIds: [],
+      statusChanges: item.statusChanges?.map((c) => ({
+        fromStatus: c.fromStatus,
+        toStatus: c.toStatus,
+        description: c.description,
+        changedBy: c.changedBy,
+        changedAt: dateToISO(c.changedAt)!,
       })),
     }))
     return {
@@ -259,7 +259,8 @@ class TasksStrategy implements IReplicationStrategy<
       },
     }
   }
-  async push() {
+
+  async push(): Promise<unknown[]> {
     return []
   }
 }
@@ -274,51 +275,53 @@ class TimeEntriesStrategy implements IReplicationStrategy<
     private connectionInstanceId: string,
     private pluginId: string,
   ) {}
-  async pull(checkpoint: ReplicationCheckpoint | undefined, batchSize: number) {
-    const headers = await resolveBearerHeaders(
-      this.client,
-      this.workspaceId,
-      this.connectionInstanceId,
-    )
-    if (!headers) throw new Error('MISSING_TOKEN')
-    const mRes = await this.client.services.workspaces.getConnectionMember({
-      body: {
-        workspaceId: this.workspaceId,
-        connectionInstanceId: this.connectionInstanceId,
-      },
-      ...{ headers },
-    })
-    const mId = mRes?.data?.id != null ? String(mRes.data.id) : ''
-    if (!mId) throw new Error('MEMBER_NOT_FOUND')
+
+  async pull(
+    checkpoint: ReplicationCheckpoint | undefined,
+    batchSize: number,
+  ): Promise<{
+    documents: SyncTimeEntryRxDBDTO[]
+    checkpoint: ReplicationCheckpoint
+  }> {
+    console.log('ATIVADO PULL', this)
     const res = await this.client.services.timeEntries.pull({
       body: {
         workspaceId: this.workspaceId,
         pluginId: this.pluginId,
         connectionInstanceId: this.connectionInstanceId,
-        memberId: mId,
+        memberId: '230',
         batch: batchSize,
         checkpoint: {
           id: checkpoint?.id || '',
           updatedAt: new Date(checkpoint?.updatedAt || 0),
         },
       },
-      ...{ headers },
     })
-    const data: TimeEntryViewModel[] = res || [] //nao mexer ja vem no formato correto
+
+    const data: TimeEntryViewModel[] = res || []
     if (data.length === 0) return { documents: [], checkpoint: checkpoint! }
     const last = data[data.length - 1]
-    const docs: SyncTimeEntryRxDBDTO[] = data.map((item: any) => ({
-      ...item,
-      _id: compositeId(this.connectionInstanceId, String(item.id)),
-      dataSourceId: this.pluginId,
-      connectionInstanceId: this.connectionInstanceId,
-      _deleted: false,
-      startDate: dateToISO(item.startDate),
-      endDate: dateToISO(item.endDate),
-      createdAt: dateToISO(item.createdAt),
-      updatedAt: dateToISO(item.updatedAt),
-      syncedAt: new Date().toISOString(),
-    }))
+
+    const docs: SyncTimeEntryRxDBDTO[] = data.map(
+      (item: TimeEntryViewModel): SyncTimeEntryRxDBDTO => ({
+        _id: compositeId(this.connectionInstanceId, String(item.id)),
+        _deleted: false,
+        id: String(item.id),
+        dataSourceId: this.pluginId,
+        connectionInstanceId: this.connectionInstanceId,
+        task: item.task,
+        activity: item.activity,
+        user: item.user,
+        timeSpent: item.timeSpent,
+        comments: item.comments,
+        startDate: dateToISO(item.startDate),
+        endDate: dateToISO(item.endDate),
+        createdAt: dateToISO(item.createdAt)!,
+        updatedAt: dateToISO(item.updatedAt)!,
+        syncedAt: new Date().toISOString(),
+      }),
+    )
+
     return {
       documents: docs,
       checkpoint: {
@@ -327,7 +330,8 @@ class TimeEntriesStrategy implements IReplicationStrategy<
       },
     }
   }
-  async push() {
+
+  async push(): Promise<unknown[]> {
     return []
   }
 }
@@ -337,6 +341,7 @@ class ReplicationModule {
   private instance?: RxReplicationState<unknown, unknown>
   private subs: Subscription[] = []
   private resyncInterval?: NodeJS.Timeout
+
   constructor(
     private collection: RxCollection,
     private strategy: IReplicationStrategy<unknown, unknown>,
@@ -402,6 +407,7 @@ class ReplicationModule {
       )
     }
   }
+
   async destroy() {
     if (this.resyncInterval) clearInterval(this.resyncInterval)
     this.subs.forEach((s) => s.unsubscribe())
@@ -410,38 +416,183 @@ class ReplicationModule {
   }
 }
 
+// --- REPLICATION MAP ---
+type ReplicationMap = Map<ConnectionInstanceId, Map<string, ReplicationModule>>
+
+// --- COLLECTION CONFIGS ---
+type CollectionConfig = {
+  name: keyof Pick<AppCollections, 'metadata' | 'tasks' | 'timeEntries'>
+  strategyFactory: (
+    client: IApplicationAPI,
+    workspaceId: string,
+    connectionInstanceId: string,
+    dataSourceId: string,
+  ) => IReplicationStrategy<unknown, unknown>
+  interval: number
+  batch: number
+}
+
+const COLLECTION_CONFIGS: CollectionConfig[] = [
+  {
+    name: 'metadata',
+    strategyFactory: (client, workspaceId, connId, dsId) =>
+      new MetadataStrategy(
+        client,
+        workspaceId,
+        connId,
+        dsId,
+      ) as IReplicationStrategy<unknown, unknown>,
+    interval: 3600,
+    batch: 1,
+  },
+  {
+    name: 'tasks',
+    strategyFactory: (client, workspaceId, connId, dsId) =>
+      new TasksStrategy(
+        client,
+        workspaceId,
+        connId,
+        dsId,
+      ) as IReplicationStrategy<unknown, unknown>,
+    interval: 300,
+    batch: 30,
+  },
+  {
+    name: 'timeEntries',
+    strategyFactory: (client, workspaceId, connId, dsId) =>
+      new TimeEntriesStrategy(
+        client,
+        workspaceId,
+        connId,
+        dsId,
+      ) as IReplicationStrategy<unknown, unknown>,
+    interval: 60,
+    batch: 30,
+  },
+]
+
 // --- STORE CORE ---
 export const createSyncStore = (
   workspaceId: string,
-  dataSources: DataSourceRef[],
   client: IApplicationAPI,
   isDevelopment: boolean,
 ): StoreApi<SyncStore> => {
-  const engineModules: ReplicationModule[] = []
+  const replications: ReplicationMap = new Map()
+
+  const initialCheckpoint: ReplicationCheckpoint = {
+    updatedAt: new Date(Date.now() - 5184000000).toISOString(), // 60 dias
+    id: '',
+  }
+
+  const startConnectionModules = async (
+    db: AppDatabase,
+    connectionInstanceId: ConnectionInstanceId,
+    dataSourceId: string,
+    set: (fn: (state: SyncStore) => Partial<SyncStore>) => void,
+  ) => {
+    const connectionModules = new Map<string, ReplicationModule>()
+
+    for (const config of COLLECTION_CONFIGS) {
+      const strategy = config.strategyFactory(
+        client,
+        workspaceId,
+        connectionInstanceId,
+        dataSourceId,
+      )
+
+      const module = new ReplicationModule(
+        db[config.name] as RxCollection,
+        strategy,
+        {
+          identifier: `rep_${config.name}_${workspaceId}_${connectionInstanceId}`,
+          resyncSeconds: config.interval,
+          batchSize: config.batch,
+          initialCheckpoint,
+          onStatusChange: (status) =>
+            set((state) => ({
+              statuses: {
+                ...state.statuses,
+                [`${config.name}_${connectionInstanceId}`]: {
+                  ...state.statuses[`${config.name}_${connectionInstanceId}`],
+                  ...status,
+                },
+              },
+            })),
+        },
+      )
+
+      await module.start()
+      connectionModules.set(config.name, module)
+    }
+
+    replications.set(connectionInstanceId, connectionModules)
+  }
+
+  const destroyConnectionModules = async (
+    connectionInstanceId: ConnectionInstanceId,
+    set: (fn: (state: SyncStore) => Partial<SyncStore>) => void,
+  ) => {
+    const connectionModules = replications.get(connectionInstanceId)
+    if (!connectionModules) return
+
+    await Promise.all(
+      Array.from(connectionModules.values()).map((m) => m.destroy()),
+    )
+    replications.delete(connectionInstanceId)
+
+    set((state) => {
+      const nextStatuses = { ...state.statuses }
+      COLLECTION_CONFIGS.forEach((config) => {
+        delete nextStatuses[`${config.name}_${connectionInstanceId}`]
+      })
+      return { statuses: nextStatuses }
+    })
+  }
+
+  const destroyAllModules = async () => {
+    await Promise.all(
+      Array.from(replications.values()).flatMap((connectionModules) =>
+        Array.from(connectionModules.values()).map((m) => m.destroy()),
+      ),
+    )
+    replications.clear()
+  }
+
   return createStore<SyncStore>((set, get) => ({
     db: null,
     statuses: {},
     isInitialized: false,
+
+    connectDataSource: async ({ connectionInstanceId, dataSourceId }) => {
+      const { db } = get()
+      if (!db) return
+      await destroyConnectionModules(connectionInstanceId, set)
+      await startConnectionModules(db, connectionInstanceId, dataSourceId, set)
+    },
+
+    disconnectDataSource: async (connectionInstanceId) => {
+      await destroyConnectionModules(connectionInstanceId, set)
+    },
+
     drop: async () => {
       const { db } = get()
       if (!db) return
-
-      await Promise.all(engineModules.map((m) => m.destroy()))
-      engineModules.length = 0
-
+      await destroyAllModules()
       await db.remove()
       await dropAppStorage(`db-${workspaceId}`)
-
       set({ db: null, isInitialized: false, statuses: {} })
     },
+
     destroy: async () => {
       const { db } = get()
-      await Promise.all(engineModules.map((m) => m.destroy()))
-      engineModules.length = 0
+      await destroyAllModules()
       if (db) await db.close()
       set({ db: null, isInitialized: false, statuses: {} })
     },
+
     init: async () => {
+      console.log('SYCRONIZADOR INICIALIZANDO....')
+
       if (get().isInitialized) return
 
       try {
@@ -462,6 +613,7 @@ export const createSyncStore = (
           eventReduce: true,
           allowSlowCount: true,
         })
+
         await db.addCollections({
           metadata: { schema: metadataSyncSchema },
           tasks: { schema: tasksSyncSchema },
@@ -471,96 +623,6 @@ export const createSyncStore = (
           automations: { schema: automationsSchema },
         })
 
-        const initialCheckpoint = {
-          updatedAt: new Date(Date.now() - 5184000000).toISOString(),
-          id: '',
-        } // 60 dias
-
-        for (const ds of dataSources) {
-          const hasToken = await resolveBearerHeaders(
-            client,
-            workspaceId,
-            ds.id,
-          )
-          if (!hasToken) {
-            ;['metadata', 'tasks', 'timeEntries'].forEach((col) => {
-              set((state) => ({
-                statuses: {
-                  ...state.statuses,
-                  [`${col}_${ds.id}`]: {
-                    isActive: false,
-                    isPulling: false,
-                    isPushing: false,
-                    lastReplication: null,
-                    error: new Error('MISSING_TOKEN'),
-                  },
-                },
-              }))
-            })
-            continue
-          }
-
-          const configs = [
-            {
-              name: 'metadata',
-              strategy: new MetadataStrategy(
-                client,
-                workspaceId,
-                ds.id,
-                ds.dataSourceId,
-              ),
-              interval: 3600,
-              batch: 1,
-            },
-            {
-              name: 'tasks',
-              strategy: new TasksStrategy(
-                client,
-                workspaceId,
-                ds.id,
-                ds.dataSourceId,
-              ),
-              interval: 300,
-              batch: 30,
-            },
-            {
-              name: 'timeEntries',
-              strategy: new TimeEntriesStrategy(
-                client,
-                workspaceId,
-                ds.id,
-                ds.dataSourceId,
-              ),
-              interval: 60,
-              batch: 30,
-            },
-          ]
-
-          for (const config of configs) {
-            const module = new ReplicationModule(
-              db[config.name as keyof AppCollections] as RxCollection,
-              config.strategy as IReplicationStrategy<unknown, unknown>,
-              {
-                identifier: `rep_${config.name}_${workspaceId}_${ds.id}`,
-                resyncSeconds: config.interval,
-                batchSize: config.batch,
-                initialCheckpoint,
-                onStatusChange: (status) =>
-                  set((state) => ({
-                    statuses: {
-                      ...state.statuses,
-                      [`${config.name}_${ds.id}`]: {
-                        ...state.statuses[`${config.name}_${ds.id}`],
-                        ...(status as ReplicationStatus),
-                      },
-                    },
-                  })),
-              },
-            )
-            await module.start()
-            engineModules.push(module)
-          }
-        }
         set({ db, isInitialized: true })
       } catch (err) {
         console.error('[SYNC] Erro:', err)
@@ -571,84 +633,98 @@ export const createSyncStore = (
 }
 
 // --- PROVIDER ---
-export const SyncProvider: React.FC<{
-  children: ReactNode
-}> = ({ children }) => {
+export const SyncProvider: React.FC<{ children: ReactNode }> = ({
+  children,
+}) => {
   const { isDevelopment } = useEnvironment()
   const { workspace } = useWorkspace()
   const client = useClient()
+  const { connections } = useDataSourceConnections()
+
   const [activeStore, setActiveStore] = useState<StoreApi<SyncStore> | null>(
     null,
   )
 
-  // Refs para controle de instância única de BANCO
   const currentWorkspaceId = useRef<string | null>(null)
+  const activeStoreRef = useRef<StoreApi<SyncStore> | null>(null)
+  activeStoreRef.current = activeStore
 
-  // Memoizamos os dataSources para evitar loops
-  const dataSources = useMemo(
-    () =>
-      workspace?.dataSourceConnections?.map((c) => ({
-        id: c.id,
-        dataSourceId: c.dataSourceId,
-      })) ?? [],
-    [workspace?.dataSourceConnections],
-  )
+  const startedConnections = useRef<
+    Map<ConnectionInstanceId, { dataSourceId: string }>
+  >(new Map())
 
+  // Workspace muda → recria o banco do zero
   useEffect(() => {
     const nextWorkspaceId = workspace?.id ?? null
 
-    // 1. Se mudou o WORKSPACE, precisamos destruir e criar um banco novo
-    if (currentWorkspaceId.current !== nextWorkspaceId) {
-      if (activeStore) {
-        activeStore.getState().destroy()
-        setActiveStore(null)
-      }
+    if (currentWorkspaceId.current === nextWorkspaceId) return
 
-      if (nextWorkspaceId) {
-        const newStore = createSyncStore(
-          nextWorkspaceId,
-          dataSources,
-          client,
-          isDevelopment,
-        )
-        currentWorkspaceId.current = nextWorkspaceId
-        newStore
-          .getState()
-          .init()
-          .then(() => setActiveStore(newStore))
-      } else {
-        currentWorkspaceId.current = null
-      }
-      return
+    if (activeStoreRef.current) {
+      activeStoreRef.current.getState().destroy()
+      setActiveStore(null)
+      startedConnections.current.clear()
     }
 
-    // 2. Se o workspace é o MESMO, mas as conexões mudaram (login/vínculo)
-    // precisamos REINICIALIZAR o store atual para que ele verifique tokens novos
-    if (activeStore && nextWorkspaceId) {
-      // Pequeno truque: chamamos o init novamente.
-      // Como o init tem o check 'if (get().isInitialized) return', precisamos ajustar o store
-      // Mas a forma mais limpa aqui é recriar o store se houver mudança de conexão
-      // para garantir que os ReplicationModules sejam criados para os novos tokens.
+    currentWorkspaceId.current = nextWorkspaceId
 
-      activeStore
-        .getState()
-        .destroy()
-        .then(() => {
-          const refreshedStore = createSyncStore(
-            nextWorkspaceId,
-            dataSources,
-            client,
-            isDevelopment,
-          )
-          refreshedStore
-            .getState()
-            .init()
-            .then(() => setActiveStore(refreshedStore))
+    if (!nextWorkspaceId) return
+
+    const newStore = createSyncStore(nextWorkspaceId, client, isDevelopment)
+    newStore
+      .getState()
+      .init()
+      .then(() => setActiveStore(newStore))
+      .catch((err) => console.error('[SYNC] Erro ao inicializar store:', err))
+  }, [workspace?.id])
+
+  // Connections mudam → liga/desliga motores individualmente
+  useEffect(() => {
+    const store = activeStoreRef.current
+    if (!store) return
+
+    const { isInitialized, connectDataSource, disconnectDataSource } =
+      store.getState()
+    if (!isInitialized) return
+
+    connections.forEach((conn) => {
+      const connId = conn.connectionId
+      const isAlreadyStarted = startedConnections.current.has(connId)
+
+      if (conn.status === 'connected' && !isAlreadyStarted) {
+        if (!conn.dataSourceId) return
+
+        startedConnections.current.set(connId, {
+          dataSourceId: conn.dataSourceId,
         })
+
+        console.log('[SYNC] STARTING', connId)
+
+        connectDataSource({
+          connectionInstanceId: connId,
+          dataSourceId: conn.dataSourceId,
+        }).catch((err) =>
+          console.error(`[SYNC] Erro ao conectar ${connId}:`, err),
+        )
+      }
+    })
+
+    for (const [connId] of startedConnections.current.entries()) {
+      const currentConn = connections.find((c) => c.connectionId === connId)
+
+      if (!currentConn || currentConn.status !== 'connected') {
+        startedConnections.current.delete(connId)
+
+        console.log('[SYNC] STOPPING', connId)
+
+        disconnectDataSource(connId).catch((err) =>
+          console.error(`[SYNC] Erro ao desconectar ${connId}:`, err),
+        )
+      }
     }
-  }, [workspace?.id, dataSources, client]) // Reage a qualquer mudança nas conexões (login inclusive)
+  }, [connections, activeStore])
 
   if (!activeStore) return <>{children}</>
+
   return (
     <SyncStoreContext.Provider value={activeStore}>
       {children}
@@ -659,6 +735,7 @@ export const SyncProvider: React.FC<{
 const SyncStoreContext = createContext<StoreApi<SyncStore> | undefined>(
   undefined,
 )
+
 export const useSyncStore = <T,>(
   selector: (store: SyncStore) => T,
 ): T | undefined => {
@@ -673,4 +750,32 @@ export function useSyncDrop() {
 
 export async function dropWorkspaceStorage(workspaceId: string) {
   await dropAppStorage(`db-${workspaceId}`)
+}
+
+const EMPTY_STATUS: ReplicationStatus = {
+  isActive: false,
+  isPulling: false,
+  isPushing: false,
+  lastReplication: null,
+  error: null,
+}
+
+export function useConnectionsWithSync() {
+  const { connections } = useDataSourceConnections()
+  const statuses = useSyncStore((s) => s.statuses) ?? {}
+
+  return useMemo(() => {
+    return connections.map((conn) => {
+      const id = conn.connectionId
+
+      return {
+        ...conn,
+        sync: {
+          metadata: statuses[`metadata_${id}`] ?? EMPTY_STATUS,
+          tasks: statuses[`tasks_${id}`] ?? EMPTY_STATUS,
+          timeEntries: statuses[`timeEntries_${id}`] ?? EMPTY_STATUS,
+        },
+      }
+    })
+  }, [connections, statuses])
 }

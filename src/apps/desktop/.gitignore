@@ -1,1 +1,2 @@
 addons
+electron.vite.config.*.mjs

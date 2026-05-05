@@ -15,6 +15,7 @@ import {
   Terminal,
 } from 'lucide-react'
 import { useEffect, useRef, useState } from 'react'
+import { toast } from 'sonner'
 
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
@@ -66,7 +67,7 @@ interface PluginListProps {
 export function DataSourceList({
   selectedPluginId,
   onSelectDataSource,
-  onModalOpenChange, // ← desestrutura aqui
+  onModalOpenChange,
 }: PluginListProps) {
   const client = useClient()
   const logEndRef = useRef<HTMLDivElement>(null)
@@ -97,16 +98,37 @@ export function DataSourceList({
     staleTime: Infinity,
   })
 
-  const { data: installedPlugins, isLoading: loadingInstalled } = useQuery({
-    queryKey: ['plugins', 'installed'],
-    queryFn: () => client.integrations.addons.listInstalled(),
-  })
+  const { data: installedPlugins = [], isLoading: loadingInstalled } = useQuery(
+    {
+      queryKey: ['plugins', 'installed'],
+      queryFn: async () => {
+        const response = await client.integrations.addons.listInstalled()
 
-  const { data: availablePlugins, isLoading: loadingAvailable } = useQuery({
-    queryKey: ['plugins', 'available'],
-    queryFn: () => client.integrations.addons.listAvailable(),
-  })
+        if (!response.isSuccess) {
+          toast.error(response.error ?? 'Falha ao carregar plugins instalados')
+          return []
+        }
 
+        return response.data ?? []
+      },
+    },
+  )
+
+  const { data: availablePlugins = [], isLoading: loadingAvailable } = useQuery(
+    {
+      queryKey: ['plugins', 'available'],
+      queryFn: async () => {
+        const response = await client.integrations.addons.listAvailable()
+
+        if (!response.isSuccess) {
+          toast.error(response.error ?? 'Falha ao carregar plugins disponíveis')
+          return []
+        }
+
+        return response.data ?? []
+      },
+    },
+  )
   // Auto-scroll para os logs
   useEffect(() => {
     logEndRef.current?.scrollIntoView({ behavior: 'smooth' })
@@ -118,11 +140,15 @@ export function DataSourceList({
     onModalOpenChange?.(true)
     setLoadingInstaller(true)
     try {
-      const data = await client.integrations.addons.getInstaller({
+      const response = await client.integrations.addons.getInstaller({
         body: { installerUrl: plugin.installerManifestUrl! },
       })
-      setInstallerData(data)
-      const firstCompatible = data.packages.find(
+
+      if (!response.isSuccess)
+        toast.error(response.error ?? 'Falha ao carregar pacotes de instalação')
+
+      setInstallerData(response.data ?? null)
+      const firstCompatible = response.data?.packages.find(
         (pkg) => pkg.requiredApiVersion === appVersion,
       )
       if (firstCompatible) setSelectedVersion(firstCompatible.version)
