@@ -1,4 +1,4 @@
-import { AppError, Either } from '@metric-org/cross-cutting/helpers'
+import { AppError, Either } from '@metric-org/shared/helpers'
 
 import { PagedResultDTO, WorkspaceDTO } from '@/dtos'
 

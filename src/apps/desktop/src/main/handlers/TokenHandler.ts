@@ -1,6 +1,8 @@
 import { ICredentialsStorage } from '@metric-org/application'
-import { IRequest } from '@metric-org/cross-cutting/transport'
-import { ViewModel } from '@metric-org/presentation/view-models'
+import { IRequest } from '@metric-org/shared/transport'
+import { ViewModel } from '@metric-org/shared/view-models'
+
+import { HandlerBase } from '@/main/handlers/HandlerBase'
 
 export interface TokenRequest {
   service: string
@@ -8,13 +10,13 @@ export interface TokenRequest {
   token?: string
 }
 
-export class TokenHandler {
+export class TokenHandler implements HandlerBase<TokenHandler> {
   constructor(private readonly credentialsStorage: ICredentialsStorage) {}
 
   public async saveToken(
     _event: Electron.IpcMainInvokeEvent,
     { body: { service, account, token } }: IRequest<TokenRequest>,
-  ): Promise<ViewModel<void>> {
+  ): Promise<ViewModel> {
     try {
       if (!token) {
         return {

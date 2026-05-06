@@ -1,4 +1,4 @@
-import { AppError, Either } from '@metric-org/cross-cutting/helpers'
+import { AppError, Either } from '@metric-org/shared/helpers'
 
 import { IDataSourceResolver } from '@/contracts/resolvers'
 import {
@@ -16,7 +16,7 @@ export class MetadataPullService implements IMetadataPullUseCase {
     try {
       const adapter = await this.dataSourceResolver.getDataSource(
         input.workspaceId,
-        input.pluginId,
+
         input.connectionInstanceId,
       )
 

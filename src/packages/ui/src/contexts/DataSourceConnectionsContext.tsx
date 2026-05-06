@@ -59,7 +59,7 @@ export interface DataSourceConnectionsContextType {
 
   disconnect: (
     connectionInstanceId: ConnectionInstanceId,
-  ) => Promise<ViewModel<WorkspaceViewModel> | undefined>
+  ) => Promise<ViewModel<void> | undefined>
 
   getConnection: (
     connectionInstanceId: ConnectionInstanceId,
@@ -177,7 +177,7 @@ export function DataSourceConnectionsProvider({
 
   const unlink = useCallback(
     async (connectionInstanceId?: ConnectionInstanceId) => {
-      if (!workspaceId) return
+      if (!workspaceId || !connectionInstanceId) return
 
       const res = await client.services.workspaces.unlinkDataSource({
         body: {

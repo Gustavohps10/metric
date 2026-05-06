@@ -1,5 +1,5 @@
-import { AppError, Either } from '@metric-org/cross-cutting/helpers'
 import { TimeEntry } from '@metric-org/domain'
+import { AppError, Either } from '@metric-org/shared/helpers'
 
 import {
   IDataSourceResolver,
@@ -41,7 +41,7 @@ export class TimeEntriesPushService implements ITimeEntriesPushUseCase {
 
       const adapter = await this.dataSourceResolver.getDataSource(
         input.workspaceId,
-        input.pluginId,
+
         input.connectionInstanceId,
       )
 

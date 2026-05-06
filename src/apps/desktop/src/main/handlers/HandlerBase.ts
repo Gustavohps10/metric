@@ -1,7 +1,9 @@
-import { ViewModel } from '@metric-org/presentation/view-models'
+import { PaginatedViewModel, ViewModel } from '@metric-org/shared/view-models'
 
-export type HandlerContract<T> = {
+export type HandlerBase<T> = {
   [K in keyof T]: T[K] extends (...args: any[]) => any
-    ? (...args: Parameters<T[K]>) => Promise<ViewModel<any>>
+    ? (
+        ...args: Parameters<T[K]>
+      ) => Promise<ViewModel<any> | PaginatedViewModel<any>>
     : T[K]
 }

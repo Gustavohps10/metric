@@ -13,6 +13,6 @@
   "exclude": ["dist", "node_modules"],
   "references": [
     { "path": "../domain" },
-    { "path": "../cross-cutting" } 
+    { "path": "../shared" } 
   ]
 }

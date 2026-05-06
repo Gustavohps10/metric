@@ -1,5 +1,5 @@
-import { AppError, Either } from '@metric-org/cross-cutting/helpers'
 import { TimeEntry } from '@metric-org/domain'
+import { AppError, Either } from '@metric-org/shared/helpers'
 import type { Mocked } from 'vitest'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 

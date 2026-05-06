@@ -1,7 +1,31 @@
 {
-    "extends": "./tsconfig.base.json",
-    "include": [
-      "vitest.setup.ts",
-      "mocks/**/*.ts"
-    ]
-  }
+  "extends": "./tsconfig.base.json",
+  "compilerOptions": {
+    "baseUrl": ".",
+    "paths": {
+      "@metric-org/application": ["src/packages/application/src"],
+      "@metric-org/application/*": ["src/packages/application/src/*"],
+
+      "@metric-org/adapters": ["src/packages/adapters/src"],
+      "@metric-org/adapters/*": ["src/packages/adapters/src/*"],
+
+      "@metric-org/shared": ["src/packages/shared/src"],
+      "@metric-org/shared/*": ["src/packages/shared/src/*"],
+
+      "@metric-org/domain": ["src/packages/domain/src"],
+      "@metric-org/domain/*": ["src/packages/domain/src/*"],
+
+      "@metric-org/sdk": ["src/apps/sdk/src"],
+      "@metric-org/sdk/*": ["src/apps/sdk/src/*"],
+
+      "@metric-org/ui": ["src/packages/ui/src"],
+      "@metric-org/ui/*": ["src/packages/ui/src/*"]
+    }
+  },
+  "include": [
+    "src/**/*.ts",
+    "src/**/*.tsx",
+    "vitest.setup.ts",
+    "mocks/**/*.ts"
+  ]
+}

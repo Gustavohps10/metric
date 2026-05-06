@@ -1,8 +1,4 @@
-import {
-  IHeaders,
-  IJobResult,
-  IRequest,
-} from '@metric-org/cross-cutting/transport'
+import { IHeaders, IJobResult, IRequest } from '@metric-org/shared/transport'
 import {
   AddonInstallerViewModel,
   AddonManifestViewModel,
@@ -15,11 +11,10 @@ import {
   TimeEntryViewModel,
   ViewModel,
   WorkspaceViewModel,
-} from '@metric-org/presentation/view-models'
+} from '@metric-org/shared/view-models'
 
 import { FileData } from '@/contracts/infra'
 import {
-  ConnectDataSourceInput,
   PushTimeEntriesInput,
   UpdateWorkspaceIdentityInput,
 } from '@/contracts/use-cases'
@@ -48,9 +43,9 @@ export interface IWorkspacesAPI {
     }>,
   ): Promise<ViewModel<WorkspaceViewModel>>
 
-  markAsConfigured(
+  markWorkspaceAsConfigured(
     input: IRequest<{ workspaceId: string }>,
-  ): Promise<ViewModel<ViewModel>>
+  ): Promise<ViewModel>
 
   getById(
     input: IRequest<{ workspaceId: string }>,
@@ -74,14 +69,18 @@ export interface IWorkspacesAPI {
   unlinkDataSource(
     input: IRequest<{
       workspaceId: string
-      connectionInstanceId?: string
+      connectionInstanceId: string
     }>,
   ): Promise<ViewModel<WorkspaceViewModel>>
 
   connectDataSource(
-    input: IRequest<
-      ConnectDataSourceInput<Record<string, unknown>, Record<string, unknown>>
-    >,
+    input: IRequest<{
+      workspaceId: string
+      pluginId: string
+      connectionInstanceId: string
+      credentials: Record<string, unknown>
+      configuration: Record<string, unknown>
+    }>,
   ): Promise<ViewModel<ConnectionResultViewModel>>
 
   disconnectDataSource(
@@ -89,7 +88,7 @@ export interface IWorkspacesAPI {
       workspaceId: string
       connectionInstanceId: string
     }>,
-  ): Promise<ViewModel<WorkspaceViewModel>>
+  ): Promise<ViewModel>
 
   getConnectionMember(
     input: IRequest<{
@@ -102,15 +101,14 @@ export interface IWorkspacesAPI {
     input: IRequest<UpdateWorkspaceIdentityInput>,
   ): Promise<ViewModel<WorkspaceViewModel>>
 
-  delete(input: IRequest<{ workspaceId: string }>): Promise<ViewModel>
+  delete(input: IRequest<{ workspaceId: string }>): Promise<ViewModel<void>>
 }
 
 export interface ISessionAPI {
   getCurrentUser(
     input: IRequest<{
       workspaceId: string
-      pluginId?: string
-      connectionInstanceId?: string
+      connectionInstanceId: string
     }>,
   ): Promise<ViewModel<MemberViewModel>>
 }
@@ -119,7 +117,6 @@ export interface ITaskAPI {
   listTasks: (
     input: IRequest<{
       workspaceId: string
-      pluginId: string
       connectionInstanceId: string
     }>,
   ) => Promise<PaginatedViewModel<TaskViewModel[]>>
@@ -127,9 +124,7 @@ export interface ITaskAPI {
   pull: (
     payload: IRequest<{
       workspaceId: string
-      pluginId: string
       connectionInstanceId: string
-      memberId: string
       checkpoint: { updatedAt: Date; id: string }
       batch: number
     }>,
@@ -140,9 +135,7 @@ export interface IMetadataAPI {
   pull: (
     payload: IRequest<{
       workspaceId: string
-      pluginId: string
       connectionInstanceId: string
-      memberId: string
       checkpoint: { updatedAt: Date; id: string }
       batch: number
     }>,
@@ -150,12 +143,10 @@ export interface IMetadataAPI {
 }
 
 export interface ITimeEntriesAPI {
-  findByMemberId: (
+  listTimeEntries: (
     payload: IRequest<{
       workspaceId: string
-      pluginId: string
       connectionInstanceId: string
-      memberId: string
       startDate: Date
       endDate: Date
     }>,
@@ -164,17 +155,15 @@ export interface ITimeEntriesAPI {
   pull: (
     payload: IRequest<{
       workspaceId: string
-      pluginId: string
       connectionInstanceId: string
-      memberId: string
       checkpoint: { updatedAt: Date; id: string }
       batch: number
     }>,
-  ) => Promise<TimeEntryViewModel[]>
+  ) => Promise<ViewModel<TimeEntryViewModel[]>>
 
   push: (
     payload: IRequest<PushTimeEntriesInput>,
-  ) => Promise<SyncDocumentViewModel<TimeEntryViewModel>[]>
+  ) => Promise<ViewModel<SyncDocumentViewModel<TimeEntryViewModel>[]>>
 }
 
 export interface IHeadersAPI {
@@ -187,7 +176,7 @@ export interface ITokenStorageAPI {
     request: IRequest<{
       service: string
       account: string
-      token: string
+      token?: string
     }>,
   ): Promise<ViewModel<void>>
 
@@ -242,6 +231,7 @@ export interface AddonInstaller {
     changelog: string[]
   }[]
 }
+
 export interface IAddonsAPI {
   listAvailable(): Promise<PaginatedViewModel<AddonManifestViewModel[]>>
 

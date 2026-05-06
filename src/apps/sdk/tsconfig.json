@@ -1,0 +1,19 @@
+{
+  "extends": "../../../tsconfig.base.json",
+  "compilerOptions": {
+    "composite": true,
+    "outDir": "dist",
+    "rootDir": "src",
+    "paths": {
+      "@/*": ["./src/*"], 
+    }
+  },
+  "include": ["src", "../application/src/contracts/data"],
+  "exclude": ["dist", "node_modules"],
+  "references": [
+    { "path": "../../packages/application" },
+    { "path": "../../packages/shared" },
+    { "path": "../../packages/adapters" },
+    { "path": "../../packages/ui" }
+  ]
+}

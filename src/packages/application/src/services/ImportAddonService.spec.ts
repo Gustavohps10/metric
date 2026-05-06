@@ -1,4 +1,4 @@
-import { AppError, Either } from '@metric-org/cross-cutting/helpers'
+import { AppError, Either } from '@metric-org/shared/helpers'
 import type { Mocked } from 'vitest'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
@@ -36,6 +36,7 @@ describe('ImportAddonService', () => {
     fileManagerMock = {
       zip: vi.fn(),
       unzipInMemory: vi.fn(),
+      getMimeType: vi.fn(),
     } as Mocked<IFileManager>
 
     addonsFacadeMock = {

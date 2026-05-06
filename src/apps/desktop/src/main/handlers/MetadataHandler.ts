@@ -3,14 +3,17 @@ import {
   IMetadataPullUseCase,
   PullMetadataInput,
 } from '@metric-org/application/contracts/use-cases/IMetadataPullUseCase'
-import { AppError, Either } from '@metric-org/cross-cutting/helpers'
-import { IRequest } from '@metric-org/cross-cutting/transport'
 import {
-  MetadataViewModel,
-  ViewModel,
-} from '@metric-org/presentation/view-models'
+  AppError,
+  createResponseViewModel,
+  Either,
+} from '@metric-org/shared/helpers'
+import { IRequest } from '@metric-org/shared/transport'
+import { MetadataViewModel, ViewModel } from '@metric-org/shared/view-models'
 
-export class MetadataHandler {
+import { HandlerBase } from '@/main/handlers/HandlerBase'
+
+export class MetadataHandler implements HandlerBase<MetadataHandler> {
   constructor(private readonly metadataPullService: IMetadataPullUseCase) {}
 
   public async pull(
@@ -20,20 +23,6 @@ export class MetadataHandler {
     const result: Either<AppError, MetadataDTO> =
       await this.metadataPullService.execute(body)
 
-    if (result.isFailure()) {
-      return {
-        statusCode: 500,
-        isSuccess: false,
-        error: 'Erro ao listar metadados',
-      }
-    }
-
-    const metadata: MetadataDTO = result.success
-
-    return {
-      statusCode: 200,
-      isSuccess: true,
-      data: metadata,
-    }
+    return createResponseViewModel(result)
   }
 }

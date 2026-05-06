@@ -4,13 +4,16 @@ import {
   ICredentialsStorage,
   IDisconnectDataSourceUseCase,
 } from '@metric-org/application'
-import { IRequest } from '@metric-org/cross-cutting/transport'
+import { createResponseViewModel } from '@metric-org/shared/helpers'
+import { IRequest } from '@metric-org/shared/transport'
 import {
-  AuthenticationViewModel,
+  ConnectionResultViewModel,
   MemberViewModel,
   ViewModel,
-} from '@metric-org/presentation/view-models'
+} from '@metric-org/shared/view-models'
 import { IpcMainInvokeEvent } from 'electron'
+
+import { HandlerBase } from '@/main/handlers/HandlerBase'
 
 export interface ConnectDataSourceRequest {
   workspaceId: string
@@ -30,7 +33,7 @@ export interface GetConnectionMemberRequest {
   connectionInstanceId: string
 }
 
-export class ConnectionHandler {
+export class ConnectionHandler implements HandlerBase<ConnectionHandler> {
   constructor(
     private readonly connectDataSourceService: IConnectDataSourceUseCase,
     private readonly disconnectDataSourceService: IDisconnectDataSourceUseCase,
@@ -40,7 +43,7 @@ export class ConnectionHandler {
   public async connectDataSource(
     _event: IpcMainInvokeEvent,
     { body }: IRequest<ConnectDataSourceRequest>,
-  ): Promise<ViewModel<AuthenticationViewModel>> {
+  ): Promise<ViewModel<ConnectionResultViewModel>> {
     const result = await this.connectDataSourceService.execute({
       workspaceId: body.workspaceId,
       pluginId: body.pluginId,
@@ -49,19 +52,7 @@ export class ConnectionHandler {
       configuration: body.configuration,
     })
 
-    if (result.isFailure()) {
-      return {
-        isSuccess: false,
-        statusCode: result.failure.statusCode || 401,
-        error: result.failure.messageKey,
-      }
-    }
-
-    return {
-      isSuccess: true,
-      statusCode: 200,
-      data: result.success,
-    }
+    return createResponseViewModel(result)
   }
 
   public async disconnectDataSource(
@@ -73,20 +64,10 @@ export class ConnectionHandler {
       connectionInstanceId: body.connectionInstanceId,
     })
 
-    if (result.isFailure()) {
-      return {
-        isSuccess: false,
-        statusCode: 500,
-        error: result.failure.messageKey,
-      }
-    }
-
-    return {
-      isSuccess: true,
-      statusCode: 200,
-    }
+    return createResponseViewModel(result)
   }
 
+  // DELETAR DEPOIS
   public async getConnectionMember(
     _event: IpcMainInvokeEvent,
     { body }: IRequest<GetConnectionMemberRequest>,

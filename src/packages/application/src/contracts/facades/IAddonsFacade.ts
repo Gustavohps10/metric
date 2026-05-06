@@ -1,5 +1,5 @@
-import { AppError, Either } from '@metric-org/cross-cutting/helpers'
-import { IJobEvent } from '@metric-org/cross-cutting/transport'
+import { AppError, Either } from '@metric-org/shared/helpers'
+import { IJobEvent } from '@metric-org/shared/transport'
 
 import { AddonInstallerDTO } from '@/dtos/AddonInstallerDTO'
 import { AddonManifestDTO } from '@/dtos/AddonManifestDTO'

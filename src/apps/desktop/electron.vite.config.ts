@@ -27,6 +27,7 @@ export default defineConfig({
     ],
     resolve: {
       alias: {
+        '@metric-org/IoC': resolve(__dirname, '../../packages/IoC.ts'),
         '@': resolve(__dirname, 'src'),
       },
     },

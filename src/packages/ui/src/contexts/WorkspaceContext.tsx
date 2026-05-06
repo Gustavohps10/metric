@@ -1,5 +1,5 @@
 import { FileData } from '@metric-org/application'
-import { WorkspaceViewModel } from '@metric-org/presentation/view-models'
+import { WorkspaceViewModel } from '@metric-org/shared/view-models'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { createContext, ReactNode, useContext } from 'react'
 import { useNavigate } from 'react-router'

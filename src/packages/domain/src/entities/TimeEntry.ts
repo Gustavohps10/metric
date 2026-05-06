@@ -1,8 +1,4 @@
-import {
-  AppError,
-  Either,
-  FieldErrors,
-} from '@metric-org/cross-cutting/helpers'
+import { AppError, Either, FieldErrors } from '@metric-org/shared/helpers'
 import z from 'zod'
 
 import { Entity } from '@/entities/Entity'

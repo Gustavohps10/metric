@@ -1,5 +1,5 @@
-import { AppError, Either } from '@metric-org/cross-cutting/helpers'
 import { Workspace } from '@metric-org/domain'
+import { AppError, Either } from '@metric-org/shared/helpers'
 
 import {
   CreateWorkspaceInput,
