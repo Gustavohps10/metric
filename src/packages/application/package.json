@@ -17,8 +17,8 @@
     "clean": "rimraf dist .turbo"
   },
   "dependencies": {
-    "@metric-org/cross-cutting": "workspace:*",
-    "@metric-org/domain": "workspace:*"
+    "@metric-org/domain": "workspace:*",
+    "@metric-org/shared": "workspace:*"
   },
   "devDependencies": {
     "typescript": "^5.8.3"

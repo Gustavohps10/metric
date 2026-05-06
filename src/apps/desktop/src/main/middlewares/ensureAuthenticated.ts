@@ -3,9 +3,9 @@ import {
   IServiceProvider,
   ISessionManager,
 } from '@metric-org/application'
-import { Either } from '@metric-org/cross-cutting/helpers'
-import { IRequest } from '@metric-org/cross-cutting/transport'
-import { ViewModel } from '@metric-org/presentation/view-models'
+import { Either } from '@metric-org/shared/helpers'
+import { IRequest } from '@metric-org/shared/transport'
+import { ViewModel } from '@metric-org/shared/view-models'
 
 type NextFunction<TRes> = () => Promise<Either<any, TRes>>
 

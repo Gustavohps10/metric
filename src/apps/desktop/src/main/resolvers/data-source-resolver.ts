@@ -31,7 +31,6 @@ export class DataSourceResolver implements IDataSourceResolver {
 
   async getDataSource(
     workspaceId: string,
-    pluginId: string,
     connectionInstanceId: string,
     contextOverride?: DataSourceContext,
   ): Promise<IDataSourceAdapter> {
@@ -71,7 +70,9 @@ export class DataSourceResolver implements IDataSourceResolver {
       }
     }
 
-    const datasource = await this.loadModule(pluginId)
+    if (!connection) throw new Error(`Conexao invalida`)
+
+    const datasource = await this.loadModule(connection.dataSourceId)
 
     return {
       getAuthenticatedMemberData: () => {

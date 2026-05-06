@@ -1,6 +1,6 @@
 'use client'
 
-import { WorkspaceViewModel } from '@metric-org/presentation/view-models'
+import { WorkspaceViewModel } from '@metric-org/shared/view-models'
 import { useQueryClient } from '@tanstack/react-query'
 import { AnimatePresence, motion } from 'framer-motion'
 import {

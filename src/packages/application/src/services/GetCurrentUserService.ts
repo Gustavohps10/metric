@@ -1,4 +1,4 @@
-import { AppError, Either } from '@metric-org/cross-cutting/helpers'
+import { AppError, Either } from '@metric-org/shared/helpers'
 
 import {
   GetCurrentUserInput,
@@ -38,7 +38,6 @@ export class GetCurrentUserService implements IGetCurrentUserUseCase {
 
       const adapter = await this.dataSourceResolver.getDataSource(
         input.workspaceId,
-        connection.dataSourceId,
         connection.id,
       )
 

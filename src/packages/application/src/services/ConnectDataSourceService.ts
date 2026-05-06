@@ -1,4 +1,4 @@
-import { AppError, Either } from '@metric-org/cross-cutting/helpers'
+import { AppError, Either } from '@metric-org/shared/helpers'
 
 import {
   ConnectDataSourceInput,
@@ -35,7 +35,6 @@ export class ConnectDataSourceService implements IConnectDataSourceUseCase {
 
       const adapter = await this.dataSourceResolver.getDataSource(
         input.workspaceId,
-        input.pluginId,
         input.connectionInstanceId,
         {
           config: input.configuration,

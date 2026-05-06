@@ -19,7 +19,6 @@ export interface IDataSourceResolver {
   getDataSource(
     workspaceId: string,
     pluginId: string,
-    connectionInstanceId: string,
     contextOverride?: DataSourceContext,
   ): Promise<IDataSourceAdapter>
 

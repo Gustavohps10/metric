@@ -1,5 +1,5 @@
-import { AppError } from '@metric-org/cross-cutting/helpers'
 import { Workspace } from '@metric-org/domain'
+import { AppError } from '@metric-org/shared/helpers'
 import type { Mocked } from 'vitest'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 

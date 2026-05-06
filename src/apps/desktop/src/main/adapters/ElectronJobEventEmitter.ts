@@ -1,6 +1,6 @@
 import { EventEmitter } from 'node:events'
 
-import { IEventEmitter, IJobEvents } from '@metric-org/cross-cutting/transport'
+import { IEventEmitter, IJobEvents } from '@metric-org/shared/transport'
 import { BrowserWindow } from 'electron'
 
 export class ElectronJobEventEmitter implements IEventEmitter<IJobEvents> {

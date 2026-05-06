@@ -1,7 +1,7 @@
 'use client'
 
 import { AddonInstaller, AddonManifest } from '@metric-org/application'
-import { IJobEvent } from '@metric-org/cross-cutting/transport'
+import { IJobEvent } from '@metric-org/shared/transport'
 import { useQuery } from '@tanstack/react-query'
 import { motion } from 'framer-motion'
 import {

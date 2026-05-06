@@ -1,4 +1,4 @@
-import { AppError, Either } from '@metric-org/cross-cutting/helpers'
+import { AppError, Either } from '@metric-org/shared/helpers'
 
 import { IWorkspacesQuery } from '@/contracts/data/queries'
 import { IListWorkspacesUseCase } from '@/contracts/use-cases/IListWorkspacesUseCase'

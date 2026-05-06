@@ -1,4 +1,3 @@
-// src/renderer/main.tsx (ou onde você monta o App)
 import '@/renderer/index.css'
 
 import { queryClient } from '@metric-org/ui/lib'
@@ -14,7 +13,7 @@ import { NuqsAdapter } from 'nuqs/adapters/react-router/v6'
 import { useEffect, useState } from 'react'
 import { RouterProvider } from 'react-router-dom'
 
-import { ipcClient } from '@/renderer/client'
+import { ipcClient } from '@/renderer/ipcClient'
 import { router } from '@/renderer/routes'
 
 const defaultEnvironment = { isDevelopment: false }

@@ -1,6 +1,6 @@
 import { ipcMain } from 'electron'
 
-import { IpcChannels } from '@/main/constants/IpcChannels'
+import { IpcChannels } from '@/main/IpcChannels'
 
 export class IpcHandler {
   static handle<T>(

@@ -37,6 +37,9 @@
     "shadcn": "yarn --cwd src/packages/ui dlx shadcn@canary ",
     "puml": "tsup puml.ts --format esm --out-dir dist --clean && node --enable-source-maps dist/puml.js"
   },
+  "dependencies": {
+    "awilix": "^12.0.5"
+  },
   "devDependencies": {
     "@changesets/cli": "^2.29.6",
     "@commitlint/cli": "^19.8.0",

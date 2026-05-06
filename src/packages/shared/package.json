@@ -1,0 +1,30 @@
+{
+  "name": "@metric-org/shared",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Conjunto de helpers que servem para todas as camadas.",
+  "type": "module",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    "./transport": {
+      "import": "./dist/transport/index.js",
+      "types": "./dist/transport/index.d.ts"
+    },
+    "./view-models": {
+      "import": "./dist/view-models/index.js",
+      "types": "./dist/view-models/index.d.ts"
+    },
+    "./helpers": {
+      "import": "./dist/helpers/index.js",
+      "types": "./dist/helpers/index.d.ts"
+    }
+  },
+  "scripts": {
+    "build": "tsup --format esm,cjs --dts",
+    "clean": "rimraf dist .turbo"
+  },
+  "devDependencies": {
+    "typescript": "^5.8.3"
+  }
+}

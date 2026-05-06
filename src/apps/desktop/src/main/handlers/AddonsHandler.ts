@@ -4,21 +4,22 @@ import {
   IAddonsFacade,
   IImportAddonUseCase,
 } from '@metric-org/application'
+import { createResponseViewModel } from '@metric-org/shared/helpers'
 import {
   IEventEmitter,
   IJobEvents,
   IJobResult,
   IRequest,
-} from '@metric-org/cross-cutting/transport'
+} from '@metric-org/shared/transport'
 import {
   AddonInstallerViewModel,
   AddonManifestViewModel,
   PaginatedViewModel,
   ViewModel,
-} from '@metric-org/presentation/view-models'
+} from '@metric-org/shared/view-models'
 import { app, type IpcMainInvokeEvent } from 'electron'
 
-import { HandlerContract } from '@/main/handlers/HandlerBase'
+import { HandlerBase } from '@/main/handlers/HandlerBase'
 import {
   FAKE_DATASOURCE_ADDON_ID,
   REDMINE4TEST_ADDON_ID,
@@ -59,7 +60,7 @@ function isDevelopment(): boolean {
   return !app.isPackaged
 }
 
-export class AddonsHandler implements HandlerContract<AddonsHandler> {
+export class AddonsHandler implements HandlerBase<AddonsHandler> {
   constructor(
     private readonly importAddonService: IImportAddonUseCase,
     private readonly addonsFacade: IAddonsFacade,
@@ -71,23 +72,21 @@ export class AddonsHandler implements HandlerContract<AddonsHandler> {
     _req?: IRequest,
   ): Promise<PaginatedViewModel<AddonManifestViewModel[]>> {
     const result = await this.addonsFacade.listAvailable()
-    if (result.isFailure())
+
+    const mappedResult = result.map((items) => {
+      const viewModels = items.map((item) => ({
+        ...item,
+      }))
+
       return {
-        isSuccess: false,
-        totalItems: 0,
+        data: viewModels,
+        totalItems: items.length,
         totalPages: 1,
         currentPage: 1,
-        statusCode: result.failure.statusCode,
-        error: result.failure.messageKey,
       }
-    return {
-      isSuccess: true,
-      statusCode: 200,
-      data: result.success,
-      totalItems: result.success.length,
-      totalPages: 1,
-      currentPage: 1,
-    }
+    })
+
+    return createResponseViewModel(mappedResult)
   }
 
   public async listInstalled(
@@ -107,31 +106,26 @@ export class AddonsHandler implements HandlerContract<AddonsHandler> {
 
     const result = await this.addonsFacade.listInstalled()
 
-    if (result.isFailure()) {
+    const mappedResult = result.map((items) => {
+      const viewModels = items.map((item) => ({
+        ...item,
+      }))
+
       return {
-        isSuccess: false,
-        totalItems: 0,
+        data: viewModels,
+        totalItems: items.length,
         totalPages: 1,
         currentPage: 1,
-        statusCode: result.failure.statusCode,
-        error: result.failure.messageKey,
       }
-    }
+    })
 
-    return {
-      isSuccess: true,
-      statusCode: 200,
-      data: result.success,
-      totalItems: result.success.length,
-      totalPages: 1,
-      currentPage: 1,
-    }
+    return createResponseViewModel(mappedResult)
   }
 
   public async getInstalledById(
     _event: IpcMainInvokeEvent,
     { body }: IRequest<{ addonId: string }>,
-  ): Promise<ViewModel<AddonManifest>> {
+  ): Promise<ViewModel<AddonManifestViewModel>> {
     if (isDevelopment()) {
       const dev = DEV_ADDONS.find((a) => a.id === body.addonId)
       if (dev) {
@@ -139,33 +133,8 @@ export class AddonsHandler implements HandlerContract<AddonsHandler> {
       }
     }
     const result = await this.addonsFacade.getInstalledById(body.addonId)
-    if (result.isFailure()) {
-      return {
-        isSuccess: false,
-        statusCode: result.failure.statusCode,
-        error: result.failure.messageKey,
-      }
-    }
 
-    const a = result.success
-    return {
-      isSuccess: true,
-      statusCode: 200,
-      data: {
-        id: a.id,
-        version: a.version,
-        name: a.name,
-        creator: a.creator,
-        description: a.description,
-        path: a.path || '',
-        logo: a.logo,
-        downloads: a.downloads ?? 0,
-        stars: a.stars ?? 0,
-        installed: true,
-        sourceUrl: a.sourceUrl,
-        tags: a.tags,
-      },
-    }
+    return createResponseViewModel(result)
   }
 
   public async getInstaller(
@@ -174,19 +143,7 @@ export class AddonsHandler implements HandlerContract<AddonsHandler> {
   ): Promise<ViewModel<AddonInstallerViewModel>> {
     const result = await this.addonsFacade.getInstaller(body.installerUrl)
 
-    if (result.isFailure()) {
-      return {
-        isSuccess: false,
-        statusCode: result.failure.statusCode,
-        error: result.failure.messageKey,
-      }
-    }
-
-    return {
-      isSuccess: true,
-      statusCode: 200,
-      data: result.success,
-    }
+    return createResponseViewModel(result)
   }
 
   public async updateLocal(
@@ -213,18 +170,7 @@ export class AddonsHandler implements HandlerContract<AddonsHandler> {
   ): Promise<ViewModel> {
     const result = await this.importAddonService.execute(body.addon)
 
-    if (result.isFailure()) {
-      return {
-        isSuccess: false,
-        error: result.failure.messageKey,
-        statusCode: result.failure.statusCode,
-      }
-    }
-
-    return {
-      isSuccess: true,
-      statusCode: 200,
-    }
+    return createResponseViewModel(result)
   }
 
   public async install(

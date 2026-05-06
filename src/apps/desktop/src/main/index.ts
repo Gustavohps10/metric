@@ -1,11 +1,11 @@
 import { electronApp, is, optimizer } from '@electron-toolkit/utils'
-import { ContainerBuilder, PlatformDependencies } from '@metric-org/container'
 import {
   JSONWorkspacesQuery,
   JSONWorkspacesRepository,
-} from '@metric-org/infra/data'
-import { KeytarTokenStorage } from '@metric-org/infra/tools'
-import { NodeFileStorage } from '@metric-org/infra/tools'
+} from '@metric-org/adapters/data'
+import { KeytarTokenStorage } from '@metric-org/adapters/tools'
+import { HardDiskStorage } from '@metric-org/adapters/tools'
+import { ContainerBuilder, PlatformDependencies } from '@metric-org/IoC'
 import {
   app,
   BrowserWindow,
@@ -34,7 +34,7 @@ import { AddonsHandler } from '@/main/handlers/AddonsHandler'
 import { MetadataHandler } from '@/main/handlers/MetadataHandler'
 import { WorkspacesHandler } from '@/main/handlers/WorkspacesHandler'
 import { DataSourceResolver } from '@/main/resolvers/data-source-resolver'
-import { openIpcRoutes } from '@/main/routes/openIpcRoutes'
+import { openIpcRoutes } from '@/main/routes'
 
 let mainWindow: BrowserWindow | null = null
 let tray: Tray | null = null
@@ -197,7 +197,7 @@ app.whenReady().then(async () => {
   const workspacesRepository = new JSONWorkspacesRepository(userDataPath)
   const workspacesQuery = new JSONWorkspacesQuery(userDataPath)
   const eventEmitter = new ElectronJobEventEmitter(() => mainWindow)
-  const nodeFileStorage = new NodeFileStorage(userDataPath, 'metric-app://')
+  const nodeFileStorage = new HardDiskStorage(userDataPath, 'metric-app://')
   const localDataSourceResolver = new DataSourceResolver(
     workspacesRepository,
     credentialsStorage,

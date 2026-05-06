@@ -1,5 +1,5 @@
-import { AddonManifest, FileData, IAddonsAPI } from '@metric-org/application'
-import { IRequest } from '@metric-org/cross-cutting/transport'
+import { FileData, IAddonsAPI } from '@metric-org/application'
+import { IRequest } from '@metric-org/shared/transport'
 
 import { IpcInvoker } from '@/main/adapters/IpcInvoker'
 
@@ -10,8 +10,7 @@ export const addonsInvoker: IAddonsAPI = {
   listAvailable: () => IpcInvoker.invoke('ADDONS_LIST_AVAILABLE'),
   listInstalled: () => IpcInvoker.invoke('ADDONS_LIST_INSTALLED'),
 
-  updateLocal: (addon: AddonManifest) =>
-    IpcInvoker.invoke('ADDONS_UPDATE_LOCAL', { body: addon }), // ERRADO ALTERAR PAYLOAD
+  updateLocal: (payload) => IpcInvoker.invoke('ADDONS_UPDATE_LOCAL', payload),
 
   import: (payload: IRequest<{ addon: FileData }>) =>
     IpcInvoker.invoke('ADDONS_IMPORT', payload),

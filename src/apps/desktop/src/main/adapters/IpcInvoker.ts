@@ -1,7 +1,7 @@
-import { IHeaders, IRequest } from '@metric-org/cross-cutting/transport'
+import { IHeaders, IRequest } from '@metric-org/shared/transport'
 import { ipcRenderer } from 'electron'
 
-import { IpcChannels } from '@/main/constants/IpcChannels'
+import { IpcChannels } from '@/main/IpcChannels'
 
 export class IpcInvoker {
   private static defaultHeaders: IHeaders = {}

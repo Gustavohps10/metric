@@ -1,19 +1,22 @@
 import { IGetCurrentUserUseCase } from '@metric-org/application'
 import { MemberDTO } from '@metric-org/application'
-import { AppError, Either } from '@metric-org/cross-cutting/helpers'
-import { IRequest } from '@metric-org/cross-cutting/transport'
 import {
-  MemberViewModel,
-  ViewModel,
-} from '@metric-org/presentation/view-models'
+  AppError,
+  createResponseViewModel,
+  Either,
+} from '@metric-org/shared/helpers'
+import { IRequest } from '@metric-org/shared/transport'
+import { MemberViewModel, ViewModel } from '@metric-org/shared/view-models'
 import { IpcMainInvokeEvent } from 'electron'
+
+import { HandlerBase } from '@/main/handlers/HandlerBase'
 
 export interface GetCurrentUserRequest {
   workspaceId: string
   connectionInstanceId: string
 }
 
-export class SessionHandler {
+export class SessionHandler implements HandlerBase<SessionHandler> {
   constructor(private readonly getCurrentUserService: IGetCurrentUserUseCase) {}
 
   public async getCurrentUser(
@@ -26,21 +29,6 @@ export class SessionHandler {
         connectionInstanceId: body.connectionInstanceId,
       })
 
-    if (result.isFailure()) {
-      return {
-        statusCode: 500,
-        isSuccess: false,
-        error:
-          result.failure.messageKey || 'Falha ao encontrar usuario da sessao',
-      }
-    }
-
-    const member: MemberViewModel = result.success
-
-    return {
-      statusCode: 200,
-      isSuccess: true,
-      data: member,
-    }
+    return createResponseViewModel(result)
   }
 }

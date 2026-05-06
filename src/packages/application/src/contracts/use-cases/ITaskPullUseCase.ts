@@ -1,12 +1,10 @@
-import { AppError, Either } from '@metric-org/cross-cutting/helpers'
+import { AppError, Either } from '@metric-org/shared/helpers'
 
 import { TaskDTO } from '@/dtos'
 
 export type PullTasksInput = {
   workspaceId: string
-  pluginId: string
   connectionInstanceId: string
-  memberId: string
   checkpoint: { updatedAt: Date; id: string }
   batch: number
 }

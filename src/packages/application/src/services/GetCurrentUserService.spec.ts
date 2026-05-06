@@ -1,5 +1,5 @@
-import { AppError, Either } from '@metric-org/cross-cutting/helpers'
 import { Workspace } from '@metric-org/domain'
+import { AppError, Either } from '@metric-org/shared/helpers'
 import type { Mocked } from 'vitest'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
@@ -102,7 +102,6 @@ describe('GetCurrentUserService', () => {
     )
     expect(dataSourceResolverMock.getDataSource).toHaveBeenCalledWith(
       input.workspaceId,
-      'plugin-1',
       input.connectionInstanceId,
     )
     expect(adapterMock.getAuthenticatedMemberData).toHaveBeenCalled()

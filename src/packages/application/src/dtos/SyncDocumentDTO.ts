@@ -1,4 +1,4 @@
-import { AppError } from '@metric-org/cross-cutting/helpers'
+import { AppError } from '@metric-org/shared/helpers'
 
 export type SyncDocumentDTO<T> = T & {
   _deleted?: boolean

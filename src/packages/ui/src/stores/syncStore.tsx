@@ -4,7 +4,7 @@ import { IApplicationAPI } from '@metric-org/application'
 import {
   TaskViewModel,
   TimeEntryViewModel,
-} from '@metric-org/presentation/view-models'
+} from '@metric-org/shared/view-models'
 import {
   createContext,
   ReactNode,
@@ -154,9 +154,7 @@ class MetadataStrategy implements IReplicationStrategy<
     const res = await this.client.services.metadata.pull({
       body: {
         workspaceId: this.workspaceId,
-        pluginId: this.pluginId,
         connectionInstanceId: this.connectionInstanceId,
-        memberId: '',
         batch: batchSize,
         checkpoint: {
           id: checkpoint?.id || '',
@@ -218,9 +216,7 @@ class TasksStrategy implements IReplicationStrategy<
     const res = await this.client.services.tasks.pull({
       body: {
         workspaceId: this.workspaceId,
-        pluginId: this.pluginId,
         connectionInstanceId: this.connectionInstanceId,
-        memberId: '',
         batch: batchSize,
         checkpoint: {
           id: checkpoint?.id || '',
@@ -287,9 +283,7 @@ class TimeEntriesStrategy implements IReplicationStrategy<
     const res = await this.client.services.timeEntries.pull({
       body: {
         workspaceId: this.workspaceId,
-        pluginId: this.pluginId,
         connectionInstanceId: this.connectionInstanceId,
-        memberId: '230',
         batch: batchSize,
         checkpoint: {
           id: checkpoint?.id || '',
@@ -298,7 +292,7 @@ class TimeEntriesStrategy implements IReplicationStrategy<
       },
     })
 
-    const data: TimeEntryViewModel[] = res || []
+    const data: TimeEntryViewModel[] = res.data || []
     if (data.length === 0) return { documents: [], checkpoint: checkpoint! }
     const last = data[data.length - 1]
 

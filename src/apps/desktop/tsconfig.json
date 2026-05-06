@@ -1,14 +1,15 @@
 {
   "extends": "../../../tsconfig.base.json",
   "compilerOptions": {
+    "rootDir": "../../",
     "outDir": "dist",
     "baseUrl": ".",
     "paths": {
       "@/*": ["./src/*"],
+      "@metric-org/IoC": ["../../packages/IoC.ts"],
       "@metric-org/application/*": ["../../packages/application/src/*"],
-      "@metric-org/presentation/*": ["../../packages/presentation/src/*"],
-      "@metric-org/cross-cutting/*": ["../../packages/cross-cutting/src/*"],
-      "@metric-org/container/*": ["../../packages/container/src/*"],
+      "@metric-org/shared/*": ["../../packages/shared/src/*"],
+      "@metric-org/adapters/*": ["../../packages/adapters/src/*"],
       "@metric-org/ui/*": ["../../packages/ui/src/*"]
     },
     "types": ["electron-vite/node", "node"]
@@ -18,13 +19,13 @@
     "src/main/**/*",
     "src/preload/**/*",
     "src/renderer/**/*",
-    "src/renderer/@types"
+    "src/renderer/@types",
+    "../../packages/IoC.ts"
   ],
   "references": [
     { "path": "../../packages/application" },
-    { "path": "../../packages/presentation" },
-    { "path": "../../packages/cross-cutting" },
-    { "path": "../../packages/container" },
+    { "path": "../../packages/shared" },
+    { "path": "../../packages/adapters" },
     { "path": "../../packages/ui" }
   ]
 }

@@ -17,15 +17,18 @@ import {
   IMarkWorkspaceAsConfiguredUseCase,
   MarkWorkspaceAsConfiguredInput,
 } from '@metric-org/application/contracts/use-cases/IMarkWorkspaceAsConfiguredUseCase'
-import { IRequest } from '@metric-org/cross-cutting/transport'
+import { createResponseViewModel } from '@metric-org/shared/helpers'
+import { IRequest } from '@metric-org/shared/transport'
 import {
   ConnectionResultViewModel,
   MemberViewModel,
   PaginatedViewModel,
   ViewModel,
   WorkspaceViewModel,
-} from '@metric-org/presentation/view-models'
+} from '@metric-org/shared/view-models'
 import { IpcMainInvokeEvent } from 'electron'
+
+import { HandlerBase } from '@/main/handlers/HandlerBase'
 
 export interface GetWorkspaceByIdRequest {
   workspaceId: string
@@ -60,7 +63,7 @@ export interface GetConnectionMemberRequest {
   connectionInstanceId: string
 }
 
-export class WorkspacesHandler {
+export class WorkspacesHandler implements HandlerBase<WorkspacesHandler> {
   constructor(
     private readonly createWorkspaceService: ICreateWorkspaceUseCase,
     private readonly listWorkspacesService: IListWorkspacesUseCase,
@@ -78,23 +81,12 @@ export class WorkspacesHandler {
   public async markWorkspaceAsConfigured(
     _event: IpcMainInvokeEvent,
     { body: { workspaceId } }: IRequest<MarkWorkspaceAsConfiguredInput>,
-  ): Promise<ViewModel<ViewModel>> {
+  ): Promise<ViewModel> {
     const result = await this.markWorkspaceAsConfiguredService.execute({
       workspaceId,
     })
 
-    if (result.isFailure()) {
-      return {
-        isSuccess: false,
-        statusCode: result.failure.statusCode || 500,
-        error: result.failure.messageKey,
-      }
-    }
-
-    return {
-      isSuccess: true,
-      statusCode: 200,
-    }
+    return createResponseViewModel(result)
   }
 
   public async create(
@@ -107,46 +99,22 @@ export class WorkspacesHandler {
       description,
     })
 
-    if (result.isFailure()) {
-      return {
-        isSuccess: false,
-        statusCode: result.failure.statusCode || 500,
-        error: result.failure.messageKey,
-      }
-    }
-
-    const ws = result.success
-    return {
-      isSuccess: true,
-      statusCode: 201,
-      data: ws,
-    }
+    return createResponseViewModel(result, 201)
   }
 
   public async listAll(): Promise<PaginatedViewModel<WorkspaceViewModel[]>> {
     const result = await this.listWorkspacesService.execute()
 
-    if (result.isFailure()) {
-      return {
-        statusCode: 500,
-        isSuccess: false,
-        error: 'Erro ao listar workspaces',
-        data: [],
-        totalItems: 0,
-        totalPages: 0,
-        currentPage: 1,
-      }
-    }
+    const mappedResult = result.map((paged) => ({
+      data: paged.items.map((workspace) => ({
+        ...workspace,
+      })),
+      totalItems: paged.total,
+      totalPages: Math.ceil(paged.total / (paged.pageSize || 1)),
+      currentPage: paged.page || 1,
+    }))
 
-    const pagedDto = result.success
-    return {
-      statusCode: 200,
-      isSuccess: true,
-      data: pagedDto.items.map((w) => w),
-      totalItems: pagedDto.total,
-      totalPages: Math.ceil(pagedDto.total / (pagedDto.pageSize || 1)),
-      currentPage: pagedDto.page || 1,
-    }
+    return createResponseViewModel(mappedResult)
   }
 
   public async getById(
@@ -155,20 +123,7 @@ export class WorkspacesHandler {
   ): Promise<ViewModel<WorkspaceViewModel>> {
     const result = await this.getWorkspaceService.execute(body)
 
-    if (result.isFailure()) {
-      return {
-        isSuccess: false,
-        statusCode: result.failure.statusCode || 404,
-        error: result.failure.messageKey,
-      }
-    }
-
-    const ws = result.success
-    return {
-      isSuccess: true,
-      statusCode: 200,
-      data: ws,
-    }
+    return createResponseViewModel(result)
   }
 
   public async linkDataSource(
@@ -177,20 +132,7 @@ export class WorkspacesHandler {
   ): Promise<ViewModel<WorkspaceViewModel>> {
     const result = await this.linkDataSourceService.execute(body)
 
-    if (result.isFailure()) {
-      return {
-        isSuccess: false,
-        statusCode: 500,
-        error: result.failure.messageKey,
-      }
-    }
-
-    const ws = result.success
-    return {
-      isSuccess: true,
-      statusCode: 200,
-      data: ws,
-    }
+    return createResponseViewModel(result)
   }
 
   public async unlinkDataSource(
@@ -199,20 +141,7 @@ export class WorkspacesHandler {
   ): Promise<ViewModel<WorkspaceViewModel>> {
     const result = await this.unlinkDataSourceService.execute(body)
 
-    if (result.isFailure()) {
-      return {
-        isSuccess: false,
-        statusCode: 500,
-        error: result.failure.messageKey,
-      }
-    }
-
-    const ws = result.success
-    return {
-      isSuccess: true,
-      statusCode: 200,
-      data: ws,
-    }
+    return createResponseViewModel(result)
   }
 
   public async connectDataSource(
@@ -221,19 +150,7 @@ export class WorkspacesHandler {
   ): Promise<ViewModel<ConnectionResultViewModel>> {
     const result = await this.connectDataSourceService.execute(body)
 
-    if (result.isFailure()) {
-      return {
-        isSuccess: false,
-        statusCode: result.failure.statusCode || 401,
-        error: result.failure.messageKey,
-      }
-    }
-
-    return {
-      isSuccess: true,
-      statusCode: 200,
-      data: result.success,
-    }
+    return createResponseViewModel(result)
   }
 
   public async disconnectDataSource(
@@ -242,18 +159,7 @@ export class WorkspacesHandler {
   ): Promise<ViewModel<void>> {
     const result = await this.disconnectDataSourceService.execute(body)
 
-    if (result.isFailure()) {
-      return {
-        isSuccess: false,
-        statusCode: 500,
-        error: result.failure.messageKey,
-      }
-    }
-
-    return {
-      isSuccess: true,
-      statusCode: 200,
-    }
+    return createResponseViewModel(result)
   }
 
   public async getConnectionMember(
@@ -262,19 +168,7 @@ export class WorkspacesHandler {
   ): Promise<ViewModel<MemberViewModel | null>> {
     const result = await this.getCurrentUserService.execute(body)
 
-    if (result.isFailure()) {
-      return {
-        isSuccess: false,
-        statusCode: result.failure.statusCode,
-        error: result.failure.messageKey,
-      }
-    }
-
-    return {
-      isSuccess: true,
-      statusCode: 200,
-      data: result.success,
-    }
+    return createResponseViewModel(result)
   }
 
   public async updateIdentity(
@@ -283,19 +177,7 @@ export class WorkspacesHandler {
   ): Promise<ViewModel<WorkspaceViewModel>> {
     const result = await this.updateWorkspaceIdentityService.execute(body)
 
-    if (result.isFailure()) {
-      return {
-        isSuccess: false,
-        statusCode: result.failure.statusCode || 500,
-        error: result.failure.messageKey,
-      }
-    }
-
-    return {
-      isSuccess: true,
-      statusCode: 200,
-      data: result.success,
-    }
+    return createResponseViewModel(result)
   }
 
   public async delete(
@@ -304,17 +186,6 @@ export class WorkspacesHandler {
   ): Promise<ViewModel<void>> {
     const result = await this.deleteWorkspaceService.execute(body)
 
-    if (result.isFailure()) {
-      return {
-        isSuccess: false,
-        statusCode: result.failure.statusCode || 500,
-        error: result.failure.messageKey,
-      }
-    }
-
-    return {
-      isSuccess: true,
-      statusCode: 200,
-    }
+    return createResponseViewModel(result)
   }
 }
